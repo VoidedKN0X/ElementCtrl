@@ -1,0 +1,395 @@
+package com.vknxworks.elementctrl.ui.onboarding
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.vknxworks.elementctrl.ElementCtrlApp
+import com.vknxworks.elementctrl.data.ServerOption
+import com.vknxworks.elementctrl.data.Servers
+import com.vknxworks.elementctrl.matrix.ServerDetails
+import com.vknxworks.elementctrl.matrix.userMessage
+import com.vknxworks.elementctrl.ui.DeepLinks
+import com.vknxworks.elementctrl.ui.openUrl
+import kotlinx.coroutines.launch
+
+/** First start: pick a homeserver, then sign in to it. */
+@Composable
+fun OnboardingFlow(signedOutMessage: String?) {
+    val graph = ElementCtrlApp.graph
+    var server by remember { mutableStateOf<ServerDetails?>(null) }
+    AnimatedContent(targetState = server, label = "onboarding") { details ->
+        if (details == null) {
+            ServerPickerScreen(message = signedOutMessage, onServerReady = { server = it })
+        } else {
+            BackHandler { graph.auth.reset(); server = null }
+            LoginScreen(details, onBack = { graph.auth.reset(); server = null })
+        }
+    }
+}
+
+@Composable
+fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit) {
+    val graph = ElementCtrlApp.graph
+    val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
+    var custom by rememberSaveable { mutableStateOf("") }
+    var busy by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf(message) }
+    val recent = remember { graph.prefs.recentCustomServers }
+
+    fun connect(address: String) {
+        val target = Servers.normalise(address)
+        if (target.isBlank() || busy != null) return
+        focus.clearFocus()
+        busy = target
+        error = null
+        scope.launch {
+            runCatching { graph.auth.discover(target) }
+                .onSuccess { details ->
+                    if (Servers.standard.none { it.address.equals(target, true) }) graph.prefs.rememberCustomServer(target)
+                    onServerReady(details)
+                }
+                .onFailure { error = it.userMessage() }
+            busy = null
+        }
+    }
+
+    Scaffold { pad ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(pad).imePadding(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item {
+                Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier.size(72.dp).clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("[ ]", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text("Welcome to ElementCtrl", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Secure, decentralised chat on Matrix. Choose the server your account is on, or where you want to create one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            error?.let { e ->
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                        Text(e, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+            item { Text("Popular servers", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
+            items(Servers.standard, key = { it.address }) { option ->
+                ServerCard(option, Icons.Default.Public, busy == option.address, enabled = busy == null) { connect(option.address) }
+            }
+            if (recent.isNotEmpty()) {
+                item { Text("Your servers", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+                items(recent, key = { "recent:$it" }) { address ->
+                    ServerCard(ServerOption(address, address, "Signed in here before"), Icons.Default.History, busy == address, enabled = busy == null) { connect(address) }
+                }
+            }
+            item {
+                Text("Self-hosted or other server", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+            }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(12.dp))
+                            Text("Your own Synapse, Conduit or Dendrite server", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        OutlinedTextField(
+                            value = custom,
+                            onValueChange = { custom = it },
+                            label = { Text("Server address") },
+                            placeholder = { Text("example.com or https://matrix.example.com") },
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Language, null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
+                            keyboardActions = KeyboardActions(onGo = { connect(custom) }),
+                            enabled = busy == null,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            "Your server needs Simplified Sliding Sync (built into Synapse 1.114+). Plain http works for local addresses.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(
+                            onClick = { connect(custom) },
+                            enabled = custom.isNotBlank() && busy == null,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            if (busy != null && busy == Servers.normalise(custom)) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                            } else {
+                                Text("Continue")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServerCard(option: ServerOption, icon: androidx.compose.ui.graphics.vector.ImageVector, loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = Modifier.fillMaxWidth().clip(CardDefaults.shape).clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(option.name, style = MaterialTheme.typography.titleMedium)
+                Text(option.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.width(8.dp))
+            if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            else Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
+    val graph = ElementCtrlApp.graph
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var waitingForBrowser by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    // The browser sends the person back here after OAuth or SSO sign-in.
+    LaunchedEffect(Unit) {
+        DeepLinks.authRedirect.collect { url ->
+            DeepLinks.authRedirect.resetReplayCache()
+            busy = true
+            error = null
+            runCatching { graph.auth.completeFromRedirect(url) }.onFailure { error = it.userMessage() }
+            busy = false
+            waitingForBrowser = false
+        }
+    }
+
+    fun browser(block: suspend () -> String) {
+        error = null
+        busy = true
+        scope.launch {
+            runCatching { block() }
+                .onSuccess { waitingForBrowser = true; openUrl(context, it) }
+                .onFailure { error = it.userMessage() }
+            busy = false
+        }
+    }
+
+    fun passwordLogin() {
+        if (username.isBlank() || password.isEmpty() || busy) return
+        focus.clearFocus()
+        busy = true
+        error = null
+        scope.launch {
+            runCatching { graph.auth.loginWithPassword(username, password) }.onFailure { error = it.userMessage() }
+            busy = false
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Sign in") },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            )
+        }
+    ) { pad ->
+        Column(
+            Modifier.fillMaxSize().padding(pad).imePadding().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(server.address, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(server.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    TextButton(onClick = onBack) { Text("Change") }
+                }
+            }
+
+            error?.let {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Text(it, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                }
+            }
+
+            if (waitingForBrowser) {
+                Text(
+                    "Finish signing in in the browser. You'll come back here automatically.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (server.supportsOAuth) {
+                Text(
+                    "This server signs you in through its own secure page.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(onClick = { browser { graph.auth.oauthUrl(register = false) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Icon(Icons.Default.Lock, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Continue to sign in")
+                }
+                if (server.canRegister) {
+                    OutlinedButton(onClick = { browser { graph.auth.oauthUrl(register = true) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                        Text("Create an account")
+                    }
+                }
+            }
+
+            if (server.supportsPassword && !server.supportsOAuth) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username or Matrix ID") },
+                    placeholder = { Text("alice or @alice:${server.address}") },
+                    leadingIcon = { Icon(Icons.Default.Person, null) },
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = { Icon(Icons.Default.Key, null) },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (showPassword) "Hide" else "Show")
+                        }
+                    },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    enabled = !busy,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { passwordLogin() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(onClick = { passwordLogin() }, enabled = !busy && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    else Text("Sign in")
+                }
+                Text(
+                    "To create an account on this server, use its website or ask its admin. Registration in-app needs a server with the Matrix Authentication Service.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (server.supportsSso && !server.supportsOAuth) {
+                if (server.supportsPassword) HorizontalDivider()
+                OutlinedButton(onClick = { browser { graph.auth.ssoUrl() } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("Continue with single sign-on")
+                }
+            }
+
+            if (!server.supportsOAuth && !server.supportsPassword && !server.supportsSso) {
+                Text("This server doesn't offer a sign-in method ElementCtrl supports.", color = MaterialTheme.colorScheme.error)
+            }
+
+            if (busy && (server.supportsOAuth || waitingForBrowser)) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            }
+            Spacer(Modifier.height(24.dp).systemBarsPadding())
+        }
+    }
+}

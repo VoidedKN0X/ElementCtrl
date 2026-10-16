@@ -1,0 +1,270 @@
+package com.vknxworks.elementctrl.ui
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.text.format.DateUtils
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.SubcomposeAsyncImage
+import com.vknxworks.elementctrl.matrix.mxcAvatar
+import java.text.DateFormat
+import java.util.Calendar
+import java.util.Date
+
+/** Round avatar from an mxc:// URL, or coloured initials when there's no picture. */
+@Composable
+fun Avatar(name: String, url: String?, id: String, size: Dp = 40.dp, modifier: Modifier = Modifier) {
+    val px = with(androidx.compose.ui.platform.LocalDensity.current) { size.roundToPx() }
+    val model = remember(url, px) { mxcAvatar(url, (px * 2).coerceAtMost(512)) }
+    val fallback: @Composable () -> Unit = {
+        Box(
+            Modifier.size(size).clip(CircleShape).background(senderColor(id)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                initials(name),
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = (size.value * 0.42f).sp,
+                maxLines = 1,
+            )
+        }
+    }
+    if (model == null) {
+        Box(modifier) { fallback() }
+    } else {
+        SubcomposeAsyncImage(
+            model = model,
+            contentDescription = name,
+            contentScale = ContentScale.Crop,
+            modifier = modifier.size(size).clip(CircleShape),
+            loading = { fallback() },
+            error = { fallback() },
+        )
+    }
+}
+
+fun initials(name: String): String {
+    val clean = name.trim().removePrefix("@").removePrefix("#").removePrefix("!")
+    return clean.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "#"
+}
+
+/** "14:05" today, "Mon" this week, "12 Mar" otherwise. */
+fun shortTime(ts: Long): String {
+    val now = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = ts }
+    return when {
+        DateUtils.isToday(ts) -> DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(ts))
+        now.timeInMillis - ts < 6 * DateUtils.DAY_IN_MILLIS -> android.text.format.DateFormat.format("EEE", then).toString()
+        now.get(Calendar.YEAR) == then.get(Calendar.YEAR) -> android.text.format.DateFormat.format("d MMM", then).toString()
+        else -> DateFormat.getDateInstance(DateFormat.SHORT).format(Date(ts))
+    }
+}
+
+fun timeOfDay(ts: Long): String = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(ts))
+
+fun dayLabel(ts: Long): String = when {
+    DateUtils.isToday(ts) -> "Today"
+    DateUtils.isToday(ts + DateUtils.DAY_IN_MILLIS) -> "Yesterday"
+    else -> DateFormat.getDateInstance(DateFormat.FULL).format(Date(ts))
+}
+
+fun formatSize(bytes: Long): String = when {
+    bytes <= 0 -> ""
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024.0)
+    bytes < 1024L * 1024 * 1024 -> "%.1f MB".format(bytes / 1024.0 / 1024.0)
+    else -> "%.1f GB".format(bytes / 1024.0 / 1024.0 / 1024.0)
+}
+
+fun formatDuration(ms: Long): String {
+    val s = ms / 1000
+    return "%d:%02d".format(s / 60, s % 60)
+}
+
+fun openUrl(context: Context, url: String) {
+    runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, Uri.parse(url)) }
+        .onFailure { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+}
+
+fun copyText(context: Context, label: String, text: String) {
+    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
+}
+
+fun shareText(context: Context, text: String) {
+    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null))
+}
+
+@Composable
+fun CenteredLoading(modifier: Modifier = Modifier.fillMaxSize()) {
+    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+}
+
+@Composable
+fun EmptyState(icon: ImageVector, title: String, body: String? = null, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(icon, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
+    }
+}
+
+@Composable
+fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp),
+    )
+}
+
+@Composable
+fun SettingRow(
+    icon: ImageVector?,
+    title: String,
+    subtitle: String? = null,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(20.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = titleColor)
+            if (!subtitle.isNullOrBlank()) {
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        trailing?.let { Spacer(Modifier.width(12.dp)); it() }
+    }
+}
+
+@Composable
+fun ConfirmDialog(
+    title: String,
+    text: String,
+    confirm: String,
+    destructive: Boolean = false,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text) },
+        confirmButton = {
+            TextButton(onClick = { onDismiss(); onConfirm() }) {
+                Text(confirm, color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+fun TextInputDialog(
+    title: String,
+    initial: String = "",
+    label: String = "",
+    confirm: String = "Save",
+    singleLine: Boolean = true,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var value by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                label = { if (label.isNotEmpty()) Text(label) },
+                singleLine = singleLine,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = { TextButton(onClick = { onDismiss(); onConfirm(value) }) { Text(confirm) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/** Small unread counter or dot used in the room list. */
+@Composable
+fun UnreadBadge(count: Long, highlight: Boolean, muted: Boolean) {
+    val bg = when {
+        muted -> MaterialTheme.colorScheme.outline
+        highlight -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val fg = when {
+        highlight -> MaterialTheme.colorScheme.onError
+        muted -> MaterialTheme.colorScheme.surface
+        else -> MaterialTheme.colorScheme.onPrimary
+    }
+    if (count <= 0) {
+        Box(Modifier.size(10.dp).clip(CircleShape).background(bg))
+    } else {
+        Box(
+            Modifier.clip(CircleShape).background(bg).padding(horizontal = 7.dp, vertical = 2.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(if (count > 99) "99+" else count.toString(), color = fg, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        }
+    }
+}

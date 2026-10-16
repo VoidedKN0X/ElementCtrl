@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ElementCtrl</string>
+    <!-- Reverse-domain scheme of the OAuth client URI (github.com/VoidedKN0X/ElementCtrl), as Matrix Authentication Service requires. -->
+    <string name="login_redirect_scheme" translatable="false">com.github.voidedkn0x.elementctrl</string>
+</resources>

@@ -1,0 +1,122 @@
+package com.vknxworks.elementctrl.matrix
+
+import org.matrix.rustcomponents.sdk.LatestEventValue
+import org.matrix.rustcomponents.sdk.Membership
+import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.RoomInfo
+import org.matrix.rustcomponents.sdk.RoomNotificationMode
+import org.matrix.rustcomponents.sdk.TimelineItemContent
+import uniffi.matrix_sdk_base.EncryptionState
+import uniffi.matrix_sdk_ui.LatestEventValueLocalState
+
+/** Everything the room list needs to draw one row. */
+data class RoomSummary(
+    val roomId: String,
+    val name: String,
+    val avatarUrl: String?,
+    val isDm: Boolean,
+    val isInvite: Boolean,
+    val isSpace: Boolean,
+    val isFavourite: Boolean,
+    val isLowPriority: Boolean,
+    val isEncrypted: Boolean,
+    val isMarkedUnread: Boolean,
+    val unreadMessages: Long,
+    val unreadNotifications: Long,
+    val unreadMentions: Long,
+    val notificationMode: RoomNotificationMode?,
+    val lastMessage: String?,
+    val lastSender: String?,
+    val lastIsOwn: Boolean,
+    val lastTimestamp: Long?,
+    val lastSending: Boolean,
+    val lastFailed: Boolean,
+    val inviterName: String?,
+    val dmUserId: String?,
+    val canonicalAlias: String?,
+    val topic: String?,
+    val memberCount: Long,
+) {
+    val isMuted get() = notificationMode == RoomNotificationMode.MUTE
+    val hasUnread get() = isMarkedUnread || unreadMessages > 0 || unreadNotifications > 0
+    val searchText get() = "$name ${canonicalAlias.orEmpty()} ${dmUserId.orEmpty()}".lowercase()
+}
+
+fun RoomInfo.displayNameOrId(): String = displayName?.takeIf { it.isNotBlank() } ?: canonicalAlias ?: id
+
+/** Reads the room's current info and latest event. Safe to call for every list update. */
+suspend fun Room.toSummary(): RoomSummary {
+    val info = roomInfo()
+    val isDm = info.isDm || info.isDirect && info.activeMembersCount <= 2uL
+    val dmHero = if (isDm) info.heroes.firstOrNull() else null
+    var lastMessage: String? = null
+    var lastSender: String? = null
+    var lastOwn = false
+    var lastTs: Long? = null
+    var sending = false
+    var failed = false
+    var inviterName: String? = info.inviter?.let { it.displayName ?: it.userId.localpart() }
+
+    fun describe(content: TimelineItemContent, senderName: String, own: Boolean): String {
+        val text = content.previewText()
+        return when (content) {
+            is TimelineItemContent.MsgLike -> text
+            // State events read as sentences ("Ana joined"), so fill in who did it.
+            is TimelineItemContent.State -> stateText(if (own) "You" else senderName, content.content)
+            is TimelineItemContent.ProfileChange -> profileChangeText(if (own) "You" else senderName, content.displayName, content.prevDisplayName, content.avatarUrl, content.prevAvatarUrl)
+            else -> text
+        }
+    }
+
+    when (val latest = latestEvent()) {
+        is LatestEventValue.Remote -> {
+            val name = latest.profile.nameOr(latest.sender)
+            lastMessage = describe(latest.content, name, latest.isOwn)
+            lastSender = if (latest.content is TimelineItemContent.MsgLike) (if (latest.isOwn) "You" else name) else null
+            lastOwn = latest.isOwn
+            lastTs = latest.timestamp.toLong()
+        }
+        is LatestEventValue.Local -> {
+            lastMessage = describe(latest.content, "You", true)
+            lastSender = "You"
+            lastOwn = true
+            lastTs = latest.timestamp.toLong()
+            sending = latest.state == LatestEventValueLocalState.IS_SENDING
+            failed = latest.state == LatestEventValueLocalState.CANNOT_BE_SENT
+        }
+        is LatestEventValue.RemoteInvite -> {
+            inviterName = latest.inviterProfile.nameOr(latest.inviter ?: "")
+                .takeIf { it.isNotBlank() } ?: inviterName
+            lastTs = latest.timestamp.toLong()
+        }
+        is LatestEventValue.None -> Unit
+    }
+
+    return RoomSummary(
+        roomId = info.id,
+        name = info.displayNameOrId(),
+        avatarUrl = info.avatarUrl ?: dmHero?.avatarUrl,
+        isDm = isDm,
+        isInvite = info.membership == Membership.INVITED,
+        isSpace = info.isSpace,
+        isFavourite = info.isFavourite,
+        isLowPriority = info.isLowPriority,
+        isEncrypted = info.encryptionState == EncryptionState.ENCRYPTED,
+        isMarkedUnread = info.isMarkedUnread,
+        unreadMessages = info.numUnreadMessages.toLong(),
+        unreadNotifications = info.numUnreadNotifications.toLong(),
+        unreadMentions = info.numUnreadMentions.toLong(),
+        notificationMode = info.cachedUserDefinedNotificationMode,
+        lastMessage = lastMessage,
+        lastSender = lastSender,
+        lastIsOwn = lastOwn,
+        lastTimestamp = lastTs,
+        lastSending = sending,
+        lastFailed = failed,
+        inviterName = inviterName,
+        dmUserId = dmHero?.userId,
+        canonicalAlias = info.canonicalAlias,
+        topic = info.topic,
+        memberCount = info.joinedMembersCount.toLong(),
+    )
+}
