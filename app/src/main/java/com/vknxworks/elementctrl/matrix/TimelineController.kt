@@ -113,15 +113,19 @@ class TimelineController(
                 handles += t.addListener(object : TimelineListener {
                     override fun onUpdate(diff: List<TimelineDiff>) { diffs.trySend(diff) }
                 })
-                handles += t.subscribeToBackPaginationStatus(object : PaginationStatusListener {
-                    override fun onUpdate(status: PaginationStatus) {
-                        when (status) {
-                            is PaginationStatus.Idle -> { _paginating.value = false; _atStart.value = status.hitTimelineStart }
-                            is PaginationStatus.Paginating -> _paginating.value = true
-                        }
-                    }
-                })
                 scope.launch { for (batch in diffs) apply(batch) }
+                // The pagination-status stream exists only for the live timeline; threads and event-focused
+                // timelines throw here, so they rely on paginateBackwards()' return value instead.
+                if (threadRootId == null && focusEventId == null) {
+                    handles += t.subscribeToBackPaginationStatus(object : PaginationStatusListener {
+                        override fun onUpdate(status: PaginationStatus) {
+                            when (status) {
+                                is PaginationStatus.Idle -> { _paginating.value = false; _atStart.value = status.hitTimelineStart }
+                                is PaginationStatus.Paginating -> _paginating.value = true
+                            }
+                        }
+                    })
+                }
                 scope.launch { runCatching { t.fetchMembers() } }
                 if (_entries.value.size < 20) paginateBack()
             }.onFailure {
