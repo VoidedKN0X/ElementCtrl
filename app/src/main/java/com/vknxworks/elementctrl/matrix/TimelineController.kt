@@ -139,7 +139,14 @@ class TimelineController(
         handles.forEach { runCatching { it.cancel() } }
         handles.clear()
         diffs.close()
-        runCatching { timeline?.close() }
+        val t = timeline
+        if (t != null && seenLatest && threadRootId == null && focusEventId == null) {
+            // Read to the end: move the "new messages" line before letting go of the timeline.
+            com.vknxworks.elementctrl.ElementCtrlApp.graph.scope.launch {
+                runCatching { t.markAsRead(ReceiptType.FULLY_READ) }
+                runCatching { t.close() }
+            }
+        } else runCatching { t?.close() }
         scope.cancel()
     }
 
@@ -455,6 +462,15 @@ class TimelineController(
     fun pin(eventId: String, pin: Boolean) = launchAction { if (pin) it.pinEvent(eventId) else it.unpinEvent(eventId) }
 
     fun markAsRead() = launchAction { it.markAsRead(ReceiptType.READ) }
+
+    /** Whether the newest message is on screen right now; then leaving the chat moves the "new messages" line. */
+    @Volatile var seenLatest = false
+
+    /** Moves the room's fully-read marker (the "new messages" line) to the newest message. */
+    fun markFullyRead() {
+        if (threadRootId != null || focusEventId != null) return
+        launchAction { it.markAsRead(ReceiptType.FULLY_READ) }
+    }
 
     fun sendLocation(lat: Double, lon: Double) = launchAction {
         val geo = "geo:$lat,$lon"

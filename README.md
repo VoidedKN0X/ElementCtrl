@@ -19,6 +19,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 - Reply, reply in thread, edit, remove, react (quick reactions or the full picker), copy, copy link, pin, report, view source
 - Threads open in their own timeline; reply previews jump to the original message
 - Mention people with `@`, send photos, videos and files with captions, create and vote in polls, end your polls
+- Profile pictures next to messages (can be turned off)
 - Read receipts, typing indicators, "new messages" marker, date dividers, delivery status with retry for failed sends
 - Full-screen image viewer with zoom; open, save to Downloads or share any attachment
 - Shares from other apps (text, pictures, files) go to the chat you pick

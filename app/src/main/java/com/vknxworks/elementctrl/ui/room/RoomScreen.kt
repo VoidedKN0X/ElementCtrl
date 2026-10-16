@@ -205,6 +205,7 @@ fun RoomScreen(
 
     val snackbar = remember { SnackbarHostState() }
     val bubbleStyle by ElementCtrlApp.graph.prefs.bubbleStyle.collectAsStateWithLifecycle()
+    val chatAvatars by ElementCtrlApp.graph.prefs.chatAvatars.collectAsStateWithLifecycle()
     val haze = remember { HazeState() }
     val density = LocalDensity.current
     var islandHeight by remember { mutableStateOf(88.dp) }
@@ -310,7 +311,19 @@ fun RoomScreen(
         if (newestKey == null) return@LaunchedEffect
         if (followLatest) listState.animateScrollToItem(0) else unseenBelow++
     }
-    LaunchedEffect(atBottom, entries.size) { if (atBottom && entries.isNotEmpty()) timeline.markAsRead() }
+    LaunchedEffect(atBottom, entries.size) {
+        timeline.seenLatest = atBottom && entries.isNotEmpty()
+        if (atBottom && entries.isNotEmpty()) timeline.markAsRead()
+    }
+    // Read to the end and leaving the app: move the "new messages" line now (leaving the chat does it too).
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, timeline) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_STOP && timeline.seenLatest) timeline.markFullyRead()
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
 
     // Load older messages when scrolled near the top.
     // In a timeline opened at a search result: load newer messages at the bottom, and start on that message.
@@ -440,7 +453,7 @@ fun RoomScreen(
             if (entries.isEmpty() && !atStart) {
                 CenteredLoading()
             }
-            CompositionLocalProvider(LocalBubbleStyle provides bubbleStyle) {
+            CompositionLocalProvider(LocalBubbleStyle provides bubbleStyle, LocalChatAvatars provides chatAvatars) {
                 LazyColumn(
                     state = listState,
                     reverseLayout = true,
@@ -891,11 +904,13 @@ private fun Composer(
             return@Column
         }
         // The input island.
+        // Every slot is 56 dp tall (the text field's single-line height), so the buttons line up with the text and
+        // sit the same distance from the island's edges; with more lines the buttons stay at the bottom.
         Row(
-            Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).heightIn(min = 56.dp).padding(horizontal = 4.dp, vertical = 4.dp),
+            Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(32.dp)).padding(4.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
-            Box {
+            Box(Modifier.height(56.dp).padding(start = 2.dp), contentAlignment = Alignment.Center) {
                 IconButton(onClick = onAttach) { Icon(Icons.Default.Add, "Attach", tint = cs.onSurfaceVariant) }
                 DropdownMenu(expanded = attachMenu, onDismissRequest = onDismissAttach) {
                     DropdownMenuItem(text = { Text("Photo or video") }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
@@ -925,21 +940,22 @@ private fun Composer(
             // With nothing typed the button records a voice message instead.
             val voiceMode = !canSend && mode !is ComposerMode.Edit
             val sendColor by animateColorAsState(if (canSend || voiceMode) cs.primary else cs.surfaceContainerHighest, label = "send")
-            Box(
-                Modifier
-                    .padding(4.dp)
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(sendColor)
-                    .clickable(enabled = canSend || voiceMode, onClick = if (voiceMode) onMic else onSend),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    if (voiceMode) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
-                    if (voiceMode) "Record voice message" else "Send",
-                    tint = cs.onPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
+            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(sendColor)
+                        .clickable(enabled = canSend || voiceMode, onClick = if (voiceMode) onMic else onSend),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        if (voiceMode) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
+                        if (voiceMode) "Record voice message" else "Send",
+                        tint = cs.onPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
     }
@@ -950,10 +966,12 @@ private fun Composer(
 private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long, onCancel: () -> Unit, onSend: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).height(56.dp).padding(horizontal = 4.dp),
+        Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(32.dp)).padding(4.dp).height(56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, "Discard recording", tint = cs.error) }
+        Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, "Discard recording", tint = cs.error) }
+        }
         Box(Modifier.size(10.dp).clip(CircleShape).background(cs.error))
         Spacer(Modifier.width(8.dp))
         Text(formatDuration(elapsed), style = MaterialTheme.typography.labelLarge)
@@ -965,10 +983,12 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
                 Box(Modifier.weight(1f).fillMaxHeight((0.12f + 0.88f * v).coerceIn(0.12f, 1f)).clip(RoundedCornerShape(2.dp)).background(cs.primary))
             }
         }
-        Box(
-            Modifier.padding(4.dp).size(44.dp).clip(CircleShape).background(cs.primary).clickable(onClick = onSend),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Filled.Send, "Send voice message", tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
+        Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(cs.primary).clickable(onClick = onSend),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.AutoMirrored.Filled.Send, "Send voice message", tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
+        }
     }
 }
 

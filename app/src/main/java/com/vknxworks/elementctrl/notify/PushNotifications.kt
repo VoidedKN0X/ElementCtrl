@@ -93,6 +93,16 @@ object PushNotifications {
             .setContentText(if (count > 1) "$count new messages" else "New message")
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
 
+    /** "Mark as read" button; safe even when content is hidden, since it reveals nothing. */
+    fun markReadAction(context: Context, roomId: String): NotificationCompat.Action = NotificationCompat.Action.Builder(
+        0, "Mark as read",
+        PendingIntent.getBroadcast(
+            context, roomId.hashCode() + 2,
+            Intent(context, NotificationActionReceiver::class.java).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        ),
+    ).setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ).setShowsUserInterface(false).build()
+
     private fun post(context: Context, roomId: String, roomName: String, isDm: Boolean, noisy: Boolean, lines: List<Line>) {
         if (!ElementCtrlApp.graph.lock.showNotificationContent) {
             // App lock on (or the user chose to hide content): no sender, room or text anywhere, and no inline
@@ -105,6 +115,7 @@ object PushNotifications {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
                 .setPublicVersion(redacted(context, Notifier.CHANNEL_MESSAGES).build())
+                .addAction(markReadAction(context, roomId))
                 .build()
             runCatching { NotificationManagerCompat.from(context).notify(roomId.hashCode(), n) }
             return
@@ -122,14 +133,7 @@ object PushNotifications {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             ),
         ).addRemoteInput(RemoteInput.Builder(KEY_REPLY).setLabel("Message").build()).setAllowGeneratedReplies(true).build()
-        val read = NotificationCompat.Action.Builder(
-            0, "Mark as read",
-            PendingIntent.getBroadcast(
-                context, roomId.hashCode() + 2,
-                Intent(context, NotificationActionReceiver::class.java).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            ),
-        ).build()
+        val read = markReadAction(context, roomId)
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_stat_message)
             .setStyle(style)
@@ -204,7 +208,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         runCatching { r.markAsRead(ReceiptType.READ) }
                         PushNotifications.appendOwnReply(context, roomId, replyText)
                     } else {
+                        // Also move the "new messages" line, so the chat opens without it.
                         runCatching { r.markAsRead(ReceiptType.READ) }
+                        runCatching { r.markAsRead(ReceiptType.FULLY_READ) }
+                        runCatching { r.setUnreadFlag(false) }
                         PushNotifications.forget(roomId)
                         Notifier.clear(context, roomId)
                     }

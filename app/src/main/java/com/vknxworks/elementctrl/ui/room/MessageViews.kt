@@ -113,6 +113,8 @@ class MessageActions(
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
 val LocalBubbleStyle = androidx.compose.runtime.staticCompositionLocalOf { BubbleStyle.MODERN }
+/** Profile pictures next to every message group, in DMs and next to your own messages too. */
+val LocalChatAvatars = androidx.compose.runtime.staticCompositionLocalOf { true }
 
 @Composable
 fun MessageRow(
@@ -137,7 +139,10 @@ fun MessageRow(
     val flat = style == BubbleStyle.FLAT
     // In the flat layout everything sits on the left, so your own messages need a name and avatar too.
     val own = item.isOwn && !flat
-    val withAvatar = flat || (!own && !isDm)
+    val avatars = LocalChatAvatars.current
+    val withAvatar = flat || avatars || (!own && !isDm)
+    // Names are only needed where several people talk; a DM's avatar says enough.
+    val withName = flat || (!own && !isDm)
     val bubbleColor = when {
         highlighted -> cs.tertiaryContainer
         flat || style == BubbleStyle.OUTLINED -> Color.Transparent
@@ -175,24 +180,29 @@ fun MessageRow(
             bottom = 1.dp,
         ),
         horizontalArrangement = if (own) Arrangement.End else Arrangement.Start,
-        verticalAlignment = if (flat) Alignment.Top else Alignment.Bottom,
+        verticalAlignment = if (flat || withAvatar) Alignment.Top else Alignment.Bottom,
     ) {
-        if (withAvatar) {
-            val size = if (flat) 36.dp else 32.dp
+        val avatarSize = if (flat) 36.dp else 32.dp
+        // One picture per group of messages from the same person, level with the first one.
+        @Composable
+        fun SenderAvatar() {
             if (showSender) {
-                Box(Modifier.clickable { actions.onOpenUser(item.sender) }) {
-                    Avatar(item.senderName, item.senderAvatar, item.sender, size = size)
+                Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).clickable { actions.onOpenUser(item.sender) }) {
+                    Avatar(item.senderName, item.senderAvatar, item.sender, size = avatarSize)
                 }
             } else {
-                Spacer(Modifier.width(size))
+                Spacer(Modifier.width(avatarSize))
             }
+        }
+        if (withAvatar && !own) {
+            SenderAvatar()
             Spacer(Modifier.width(if (flat) 10.dp else 6.dp))
         }
         Column(
             horizontalAlignment = if (own) Alignment.End else Alignment.Start,
             modifier = if (flat) Modifier.weight(1f) else Modifier.widthIn(max = 320.dp),
         ) {
-            if (showSender && withAvatar) {
+            if (showSender && withName) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (flat) 0.dp else 12.dp, bottom = 2.dp)) {
                     Text(
                         if (flat && item.isOwn) "You" else item.senderName,
@@ -284,6 +294,10 @@ fun MessageRow(
                     }
                 }
             }
+        }
+        if (withAvatar && own) {
+            Spacer(Modifier.width(6.dp))
+            SenderAvatar()
         }
     }
 }

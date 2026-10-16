@@ -105,7 +105,7 @@ object Notifier {
         if (!ElementCtrlApp.graph.lock.showNotificationContent) {
             // Content hidden (default with app lock): no room name, sender or text.
             builder.setContentTitle("ElementCtrl").setContentText(if (r.isInvite) "New invite" else "New message")
-            if (!r.isInvite) builder.setNumber(r.unreadNotifications.toInt())
+            if (!r.isInvite) builder.setNumber(r.unreadNotifications.toInt()).addAction(PushNotifications.markReadAction(context, r.roomId))
         } else if (r.isInvite) {
             builder.setContentText("${r.inviterName ?: "Someone"} invited you")
         } else {
@@ -114,14 +114,7 @@ object Notifier {
                 .setStyle(NotificationCompat.BigTextStyle().bigText(line))
                 .setNumber(r.unreadNotifications.toInt())
                 .setPriority(if (r.unreadMentions > 0 || r.isDm) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
-                .addAction(
-                    0, "Mark as read",
-                    PendingIntent.getBroadcast(
-                        context, r.roomId.hashCode(),
-                        Intent(context, NotificationActionReceiver::class.java).putExtra(EXTRA_ROOM_ID, r.roomId),
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
-                )
+                .addAction(PushNotifications.markReadAction(context, r.roomId))
         }
         runCatching { NotificationManagerCompat.from(context).notify(r.roomId.hashCode(), builder.build()) }
     }

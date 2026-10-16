@@ -38,6 +38,11 @@ class Prefs(context: Context) {
     val bubbleStyle: StateFlow<BubbleStyle> = _bubbles.asStateFlow()
     fun setBubbleStyle(style: BubbleStyle) { sp.edit().putInt("bubble_style", style.ordinal).apply(); _bubbles.value = style }
 
+    private val _chatAvatars = MutableStateFlow(sp.getBoolean("chat_avatars", true))
+    /** Profile pictures next to messages, in DMs and for your own messages too. */
+    val chatAvatars: StateFlow<Boolean> = _chatAvatars.asStateFlow()
+    fun setChatAvatars(on: Boolean) { sp.edit().putBoolean("chat_avatars", on).apply(); _chatAvatars.value = on }
+
     private val _linkPreviews = MutableStateFlow(sp.getBoolean("link_previews", true))
     /** Show previews for links in messages (fetched by your homeserver). */
     val linkPreviews: StateFlow<Boolean> = _linkPreviews.asStateFlow()

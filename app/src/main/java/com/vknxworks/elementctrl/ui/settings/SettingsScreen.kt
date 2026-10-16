@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Brightness6
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
@@ -103,6 +104,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     val sendOnEnter by prefs.sendOnEnter.collectAsStateWithLifecycle()
     val showState by prefs.showStateEvents.collectAsStateWithLifecycle()
     val bubbleStyle by prefs.bubbleStyle.collectAsStateWithLifecycle()
+    val chatAvatars by prefs.chatAvatars.collectAsStateWithLifecycle()
     var bubbleDialog by remember { mutableStateOf(false) }
 
     var editName by remember { mutableStateOf(false) }
@@ -224,6 +226,11 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             SectionHeader("Appearance")
             SettingRow(Icons.Default.Brightness6, "Theme", when (theme) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }) { themeDialog = true }
             SettingRow(Icons.Default.ChatBubbleOutline, "Chat bubbles", bubbleStyle.label + " · " + bubbleStyle.description) { bubbleDialog = true }
+            SettingRow(
+                Icons.Default.AccountCircle, "Profile pictures",
+                "Show pictures next to messages, in direct chats and next to yours too",
+                trailing = { Switch(chatAvatars, prefs::setChatAvatars) },
+            )
             SettingRow(Icons.Default.Palette, "Material You colours", "Use your wallpaper's colours", trailing = { Switch(dynamic, prefs::setDynamicColor) })
             SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
             SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
