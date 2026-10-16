@@ -27,6 +27,8 @@ sealed interface TimelineEntry {
         val threadLatest: String?,
         val readBy: List<String>,
         val shield: ShieldUi?,
+        /** Who has read up to this message (their read receipt sits here), newest first. */
+        val receipts: List<ReceiptUi> = emptyList(),
     ) : TimelineEntry {
         /** Small grey centred line (joins, renames…) rather than a chat bubble. */
         val isStateLike get() = content is UiContent.Event
@@ -37,6 +39,8 @@ enum class SendStatus { SENT, SENDING, FAILED }
 
 /** A grey or red padlock warning on a message from an unverified or untrusted device. */
 data class ShieldUi(val red: Boolean, val text: String)
+
+data class ReceiptUi(val userId: String, val timestamp: Long?)
 
 data class ReactionUi(val key: String, val count: Int, val mine: Boolean, val senders: List<String>)
 

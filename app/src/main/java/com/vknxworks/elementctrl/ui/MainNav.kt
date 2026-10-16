@@ -243,6 +243,15 @@ fun MainNav(session: MatrixSession) {
                 onMembers = { nav.go("members/${enc(roomId)}") },
                 onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
                 onLeft = { paneRoom = null; nav.popBackStack("home", inclusive = false) },
+                onMedia = { nav.go("gallery/${enc(roomId)}") },
+            )
+        }
+        composable("gallery/{roomId}") { entry ->
+            val roomId = entry.arguments?.getString("roomId").orEmpty()
+            com.vknxworks.elementctrl.ui.room.MediaGalleryScreen(
+                session, roomId,
+                onBack = { nav.back() },
+                onOpenImage = { media = it; nav.go("media") },
             )
         }
         composable("members/{roomId}") { entry ->

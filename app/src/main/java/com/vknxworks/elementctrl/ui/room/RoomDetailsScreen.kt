@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
@@ -95,6 +96,7 @@ fun RoomDetailsScreen(
     onMembers: () -> Unit,
     onOpenUser: (String) -> Unit,
     onLeft: () -> Unit,
+    onMedia: () -> Unit = {},
 ) {
     val vm: RoomViewModel = viewModel(key = "details:$roomId") { RoomViewModel(session, roomId, withTimeline = false) }
     val room = vm.room ?: run { UnavailableRoom(onBack); return }
@@ -161,6 +163,7 @@ fun RoomDetailsScreen(
                     RoomNotificationMode.MUTE -> "Off"
                 },
             ) { notifDialog = true }
+            SettingRow(Icons.Default.PhotoLibrary, "Media and files", "Photos, videos, files and voice messages shared here", onClick = onMedia)
             SettingRow(Icons.Default.Favorite, "Favourite", trailing = { Switch(h.isFavourite, { room.setFavourite(it) }) }) { room.setFavourite(!h.isFavourite) }
             SettingRow(Icons.Default.SouthEast, "Low priority", trailing = { Switch(h.isLowPriority, { room.setLowPriority(it) }) }) { room.setLowPriority(!h.isLowPriority) }
             if (!h.isDm) {

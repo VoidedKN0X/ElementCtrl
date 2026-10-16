@@ -124,6 +124,13 @@ class MessageActions(
     val onSuspiciousLink: (String, String) -> Unit = { _, _ -> },
     /** Swipe right on a message to reply; null where you can't post. */
     val onSwipeReply: ((TimelineEntry.Message) -> Unit)? = null,
+    /** Double-tapping a message reacts with this emoji; null turns it off. */
+    val doubleTapReaction: String? = null,
+    /** Show small pictures of who has read up to each message. */
+    val showReceipts: Boolean = false,
+    /** Name and picture for a user ID, from the room's member list. */
+    val member: (String) -> com.vknxworks.elementctrl.matrix.MemberInfo? = { null },
+    val onShowReceipts: (TimelineEntry.Message) -> Unit = {},
 )
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
@@ -285,6 +292,13 @@ fun MessageRow(
                         }
                     }
                 }
+                // Double-tap to react: the emoji pops up over the bubble.
+                val tapReaction = actions.doubleTapReaction?.takeIf {
+                    item.eventId != null && item.content !is UiContent.Redacted && item.status == SendStatus.SENT
+                }
+                val pop = remember(item.key) { androidx.compose.animation.core.Animatable(0f) }
+                val popScope = rememberCoroutineScope()
+                Box(contentAlignment = Alignment.Center) {
                 Surface(
                     color = if (bigEmoji) Color.Transparent else bubbleColor,
                     contentColor = onBubble,
@@ -298,6 +312,18 @@ fun MessageRow(
                             }
                         },
                         onLongClick = { actions.onLongPress(item) },
+                        onDoubleClick = tapReaction?.let { emoji ->
+                            {
+                                // Only add: a second double-tap shouldn't quietly take the reaction away.
+                                if (item.reactions.none { it.key == emoji && it.mine }) actions.onReact(item, emoji)
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                popScope.launch {
+                                    pop.snapTo(0.01f)
+                                    pop.animateTo(1f, androidx.compose.animation.core.tween(700, easing = androidx.compose.animation.core.LinearEasing))
+                                    pop.snapTo(0f)
+                                }
+                            }
+                        },
                     ),
                 ) {
                     Column(Modifier.padding(if (isMedia && !flat) 4.dp else 0.dp)) {
@@ -337,6 +363,25 @@ fun MessageRow(
                         }
                     }
                 }
+                if (pop.value > 0f && tapReaction != null) {
+                    val t = pop.value
+                    // Grow in with a little overshoot, hold, then float up and fade.
+                    val scale = when {
+                        t < 0.25f -> 0.4f + 0.9f * (t / 0.25f)
+                        t < 0.4f -> 1.3f - 0.3f * ((t - 0.25f) / 0.15f)
+                        else -> 1f
+                    }
+                    Text(
+                        tapReaction,
+                        fontSize = 44.sp,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = scale; scaleY = scale
+                            alpha = if (t < 0.7f) 1f else 1f - (t - 0.7f) / 0.3f
+                            translationY = if (t < 0.6f) 0f else -60f * (t - 0.6f) / 0.4f
+                        },
+                    )
+                }
+                }
                 if (item.status == SendStatus.FAILED) {
                     Text("Not sent. Tap to retry, hold for options.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(4.dp))
                 }
@@ -361,11 +406,43 @@ fun MessageRow(
                         }
                     }
                 }
+                if (actions.showReceipts && item.receipts.isNotEmpty()) {
+                    ReadReceipts(
+                        item.receipts, actions.member,
+                        Modifier.align(Alignment.End).padding(top = 3.dp, end = 2.dp)
+                            .clip(RoundedCornerShape(10.dp)).clickable { actions.onShowReceipts(item) },
+                    )
+                }
             }
             if (withAvatar && own) {
                 Spacer(Modifier.width(6.dp))
                 SenderAvatar()
             }
+        }
+    }
+}
+
+/** Overlapping pictures of who has read up to here, as in Element X; "+3" when there are more. */
+@Composable
+private fun ReadReceipts(
+    receipts: List<com.vknxworks.elementctrl.matrix.ReceiptUi>,
+    member: (String) -> com.vknxworks.elementctrl.matrix.MemberInfo?,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val shown = receipts.take(4)
+    Row(modifier.padding(horizontal = 2.dp, vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy((-5).dp)) {
+            shown.forEach { r ->
+                val m = member(r.userId)
+                Box(Modifier.size(19.dp).background(cs.surface, androidx.compose.foundation.shape.CircleShape).padding(1.5.dp)) {
+                    Avatar(m?.name ?: r.userId, m?.avatarUrl, r.userId, size = 16.dp)
+                }
+            }
+        }
+        if (receipts.size > shown.size) {
+            Spacer(Modifier.width(3.dp))
+            Text("+${receipts.size - shown.size}", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
         }
     }
 }

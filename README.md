@@ -16,11 +16,12 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 
 **Messages**
 - Text with formatting and links, notices, emotes (`/me`), images, videos, audio and voice messages, files, stickers, locations and polls
+- Double-tap to react, quick reactions with your recent emojis
 - Swipe right to reply; reply, reply in thread, edit, remove, react (quick reactions or the full picker), copy, copy link, pin, report, view source
 - Threads open in their own timeline; reply previews jump to the original message
 - Mention people with `@`, send photos, videos and files with captions, create and vote in polls, end your polls
 - Profile pictures next to messages (can be turned off)
-- Read receipts, typing indicators, "new messages" marker, date dividers, delivery status with retry for failed sends
+- Read receipts with "seen by" pictures, typing indicators, "new messages" marker, date dividers, delivery status with retry for failed sends
 - Full-screen image viewer with zoom; open, save to Downloads or share any attachment
 - Shares from other apps (text, pictures, files) go to the chat you pick
 
@@ -28,6 +29,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 - Start an encrypted direct chat by searching the user directory or typing a Matrix ID
 - Create private (encrypted) or public rooms with an address, invite people
 - Explore public rooms on your server or another one, join by address, open matrix.to links
+- Media and files gallery for every chat (photos and videos grid, files and voice messages)
 - Room info: notifications per room, favourite, low priority, members (joined, invited, banned), name, topic and picture for those allowed, enable encryption, share and copy links
 - Profiles: send a message, verify, ignore, remove or ban from the room you came from
 

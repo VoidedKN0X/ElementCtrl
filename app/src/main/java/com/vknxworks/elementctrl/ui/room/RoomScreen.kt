@@ -207,6 +207,9 @@ fun RoomScreen(
     val snackbar = remember { SnackbarHostState() }
     val bubbleStyle by ElementCtrlApp.graph.prefs.bubbleStyle.collectAsStateWithLifecycle()
     val chatAvatars by ElementCtrlApp.graph.prefs.chatAvatars.collectAsStateWithLifecycle()
+    val doubleTapReaction by ElementCtrlApp.graph.prefs.doubleTapReaction.collectAsStateWithLifecycle()
+    val showReadReceipts by ElementCtrlApp.graph.prefs.showReadReceipts.collectAsStateWithLifecycle()
+    var receiptsFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
     val haze = remember { HazeState() }
     val density = LocalDensity.current
     var islandHeight by remember { mutableStateOf(88.dp) }
@@ -226,6 +229,10 @@ fun RoomScreen(
     var suspiciousLink by remember { mutableStateOf<Pair<String, String>?>(null) }
     var highlighted by remember { mutableStateOf<String?>(null) }
     var emojiPickerFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
+    // Quick reactions: what you used recently first, then the defaults.
+    var recentEmojis by remember { mutableStateOf<List<String>>(emptyList()) }
+    LaunchedEffect(sheetFor != null) { if (sheetFor != null) recentEmojis = timeline.recentEmojis() }
+    val quickReactions = remember(recentEmojis) { (recentEmojis + QuickReactions).distinct().take(QuickReactions.size) }
     val recorder = remember { VoiceRecorder(context) }
     var recording by remember { mutableStateOf(false) }
     val levels by recorder.levels.collectAsStateWithLifecycle()
@@ -402,6 +409,10 @@ fun RoomScreen(
             } else null,
             onOpenLink = { com.vknxworks.elementctrl.ui.openUrl(context, it) },
             onSuspiciousLink = { url, shown -> suspiciousLink = url to shown },
+            doubleTapReaction = doubleTapReaction.ifBlank { null },
+            showReceipts = showReadReceipts,
+            member = { id -> members.firstOrNull { it.userId == id } },
+            onShowReceipts = { receiptsFor = it },
             onSwipeReply = if (permissions.canSend && header?.membership == Membership.JOINED) { item -> mode = ComposerMode.Reply(item) } else null,
         )
     }
@@ -620,7 +631,7 @@ fun RoomScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.padding(bottom = 8.dp),
                 ) {
-                    items(QuickReactions) { emoji ->
+                    items(quickReactions) { emoji ->
                         val mine = item.reactions.any { it.key == emoji && it.mine }
                         Box(
                             Modifier.size(48.dp).clip(CircleShape)
@@ -713,6 +724,39 @@ fun RoomScreen(
                 }
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+
+    receiptsFor?.let { item ->
+        ModalBottomSheet(onDismissRequest = { receiptsFor = null }) {
+            Text(
+                "Seen by",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+            )
+            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                items(item.receipts, key = { it.userId }) { r ->
+                    val m = members.firstOrNull { it.userId == r.userId }
+                    Row(
+                        Modifier.fillMaxWidth().clickable { receiptsFor = null; onOpenUser(r.userId) }.padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Avatar(m?.name ?: r.userId, m?.avatarUrl, r.userId, size = 40.dp)
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(m?.name ?: r.userId, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(r.userId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        r.timestamp?.let { ts ->
+                            Text(
+                                com.vknxworks.elementctrl.ui.dayLabel(ts) + ", " + com.vknxworks.elementctrl.ui.timeOfDay(ts),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1077,7 +1121,7 @@ private fun EmojiPicker(onDismiss: () -> Unit, onPick: (String) -> Unit) {
 }
 
 /** Opens a picture in the viewer, or downloads other attachments and hands them to a suitable app. */
-private fun openMedia(
+internal fun openMedia(
     context: android.content.Context,
     session: MatrixSession,
     item: TimelineEntry.Message,

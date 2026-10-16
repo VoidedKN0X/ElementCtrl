@@ -2,6 +2,10 @@
 
 ## 1.2.1
 
+- **Double-tap to react**: double-tap a message to react with ❤️ (or another emoji, or off, in Settings › Appearance), with a little pop
+- Quick reactions in the message menu start with the emojis you use most recently (shared with Element through your account)
+- **Media and files** in chat info, for direct chats and rooms: a photo and video grid and a list of files, audio and voice messages, by month
+- **Seen by**: small pictures under messages show who has read up to there; tap them for names and times (Settings › Appearance › Seen by)
 - Swipe a message to the right to reply: the reply arrow fills in with a little buzz once you've pulled far enough, and the keyboard opens ready to type
 - Profile pictures next to messages, in direct chats and next to your own messages too (Settings › Appearance › Profile pictures to turn off)
 - Messages sent close together are grouped: the profile picture sits by the last message of the group, and only that bubble keeps its tail

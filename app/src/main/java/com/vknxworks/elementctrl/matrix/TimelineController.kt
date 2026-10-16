@@ -42,6 +42,7 @@ import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.Timeline
 import org.matrix.rustcomponents.sdk.TimelineConfiguration
 import org.matrix.rustcomponents.sdk.TimelineDiff
+import org.matrix.rustcomponents.sdk.RoomMessageEventMessageType
 import org.matrix.rustcomponents.sdk.TimelineFilter
 import org.matrix.rustcomponents.sdk.TimelineFocus
 import org.matrix.rustcomponents.sdk.TimelineItem
@@ -67,6 +68,8 @@ class TimelineController(
     val threadRootId: String? = null,
     /** Open around this event (a search result or link) instead of at the newest messages. */
     val focusEventId: String? = null,
+    /** Only photos, videos, files and audio, newest first in pages: for the media and files gallery. */
+    val mediaOnly: Boolean = false,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var timeline: Timeline? = null
@@ -100,11 +103,16 @@ class TimelineController(
                             numContextEvents = 40u,
                             threadMode = uniffi.matrix_sdk_ui.TimelineEventFocusThreadMode.Automatic(true),
                         )
-                        else -> TimelineFocus.Live(hideThreadedEvents = true)
+                        else -> TimelineFocus.Live(hideThreadedEvents = !mediaOnly)
                     },
-                    filter = TimelineFilter.All,
-                    internalIdPrefix = when { threadRootId != null -> "thread"; focusEventId != null -> "focus"; else -> "live" },
-                    dateDividerMode = DateDividerMode.DAILY,
+                    filter = if (mediaOnly) TimelineFilter.OnlyMessage(
+                        listOf(
+                            RoomMessageEventMessageType.IMAGE, RoomMessageEventMessageType.VIDEO,
+                            RoomMessageEventMessageType.FILE, RoomMessageEventMessageType.AUDIO,
+                        )
+                    ) else TimelineFilter.All,
+                    internalIdPrefix = when { threadRootId != null -> "thread"; focusEventId != null -> "focus"; mediaOnly -> "media"; else -> "live" },
+                    dateDividerMode = if (mediaOnly) DateDividerMode.MONTHLY else DateDividerMode.DAILY,
                     trackReadReceipts = TimelineReadReceiptTracking.MESSAGE_LIKE_EVENTS,
                     reportUtds = false,
                 )
@@ -140,7 +148,7 @@ class TimelineController(
         handles.clear()
         diffs.close()
         val t = timeline
-        if (t != null && seenLatest && threadRootId == null && focusEventId == null) {
+        if (t != null && seenLatest && threadRootId == null && focusEventId == null && !mediaOnly) {
             // Read to the end: move the "new messages" line before letting go of the timeline.
             com.vknxworks.elementctrl.ElementCtrlApp.graph.scope.launch {
                 runCatching { t.markAsRead(ReceiptType.FULLY_READ) }
@@ -298,6 +306,10 @@ class TimelineController(
             threadLatest = threadLatest,
             readBy = e.readReceipts.keys.filter { it != session.userId && it != e.sender },
             shield = shield,
+            receipts = e.readReceipts.entries
+                .filter { it.key != session.userId && it.key != e.sender }
+                .map { ReceiptUi(it.key, it.value.timestamp?.toLong()) }
+                .sortedByDescending { it.timestamp ?: 0L },
         )
     }
 
@@ -441,7 +453,14 @@ class TimelineController(
 
     fun toggleReaction(item: TimelineEntry.Message, key: String) = launchAction { t ->
         item.id()?.let { t.toggleReaction(it, key) }
+        // Remember what you react with, so it comes first in the quick reactions (synced with Element).
+        if (item.reactions.none { it.key == key && it.mine }) runCatching { session.client.addRecentEmoji(key) }
     }
+
+    /** Your recently used reaction emojis, most recent first (shared with other Matrix apps through account data). */
+    suspend fun recentEmojis(): List<String> = runCatching {
+        kotlinx.coroutines.withContext(Dispatchers.IO) { session.client.getRecentEmojis().map { it.emoji } }
+    }.getOrDefault(emptyList())
 
     fun redact(item: TimelineEntry.Message, reason: String? = null) = launchAction { t ->
         item.id()?.let { t.redactEvent(it, reason) }
@@ -468,7 +487,7 @@ class TimelineController(
 
     /** Moves the room's fully-read marker (the "new messages" line) to the newest message. */
     fun markFullyRead() {
-        if (threadRootId != null || focusEventId != null) return
+        if (threadRootId != null || focusEventId != null || mediaOnly) return
         launchAction { it.markAsRead(ReceiptType.FULLY_READ) }
     }
 

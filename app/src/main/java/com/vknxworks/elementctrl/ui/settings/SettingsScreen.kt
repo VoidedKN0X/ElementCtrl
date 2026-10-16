@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -105,6 +107,9 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     val showState by prefs.showStateEvents.collectAsStateWithLifecycle()
     val bubbleStyle by prefs.bubbleStyle.collectAsStateWithLifecycle()
     val chatAvatars by prefs.chatAvatars.collectAsStateWithLifecycle()
+    val doubleTap by prefs.doubleTapReaction.collectAsStateWithLifecycle()
+    val readReceipts by prefs.showReadReceipts.collectAsStateWithLifecycle()
+    var doubleTapDialog by remember { mutableStateOf(false) }
     var bubbleDialog by remember { mutableStateOf(false) }
 
     var editName by remember { mutableStateOf(false) }
@@ -231,6 +236,15 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 "Show pictures next to messages, in direct chats and next to yours too",
                 trailing = { Switch(chatAvatars, prefs::setChatAvatars) },
             )
+            SettingRow(
+                Icons.Default.DoneAll, "Seen by",
+                "Small pictures under messages showing who has read up to there",
+                trailing = { Switch(readReceipts, prefs::setShowReadReceipts) },
+            )
+            SettingRow(
+                Icons.Default.TouchApp, "Double-tap to react",
+                if (doubleTap.isBlank()) "Off" else "Double-tap a message to react with $doubleTap",
+            ) { doubleTapDialog = true }
             SettingRow(Icons.Default.Palette, "Material You colours", "Use your wallpaper's colours", trailing = { Switch(dynamic, prefs::setDynamicColor) })
             SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
             SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
@@ -326,6 +340,28 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 }
             },
             confirmButton = { TextButton(onClick = { lockAfterDialog = false }) { Text("Close") } },
+        )
+    }
+
+    if (doubleTapDialog) {
+        AlertDialog(
+            onDismissRequest = { doubleTapDialog = false },
+            title = { Text("Double-tap to react") },
+            text = {
+                Column {
+                    listOf("❤️", "👍", "😂", "🔥", "🎉", "👀", "").forEach { e ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { prefs.setDoubleTapReaction(e); doubleTapDialog = false }.padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(doubleTap == e, null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(if (e.isBlank()) "Off" else e, style = if (e.isBlank()) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { doubleTapDialog = false }) { Text("Close") } },
         )
     }
 

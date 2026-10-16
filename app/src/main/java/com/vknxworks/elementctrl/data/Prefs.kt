@@ -43,6 +43,16 @@ class Prefs(context: Context) {
     val chatAvatars: StateFlow<Boolean> = _chatAvatars.asStateFlow()
     fun setChatAvatars(on: Boolean) { sp.edit().putBoolean("chat_avatars", on).apply(); _chatAvatars.value = on }
 
+    private val _doubleTap = MutableStateFlow(sp.getString("double_tap_reaction", "❤️").orEmpty())
+    /** Emoji a double-tap on a message reacts with; blank turns double-tap off. */
+    val doubleTapReaction: StateFlow<String> = _doubleTap.asStateFlow()
+    fun setDoubleTapReaction(emoji: String) { sp.edit().putString("double_tap_reaction", emoji).apply(); _doubleTap.value = emoji }
+
+    private val _readReceipts = MutableStateFlow(sp.getBoolean("show_read_receipts", true))
+    /** Small pictures under messages showing who has read up to there. */
+    val showReadReceipts: StateFlow<Boolean> = _readReceipts.asStateFlow()
+    fun setShowReadReceipts(on: Boolean) { sp.edit().putBoolean("show_read_receipts", on).apply(); _readReceipts.value = on }
+
     private val _linkPreviews = MutableStateFlow(sp.getBoolean("link_previews", true))
     /** Show previews for links in messages (fetched by your homeserver). */
     val linkPreviews: StateFlow<Boolean> = _linkPreviews.asStateFlow()
