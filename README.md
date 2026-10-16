@@ -5,7 +5,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 ## Features
 
 **First start**
-- Pick a server: matrix.org, Mozilla, envs.net, tchncs.de, KDE, servers you used before, or any **custom / self-hosted** address (`example.com` with `.well-known` discovery, or a full `https://matrix.example.com` URL)
+- Pick a server: matrix.org, Mozilla, servers you used before, or any **custom / self-hosted** address (`example.com` with `.well-known` discovery, or a full `https://matrix.example.com` URL)
 - Sign in with whatever the server offers: **OAuth** through the Matrix Authentication Service (matrix.org and other MAS servers, including **account creation**), **username and password** (classic Synapse), or **single sign-on**
 - Clear errors for unreachable servers, bad addresses and servers without sliding sync
 

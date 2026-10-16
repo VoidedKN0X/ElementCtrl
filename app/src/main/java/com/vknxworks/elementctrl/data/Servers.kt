@@ -12,9 +12,6 @@ object Servers {
     val standard = listOf(
         ServerOption("matrix.org", "matrix.org", "The largest public server, run by the Matrix.org Foundation. Free and open to everyone."),
         ServerOption("Mozilla", "mozilla.org", "Mozilla's community server. Sign in with a Mozilla account or GitHub."),
-        ServerOption("envs.net", "envs.net", "A non-profit community server with free registration."),
-        ServerOption("tchncs.de", "tchncs.de", "A long-running community server hosted in Germany."),
-        ServerOption("KDE", "kde.org", "The KDE community's server for contributors and users."),
     )
 
     /**

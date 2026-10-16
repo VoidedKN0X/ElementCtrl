@@ -3,6 +3,7 @@
 ## Unreleased
 
 - New app icon: twin chat bubbles on deep purple, matching the other Ctrl apps; themed (monochrome) icon and notification icon updated to match
+- The first-start server list now offers just matrix.org and Mozilla, plus servers you used before and custom / self-hosted addresses
 
 ## 1.2.0
 
