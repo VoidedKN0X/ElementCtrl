@@ -14,7 +14,7 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.0.1"
+        versionName = "1.1.0"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -92,6 +92,9 @@ dependencies {
     implementation("org.matrix.rustcomponents:sdk-android:26.10.15")
     implementation("net.java.dev.jna:jna:5.18.1@aar")
     implementation("org.rustls:rustls-platform-verifier:0.2.0@aar")
+
+    // Frosted-glass blur behind the floating composer island, as in the other Ctrl apps.
+    implementation("dev.chrisbanes.haze:haze:1.6.0")
 
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")

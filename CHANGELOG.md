@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- Chats follow new messages as they arrive, unless you've scrolled up to read; then a badge on the jump-down button counts what's new
+- The message box is now a floating frosted-glass island, like the other Ctrl apps, with replies, edits and @-mention suggestions in a small island above it
+- Choose a chat bubble design in Settings › Appearance › Chat bubbles: Modern, Round, Sharp, Outlined, Vivid or No bubbles (Element Web style), each with a live preview
+
 ## 1.0.1
 
 - After signing in on an account that already uses encryption, a "Confirm it's you" step asks you to verify the device (another device or recovery key), like Element X. Unverified devices can't get message keys, which made messages slow to decrypt or stay locked

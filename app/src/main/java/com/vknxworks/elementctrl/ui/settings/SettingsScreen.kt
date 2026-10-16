@@ -94,6 +94,8 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     val notifications by prefs.notifications.collectAsStateWithLifecycle()
     val sendOnEnter by prefs.sendOnEnter.collectAsStateWithLifecycle()
     val showState by prefs.showStateEvents.collectAsStateWithLifecycle()
+    val bubbleStyle by prefs.bubbleStyle.collectAsStateWithLifecycle()
+    var bubbleDialog by remember { mutableStateOf(false) }
 
     var editName by remember { mutableStateOf(false) }
     var themeDialog by remember { mutableStateOf(false) }
@@ -190,6 +192,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
 
             SectionHeader("Appearance")
             SettingRow(Icons.Default.Brightness6, "Theme", when (theme) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }) { themeDialog = true }
+            SettingRow(Icons.Default.ChatBubbleOutline, "Chat bubbles", bubbleStyle.label + " · " + bubbleStyle.description) { bubbleDialog = true }
             SettingRow(Icons.Default.Palette, "Material You colours", "Use your wallpaper's colours", trailing = { Switch(dynamic, prefs::setDynamicColor) })
             SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
             SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
@@ -218,6 +221,8 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     if (editName) TextInputDialog("Display name", initial = profile.displayName.orEmpty(), onDismiss = { editName = false }) { name ->
         scope.launch { runCatching { account.setDisplayName(name.trim()) }.onFailure { snackbar.showSnackbar(it.userMessage()) } }
     }
+
+    if (bubbleDialog) BubbleStylePicker(bubbleStyle, prefs::setBubbleStyle) { bubbleDialog = false }
 
     if (themeDialog) {
         AlertDialog(

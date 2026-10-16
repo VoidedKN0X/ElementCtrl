@@ -1,6 +1,22 @@
 package com.vknxworks.elementctrl.ui.room
 
 import android.content.Intent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import com.vknxworks.elementctrl.ui.glassIsland
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -175,6 +191,10 @@ fun RoomScreen(
     val recovery by session.recovery.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
+    val bubbleStyle by ElementCtrlApp.graph.prefs.bubbleStyle.collectAsStateWithLifecycle()
+    val haze = remember { HazeState() }
+    val density = LocalDensity.current
+    var islandHeight by remember { mutableStateOf(88.dp) }
     var composer by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var mode by remember { mutableStateOf<ComposerMode>(ComposerMode.Normal) }
     val mentions = remember { mutableStateListOf<String>() }
@@ -208,6 +228,23 @@ fun RoomScreen(
 
     // Mark read when the newest message is on screen.
     val atBottom by remember { derivedStateOf { listState.firstVisibleItemIndex <= 1 } }
+
+    // Follow new messages while the newest one is in view; stop following once the user scrolls up.
+    // Only scrolling changes this, so a message arriving (which shifts the list) doesn't count as scrolling away.
+    var followLatest by remember { mutableStateOf(true) }
+    var unseenBelow by remember { mutableStateOf(0) }
+    LaunchedEffect(listState) {
+        snapshotFlow { Triple(listState.isScrollInProgress, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+            .collect { (scrolling, index, offset) ->
+                if (scrolling) followLatest = index == 0 && offset < 120
+                if (index == 0 && offset < 120) unseenBelow = 0
+            }
+    }
+    val newestKey = visible.firstOrNull()?.key
+    LaunchedEffect(newestKey) {
+        if (newestKey == null) return@LaunchedEffect
+        if (followLatest) listState.animateScrollToItem(0) else unseenBelow++
+    }
     LaunchedEffect(atBottom, entries.size) { if (atBottom && entries.isNotEmpty()) timeline.markAsRead() }
 
     // Load older messages when scrolled near the top.
@@ -241,6 +278,7 @@ fun RoomScreen(
         mentions.clear()
         mode = ComposerMode.Normal
         room.onComposerChanged("")
+        followLatest = true
         scope.launch { listState.animateScrollToItem(0) }
     }
 
@@ -305,23 +343,84 @@ fun RoomScreen(
                 },
             )
         },
-        bottomBar = {
-            Column(Modifier.navigationBarsPadding().imePadding()) {
-                when {
-                    membership == Membership.INVITED -> InviteBar(header?.inviterName, onAccept = { room.join() }, onDecline = { room.leave(onBack) })
-                    membership == Membership.LEFT || membership == Membership.BANNED -> {
-                        Text(
-                            if (membership == Membership.BANNED) "You were banned from this room." else "You left this room.",
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+        contentWindowInsets = WindowInsets(0),
+    ) { pad ->
+        Box(Modifier.fillMaxSize().padding(pad)) {
+            if (entries.isEmpty() && !atStart) {
+                CenteredLoading()
+            }
+            CompositionLocalProvider(LocalBubbleStyle provides bubbleStyle) {
+                LazyColumn(
+                    state = listState,
+                    reverseLayout = true,
+                    modifier = Modifier.fillMaxSize().hazeSource(haze),
+                    // Messages scroll on under the floating composer, so leave room for it at the bottom.
+                    contentPadding = PaddingValues(top = 8.dp, bottom = islandHeight + 8.dp),
+                ) {
+                    itemsIndexed(visible, key = { _, e -> e.key }, contentType = { _, e -> e::class.simpleName }) { index, entry ->
+                        when (entry) {
+                            is TimelineEntry.Day -> DayDivider(entry.timestamp)
+                            is TimelineEntry.ReadMarker -> if (index > 0) ReadMarkerLine()
+                            is TimelineEntry.Start -> RoomStart(header?.name, isDm, header?.isEncrypted == true)
+                            is TimelineEntry.Message -> {
+                                val older = visible.getOrNull(index + 1)
+                                val showSender = older !is TimelineEntry.Message || older.sender != entry.sender || older.isStateLike ||
+                                    entry.timestamp - older.timestamp > 5 * 60_000
+                                MessageRow(entry, showSender, isDm, actions, highlighted = highlighted != null && highlighted == entry.eventId)
+                            }
+                        }
                     }
-                    !permissions.canSend -> Text(
-                        "You don't have permission to post here.",
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (paginating && !atStart) {
+                        item("paginating") {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                            }
+                        }
+                    }
+                }
+            }
+            header?.successorRoomId?.let { successor ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.TopCenter),
+                ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("This room has been upgraded.", Modifier.weight(1f))
+                        TextButton(onClick = { onOpenRoom(successor) }) { Text("Go to new room") }
+                    }
+                }
+            }
+            if (!atBottom) {
+                BadgedBox(
+                    badge = { if (unseenBelow > 0) Badge { Text(if (unseenBelow > 99) "99+" else "$unseenBelow") } },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = islandHeight + 12.dp),
+                ) {
+                    SmallFloatingActionButton(onClick = {
+                        followLatest = true
+                        unseenBelow = 0
+                        scope.launch { listState.animateScrollToItem(0) }
+                    }) { Icon(Icons.Default.KeyboardArrowDown, "Jump to latest") }
+                }
+            }
+            // The composer island floats above the messages, the navigation bar and the keyboard.
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { islandHeight = with(density) { it.height.toDp() } }
+                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    .padding(start = 12.dp, end = 12.dp, bottom = 10.dp, top = 6.dp),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                when {
+                    membership == Membership.INVITED -> InviteBar(header?.inviterName, haze, onAccept = { room.join() }, onDecline = { room.leave(onBack) })
+                    membership == Membership.LEFT || membership == Membership.BANNED -> {
+                        IslandNote(if (membership == Membership.BANNED) "You were banned from this room." else "You left this room.", haze)
+                    }
+                    !permissions.canSend -> IslandNote("You don't have permission to post here.", haze)
                     else -> Composer(
+                        haze = haze,
                         value = composer,
                         onValueChange = {
                             composer = it
@@ -355,55 +454,6 @@ fun RoomScreen(
                     )
                 }
             }
-        },
-    ) { pad ->
-        Box(Modifier.fillMaxSize().padding(pad)) {
-            header?.successorRoomId?.let { successor ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.TopCenter),
-                ) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("This room has been upgraded.", Modifier.weight(1f))
-                        TextButton(onClick = { onOpenRoom(successor) }) { Text("Go to new room") }
-                    }
-                }
-            }
-            if (entries.isEmpty() && !atStart) {
-                CenteredLoading()
-            }
-            LazyColumn(
-                state = listState,
-                reverseLayout = true,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp),
-            ) {
-                itemsIndexed(visible, key = { _, e -> e.key }, contentType = { _, e -> e::class.simpleName }) { index, entry ->
-                    when (entry) {
-                        is TimelineEntry.Day -> DayDivider(entry.timestamp)
-                        is TimelineEntry.ReadMarker -> if (index > 0) ReadMarkerLine()
-                        is TimelineEntry.Start -> RoomStart(header?.name, isDm, header?.isEncrypted == true)
-                        is TimelineEntry.Message -> {
-                            val older = visible.getOrNull(index + 1)
-                            val showSender = older !is TimelineEntry.Message || older.sender != entry.sender || older.isStateLike ||
-                                entry.timestamp - older.timestamp > 5 * 60_000
-                            MessageRow(entry, showSender, isDm, actions, highlighted = highlighted != null && highlighted == entry.eventId)
-                        }
-                    }
-                }
-                if (paginating && !atStart) {
-                    item("paginating") {
-                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                        }
-                    }
-                }
-            }
-            if (!atBottom) {
-                SmallFloatingActionButton(
-                    onClick = { scope.launch { listState.animateScrollToItem(0) } },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                ) { Icon(Icons.Default.KeyboardArrowDown, "Jump to latest") }
             }
         }
     }
@@ -604,8 +654,20 @@ private fun RoomStart(name: String?, isDm: Boolean, encrypted: Boolean) {
 }
 
 @Composable
-private fun InviteBar(inviter: String?, onAccept: () -> Unit, onDecline: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun IslandNote(text: String, haze: HazeState) {
+    Text(
+        text,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).padding(16.dp),
+    )
+}
+
+@Composable
+private fun InviteBar(inviter: String?, haze: HazeState, onAccept: () -> Unit, onDecline: () -> Unit) {
+    Column(
+        Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Text("${inviter ?: "Someone"} invited you to join.", style = MaterialTheme.typography.bodyMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text("Decline") }
@@ -616,6 +678,7 @@ private fun InviteBar(inviter: String?, onAccept: () -> Unit, onDecline: () -> U
 
 @Composable
 private fun Composer(
+    haze: HazeState,
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     mode: ComposerMode,
@@ -641,75 +704,88 @@ private fun Composer(
             members.filter { it.membership == "join" && (it.name.contains(q, true) || it.userId.contains(q, true)) }.take(5)
         }.orEmpty()
     }
+    val cs = MaterialTheme.colorScheme
+    val canSend = value.text.isNotBlank()
 
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
-        Column {
-            if (suggestions.isNotEmpty()) {
-                Column(Modifier.fillMaxWidth()) {
-                    suggestions.forEach { m ->
-                        Row(
-                            Modifier.fillMaxWidth().clickable { onMention(m) }.padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Avatar(m.name, m.avatarUrl, m.userId, size = 28.dp)
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(m.name, style = MaterialTheme.typography.bodyMedium)
-                                Text(m.userId, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(Modifier.widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Mention suggestions and the reply/edit preview sit in their own small island above the input.
+        if (suggestions.isNotEmpty() || mode != ComposerMode.Normal) {
+            Column(Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(22.dp), elevation = 8)) {
+                suggestions.forEach { m ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onMention(m) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Avatar(m.name, m.avatarUrl, m.userId, size = 28.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(m.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(m.userId, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                        }
+                    }
+                }
+                if (suggestions.isNotEmpty() && mode != ComposerMode.Normal) HorizontalDivider()
+                when (mode) {
+                    is ComposerMode.Reply, is ComposerMode.Edit -> {
+                        val item = if (mode is ComposerMode.Reply) mode.item else (mode as ComposerMode.Edit).item
+                        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(if (mode is ComposerMode.Reply) Icons.AutoMirrored.Filled.Reply else Icons.Default.Edit, null, tint = cs.primary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(if (mode is ComposerMode.Reply) "Replying to ${item.senderName}" else "Editing", style = MaterialTheme.typography.labelMedium, color = cs.primary)
+                                Text(previewOf(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
+                            IconButton(onClick = onCancelMode) { Icon(Icons.Default.Close, "Cancel") }
                         }
                     }
-                    HorizontalDivider()
+                    ComposerMode.Normal -> Unit
                 }
             }
-            when (mode) {
-                is ComposerMode.Reply, is ComposerMode.Edit -> {
-                    val item = if (mode is ComposerMode.Reply) mode.item else (mode as ComposerMode.Edit).item
-                    Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (mode is ComposerMode.Reply) Icons.AutoMirrored.Filled.Reply else Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(if (mode is ComposerMode.Reply) "Replying to ${item.senderName}" else "Editing", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                            Text(previewOf(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        IconButton(onClick = onCancelMode) { Icon(Icons.Default.Close, "Cancel") }
-                    }
+        }
+
+        // The input island.
+        Row(
+            Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).heightIn(min = 56.dp).padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Box {
+                IconButton(onClick = onAttach) { Icon(Icons.Default.Add, "Attach", tint = cs.onSurfaceVariant) }
+                DropdownMenu(expanded = attachMenu, onDismissRequest = onDismissAttach) {
+                    DropdownMenuItem(text = { Text("Photo or video") }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
+                    DropdownMenuItem(text = { Text("File") }, leadingIcon = { Icon(Icons.Default.AttachFile, null) }, onClick = onPickFile)
+                    DropdownMenuItem(text = { Text("Poll") }, leadingIcon = { Icon(Icons.Default.BarChart, null) }, onClick = onPoll)
                 }
-                ComposerMode.Normal -> Unit
             }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.Bottom) {
-                Box {
-                    IconButton(onClick = onAttach) { Icon(Icons.Default.Add, "Attach") }
-                    DropdownMenu(expanded = attachMenu, onDismissRequest = onDismissAttach) {
-                        DropdownMenuItem(text = { Text("Photo or video") }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
-                        DropdownMenuItem(text = { Text("File") }, leadingIcon = { Icon(Icons.Default.AttachFile, null) }, onClick = onPickFile)
-                        DropdownMenuItem(text = { Text("Poll") }, leadingIcon = { Icon(Icons.Default.BarChart, null) }, onClick = onPoll)
-                    }
-                }
-                TextField(
-                    value = value,
-                    onValueChange = { v ->
-                        if (sendOnEnter && v.text.endsWith("\n") && !value.text.endsWith("\n")) {
-                            onValueChange(v.copy(text = v.text.dropLast(1)))
-                            onSend()
-                        } else onValueChange(v)
-                    },
-                    placeholder = { Text("Message") },
-                    maxLines = 6,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(4.dp))
-                IconButton(onClick = onSend, enabled = value.text.isNotBlank()) {
-                    Icon(Icons.AutoMirrored.Filled.Send, "Send", tint = if (value.text.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            TextField(
+                value = value,
+                onValueChange = { v ->
+                    if (sendOnEnter && v.text.endsWith("\n") && !value.text.endsWith("\n")) {
+                        onValueChange(v.copy(text = v.text.dropLast(1)))
+                        onSend()
+                    } else onValueChange(v)
+                },
+                placeholder = { Text("Message") },
+                maxLines = 6,
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.weight(1f),
+            )
+            val sendColor by animateColorAsState(if (canSend) cs.primary else cs.surfaceContainerHighest, label = "send")
+            Box(
+                Modifier
+                    .padding(4.dp)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(sendColor)
+                    .clickable(enabled = canSend, onClick = onSend),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Send, "Send", tint = if (canSend) cs.onPrimary else cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
         }
     }

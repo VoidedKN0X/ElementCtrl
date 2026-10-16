@@ -64,6 +64,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.vknxworks.elementctrl.data.BubbleStyle
 import com.vknxworks.elementctrl.matrix.MxcImage
 import com.vknxworks.elementctrl.matrix.ReactionUi
 import com.vknxworks.elementctrl.matrix.SendStatus
@@ -93,6 +94,9 @@ class MessageActions(
     val onFixDecryption: () -> Unit = {},
 )
 
+/** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
+val LocalBubbleStyle = androidx.compose.runtime.staticCompositionLocalOf { BubbleStyle.MODERN }
+
 @Composable
 fun MessageRow(
     item: TimelineEntry.Message,
@@ -111,55 +115,87 @@ fun MessageRow(
         )
         return
     }
-    val own = item.isOwn
+    val style = LocalBubbleStyle.current
+    val cs = MaterialTheme.colorScheme
+    val flat = style == BubbleStyle.FLAT
+    // In the flat layout everything sits on the left, so your own messages need a name and avatar too.
+    val own = item.isOwn && !flat
+    val withAvatar = flat || (!own && !isDm)
     val bubbleColor = when {
-        highlighted -> MaterialTheme.colorScheme.tertiaryContainer
-        own -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        highlighted -> cs.tertiaryContainer
+        flat || style == BubbleStyle.OUTLINED -> Color.Transparent
+        style == BubbleStyle.VIVID && own -> cs.primary
+        own -> cs.primaryContainer
+        else -> cs.surfaceContainerHigh
     }
     val onBubble = when {
-        highlighted -> MaterialTheme.colorScheme.onTertiaryContainer
-        own -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurface
+        highlighted -> cs.onTertiaryContainer
+        flat || style == BubbleStyle.OUTLINED -> cs.onSurface
+        style == BubbleStyle.VIVID && own -> cs.onPrimary
+        own -> cs.onPrimaryContainer
+        else -> cs.onSurface
     }
+    val shape = when (style) {
+        BubbleStyle.MODERN, BubbleStyle.OUTLINED, BubbleStyle.VIVID -> RoundedCornerShape(
+            topStart = 18.dp, topEnd = 18.dp,
+            bottomStart = if (own) 18.dp else 6.dp,
+            bottomEnd = if (own) 6.dp else 18.dp,
+        )
+        BubbleStyle.ROUND -> RoundedCornerShape(22.dp)
+        BubbleStyle.SHARP -> RoundedCornerShape(4.dp)
+        BubbleStyle.FLAT -> RoundedCornerShape(8.dp)
+    }
+    val border = if (style == BubbleStyle.OUTLINED && !highlighted) {
+        androidx.compose.foundation.BorderStroke(1.dp, if (own) cs.primary.copy(alpha = 0.7f) else cs.outlineVariant)
+    } else null
     val isMedia = item.content is UiContent.Image || item.content is UiContent.Video
     val bigEmoji = (item.content as? UiContent.Text)?.let { it.html == null && isOnlyEmoji(it.body) } == true
 
     Row(
-        Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = if (showSender) 8.dp else 1.dp, bottom = 1.dp),
+        Modifier.fillMaxWidth().padding(
+            start = 8.dp, end = 8.dp,
+            top = if (showSender) (if (flat) 10.dp else 8.dp) else (if (style == BubbleStyle.SHARP) 0.dp else 1.dp),
+            bottom = 1.dp,
+        ),
         horizontalArrangement = if (own) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom,
+        verticalAlignment = if (flat) Alignment.Top else Alignment.Bottom,
     ) {
-        if (!own && !isDm) {
+        if (withAvatar) {
+            val size = if (flat) 36.dp else 32.dp
             if (showSender) {
                 Box(Modifier.clickable { actions.onOpenUser(item.sender) }) {
-                    Avatar(item.senderName, item.senderAvatar, item.sender, size = 32.dp)
+                    Avatar(item.senderName, item.senderAvatar, item.sender, size = size)
                 }
             } else {
-                Spacer(Modifier.width(32.dp))
+                Spacer(Modifier.width(size))
             }
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(if (flat) 10.dp else 6.dp))
         }
-        Column(horizontalAlignment = if (own) Alignment.End else Alignment.Start, modifier = Modifier.widthIn(max = 320.dp)) {
-            if (showSender && !own && !isDm) {
-                Text(
-                    item.senderName,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = senderColor(item.sender),
-                    modifier = Modifier.padding(start = 12.dp, bottom = 2.dp).clickable { actions.onOpenUser(item.sender) },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        Column(
+            horizontalAlignment = if (own) Alignment.End else Alignment.Start,
+            modifier = if (flat) Modifier.weight(1f) else Modifier.widthIn(max = 320.dp),
+        ) {
+            if (showSender && withAvatar) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (flat) 0.dp else 12.dp, bottom = 2.dp)) {
+                    Text(
+                        if (flat && item.isOwn) "You" else item.senderName,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = senderColor(item.sender),
+                        modifier = Modifier.clickable { actions.onOpenUser(item.sender) },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (flat) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                    }
+                }
             }
-            val shape = RoundedCornerShape(
-                topStart = 18.dp, topEnd = 18.dp,
-                bottomStart = if (own) 18.dp else 6.dp,
-                bottomEnd = if (own) 6.dp else 18.dp,
-            )
             Surface(
                 color = if (bigEmoji) Color.Transparent else bubbleColor,
                 contentColor = onBubble,
                 shape = shape,
+                border = if (bigEmoji) null else border,
                 modifier = Modifier.clip(shape).combinedClickable(
                     onClick = {
                         when (item.content) {
@@ -170,32 +206,38 @@ fun MessageRow(
                     onLongClick = { actions.onLongPress(item) },
                 ),
             ) {
-                Column(Modifier.padding(if (isMedia) 4.dp else 0.dp)) {
+                Column(Modifier.padding(if (isMedia && !flat) 4.dp else 0.dp)) {
                     item.reply?.let { r ->
-                        ReplyQuote(r.senderName, r.text, onBubble, Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp).clickable { actions.onJumpToReply(r.eventId) })
+                        ReplyQuote(
+                            r.senderName, r.text, onBubble,
+                            Modifier.padding(start = if (flat) 0.dp else 8.dp, end = 8.dp, top = if (flat) 2.dp else 8.dp).clickable { actions.onJumpToReply(r.eventId) },
+                        )
                     }
-                    MessageBody(item, onBubble, bigEmoji, actions)
+                    MessageBody(item, onBubble, bigEmoji, actions, flat)
                     Row(
-                        Modifier.align(Alignment.End).padding(end = 10.dp, bottom = 6.dp, start = 10.dp),
+                        Modifier.align(if (flat) Alignment.Start else Alignment.End).padding(end = 10.dp, bottom = if (flat) 2.dp else 6.dp, start = if (flat) 0.dp else 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         item.shield?.let {
                             Icon(
                                 Icons.Default.Shield, it.text, Modifier.size(12.dp),
-                                tint = if (it.red) MaterialTheme.colorScheme.error else onBubble.copy(alpha = 0.6f),
+                                tint = if (it.red) cs.error else onBubble.copy(alpha = 0.6f),
                             )
                             Spacer(Modifier.width(4.dp))
                         }
                         if (item.edited) {
-                            Text("edited · ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                            Text(if (flat) "(edited)" else "edited · ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
                         }
-                        Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
-                        if (own) {
+                        if (!flat) Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                        if (item.isOwn) {
                             Spacer(Modifier.width(4.dp))
                             when (item.status) {
                                 SendStatus.SENDING -> Icon(Icons.Default.AccessTime, "Sending", Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
-                                SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, "Not sent, tap to retry", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
-                                SendStatus.SENT -> Icon(Icons.Default.Done, if (item.readBy.isNotEmpty()) "Read" else "Sent", Modifier.size(12.dp), tint = if (item.readBy.isNotEmpty()) MaterialTheme.colorScheme.primary else onBubble.copy(alpha = 0.6f))
+                                SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, "Not sent, tap to retry", Modifier.size(14.dp), tint = cs.error)
+                                SendStatus.SENT -> if (!flat || item.readBy.isNotEmpty()) Icon(
+                                    Icons.Default.Done, if (item.readBy.isNotEmpty()) "Read" else "Sent", Modifier.size(12.dp),
+                                    tint = if (item.readBy.isNotEmpty()) (if (style == BubbleStyle.VIVID && own) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
+                                )
                             }
                         }
                     }
@@ -230,8 +272,10 @@ fun MessageRow(
 }
 
 @Composable
-private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: Boolean, actions: MessageActions) {
-    val pad = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp)
+private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: Boolean, actions: MessageActions, flat: Boolean = false) {
+    // Without a bubble there's nothing to inset from, so text lines up with the sender's name.
+    val pad = if (flat) Modifier.padding(end = 12.dp, top = 1.dp, bottom = 2.dp)
+    else Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp)
     when (val c = item.content) {
         is UiContent.Text -> {
             val text = remember(c.body, c.html) { formatText(c.body, c.html) }

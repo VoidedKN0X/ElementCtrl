@@ -8,6 +8,16 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** How messages are drawn in a chat. */
+enum class BubbleStyle(val label: String, val description: String) {
+    MODERN("Modern", "Rounded bubbles with a small tail"),
+    ROUND("Round", "Fully rounded bubbles"),
+    SHARP("Sharp", "Square corners, compact"),
+    OUTLINED("Outlined", "Bubbles with an outline instead of a fill"),
+    VIVID("Vivid", "Your messages in a strong accent colour"),
+    FLAT("No bubbles", "Everything on the left with names, like Element Web"),
+}
+
 /** App-level settings that are not tied to the Matrix account. */
 class Prefs(context: Context) {
     private val sp: SharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -23,6 +33,10 @@ class Prefs(context: Context) {
     private val _notifications = MutableStateFlow(sp.getBoolean("notifications", true))
     val notifications: StateFlow<Boolean> = _notifications.asStateFlow()
     fun setNotifications(on: Boolean) { sp.edit().putBoolean("notifications", on).apply(); _notifications.value = on }
+
+    private val _bubbles = MutableStateFlow(BubbleStyle.entries.getOrElse(sp.getInt("bubble_style", 0)) { BubbleStyle.MODERN })
+    val bubbleStyle: StateFlow<BubbleStyle> = _bubbles.asStateFlow()
+    fun setBubbleStyle(style: BubbleStyle) { sp.edit().putInt("bubble_style", style.ordinal).apply(); _bubbles.value = style }
 
     private val _sendOnEnter = MutableStateFlow(sp.getBoolean("send_on_enter", false))
     val sendOnEnter: StateFlow<Boolean> = _sendOnEnter.asStateFlow()
