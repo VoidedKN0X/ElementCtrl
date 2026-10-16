@@ -1,6 +1,8 @@
 package com.vknxworks.elementctrl.ui
 
 import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -147,7 +149,7 @@ fun MainNav(session: MatrixSession) {
                         val id = paneRoom
                         if (id == null) {
                             EmptyState(
-                                androidx.compose.material.icons.Icons.AutoMirrored.Filled.Chat,
+                                Icons.AutoMirrored.Filled.Chat,
                                 "Pick a chat",
                                 "Choose a conversation on the left to open it here.",
                                 Modifier.align(androidx.compose.ui.Alignment.Center),

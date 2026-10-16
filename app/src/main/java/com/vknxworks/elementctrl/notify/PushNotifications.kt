@@ -133,7 +133,7 @@ object PushNotifications {
         post(context, roomId, name, dm, false, lines)
     }
 
-    fun forget(roomId: String) = synchronized(history) { history.remove(roomId) }
+    fun forget(roomId: String) { synchronized(history) { history.remove(roomId) } }
 
     fun clearAll(context: Context) {
         synchronized(history) { history.clear() }

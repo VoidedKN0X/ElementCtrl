@@ -1,6 +1,8 @@
 package com.vknxworks.elementctrl.ui.room
 
 import android.content.Intent
+import androidx.compose.foundation.layout.fillMaxHeight
+import com.vknxworks.elementctrl.ui.formatDuration
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
