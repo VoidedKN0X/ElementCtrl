@@ -53,9 +53,34 @@ private fun enc(s: String) = Uri.encode(s)
 
 private fun NavHostController.openRoom(roomId: String, replaceCurrent: Boolean = false) {
     navigate("room/${enc(roomId)}") {
-        if (replaceCurrent) currentDestination?.id?.let { popUpTo(it) { inclusive = true } }
+        // Never replace the chat list itself: with it gone, going back left an empty, black screen.
+        val current = currentDestination
+        if (replaceCurrent && current != null && current.route != "home") popUpTo(current.id) { inclusive = true }
         launchSingleTop = true
     }
+}
+
+/**
+ * Back from a screen the user is looking at. Repeat taps while a screen change is still animating
+ * are ignored, and the chat list at the bottom is never popped (that emptied the screen stack and
+ * left a black screen until the app was restarted).
+ */
+private fun NavHostController.back() {
+    val current = currentBackStackEntry ?: return
+    if (previousBackStackEntry == null) return
+    if (!current.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+    popBackStack()
+}
+
+/** Closes [route] if it's on top, for screens that finish on their own (not from a tap). */
+private fun NavHostController.close(route: String) {
+    if (previousBackStackEntry != null && currentBackStackEntry?.destination?.route == route) popBackStack()
+}
+
+/** Opens a screen from a tap, ignoring taps on a screen that's already on its way out or not shown yet. */
+private fun NavHostController.go(route: String) {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) == false) return
+    navigate(route)
 }
 
 /** All screens after sign-in. */
@@ -119,9 +144,9 @@ fun MainNav(session: MatrixSession) {
                     HomeScreen(
                         session,
                         onOpenRoom = { showRoom(it) },
-                        onNewChat = { nav.navigate("newchat") },
-                        onSettings = { nav.navigate("settings") },
-                        onSecurity = { nav.navigate("security") },
+                        onNewChat = { nav.go("newchat") },
+                        onSettings = { nav.go("settings") },
+                        onSecurity = { nav.go("security") },
                         selectedRoomId = if (wide) paneRoom else null,
                     )
                 }
@@ -148,13 +173,13 @@ fun MainNav(session: MatrixSession) {
                                     RoomScreen(
                                         session, id, threadRootId = null,
                                         onBack = { paneRoom = null },
-                                        onDetails = { nav.navigate("details/${enc(id)}") },
-                                        onOpenThread = { root -> nav.navigate("thread/${enc(id)}/${enc(root)}") },
-                                        onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(id)}") },
-                                        onOpenImage = { media = it; nav.navigate("media") },
+                                        onDetails = { nav.go("details/${enc(id)}") },
+                                        onOpenThread = { root -> nav.go("thread/${enc(id)}/${enc(root)}") },
+                                        onOpenUser = { nav.go("user/${enc(it)}?room=${enc(id)}") },
+                                        onOpenImage = { media = it; nav.go("media") },
                                         onOpenRoom = { paneRoom = it },
-                                        onSecurity = { nav.navigate("security") },
-                                        onSearch = { nav.navigate("search/${enc(id)}") },
+                                        onSecurity = { nav.go("security") },
+                                        onSearch = { nav.go("search/${enc(id)}") },
                                     )
                                 }
                             }
@@ -174,14 +199,14 @@ fun MainNav(session: MatrixSession) {
             val focus = entry.arguments?.getString("focus")
             RoomScreen(
                 session, roomId, threadRootId = null,
-                onBack = { nav.popBackStack() },
-                onDetails = { nav.navigate("details/${enc(roomId)}") },
-                onOpenThread = { root -> nav.navigate("thread/${enc(roomId)}/${enc(root)}") },
-                onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
-                onOpenImage = { media = it; nav.navigate("media") },
+                onBack = { nav.back() },
+                onDetails = { nav.go("details/${enc(roomId)}") },
+                onOpenThread = { root -> nav.go("thread/${enc(roomId)}/${enc(root)}") },
+                onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
+                onOpenImage = { media = it; nav.go("media") },
                 onOpenRoom = { nav.openRoom(it, replaceCurrent = true) },
-                onSecurity = { nav.navigate("security") },
-                onSearch = { nav.navigate("search/${enc(roomId)}") },
+                onSecurity = { nav.go("security") },
+                onSearch = { nav.go("search/${enc(roomId)}") },
                 focusEventId = focus,
                 onJumpToLatest = { nav.openRoom(roomId, replaceCurrent = true) },
             )
@@ -190,39 +215,39 @@ fun MainNav(session: MatrixSession) {
             val roomId = entry.arguments?.getString("roomId").orEmpty()
             SearchScreen(
                 session, roomId, session.rooms.value.firstOrNull { it.roomId == roomId }?.name,
-                onBack = { nav.popBackStack() },
-                onOpen = { eventId -> nav.navigate("room/${enc(roomId)}?focus=${enc(eventId)}") },
+                onBack = { nav.back() },
+                onOpen = { eventId -> nav.go("room/${enc(roomId)}?focus=${enc(eventId)}") },
             )
         }
-        composable("devices") { DevicesScreen(session, onBack = { nav.popBackStack() }) }
+        composable("devices") { DevicesScreen(session, onBack = { nav.back() }) }
         composable("thread/{roomId}/{rootId}") { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
             val rootId = entry.arguments?.getString("rootId").orEmpty()
             RoomScreen(
                 session, roomId, threadRootId = rootId,
-                onBack = { nav.popBackStack() },
+                onBack = { nav.back() },
                 onDetails = {},
                 onOpenThread = {},
-                onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
-                onOpenImage = { media = it; nav.navigate("media") },
+                onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
+                onOpenImage = { media = it; nav.go("media") },
                 onOpenRoom = { nav.openRoom(it) },
-                onSecurity = { nav.navigate("security") },
-                onSearch = { nav.navigate("search/${enc(roomId)}") },
+                onSecurity = { nav.go("security") },
+                onSearch = { nav.go("search/${enc(roomId)}") },
             )
         }
         composable("details/{roomId}") { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
             RoomDetailsScreen(
                 session, roomId,
-                onBack = { nav.popBackStack() },
-                onMembers = { nav.navigate("members/${enc(roomId)}") },
-                onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
+                onBack = { nav.back() },
+                onMembers = { nav.go("members/${enc(roomId)}") },
+                onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
                 onLeft = { paneRoom = null; nav.popBackStack("home", inclusive = false) },
             )
         }
         composable("members/{roomId}") { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
-            MembersScreen(session, roomId, onBack = { nav.popBackStack() }, onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") })
+            MembersScreen(session, roomId, onBack = { nav.back() }, onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") })
         }
         composable(
             "user/{userId}?room={room}",
@@ -231,41 +256,41 @@ fun MainNav(session: MatrixSession) {
             val userId = entry.arguments?.getString("userId").orEmpty()
             UserScreen(
                 session, userId, entry.arguments?.getString("room"),
-                onBack = { nav.popBackStack() },
+                onBack = { nav.back() },
                 onOpenRoom = { if (wide) showRoom(it) else nav.openRoom(it) },
-                onVerify = { nav.navigate("verify?user=${enc(it)}&start=true") },
+                onVerify = { nav.go("verify?user=${enc(it)}&start=true") },
             )
         }
         composable("newchat") {
             NewChatScreen(
                 session,
-                onBack = { nav.popBackStack() },
+                onBack = { nav.back() },
                 onOpenRoom = { if (wide) showRoom(it) else nav.openRoom(it, replaceCurrent = true) },
-                onCreateRoom = { nav.navigate("createroom") },
-                onExplore = { nav.navigate("explore") },
+                onCreateRoom = { nav.go("createroom") },
+                onExplore = { nav.go("explore") },
             )
         }
         composable("createroom") {
-            CreateRoomScreen(session, onBack = { nav.popBackStack() }, onCreated = { id ->
-                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home") }
+            CreateRoomScreen(session, onBack = { nav.back() }, onCreated = { id ->
+                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home"); launchSingleTop = true }
             })
         }
         composable("explore") {
-            ExploreScreen(session, onBack = { nav.popBackStack() }, onOpenRoom = { id ->
-                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home") }
+            ExploreScreen(session, onBack = { nav.back() }, onOpenRoom = { id ->
+                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home"); launchSingleTop = true }
             })
         }
         composable("settings") {
             SettingsScreen(
                 session,
-                onBack = { nav.popBackStack() },
-                onSecurity = { nav.navigate("security") },
-                onOpenUser = { nav.navigate("user/${enc(it)}") },
-                onDevices = { nav.navigate("devices") },
+                onBack = { nav.back() },
+                onSecurity = { nav.go("security") },
+                onOpenUser = { nav.go("user/${enc(it)}") },
+                onDevices = { nav.go("devices") },
             )
         }
         composable("security") {
-            SecurityScreen(session, onBack = { nav.popBackStack() }, onVerifyDevice = { nav.navigate("verify?start=true") })
+            SecurityScreen(session, onBack = { nav.back() }, onVerifyDevice = { nav.go("verify?start=true") })
         }
         composable(
             "verify?user={user}&start={start}",
@@ -278,12 +303,12 @@ fun MainNav(session: MatrixSession) {
                 session,
                 otherUserIdArg = entry.arguments?.getString("user"),
                 startOutgoing = entry.arguments?.getBoolean("start") == true,
-                onDone = { nav.popBackStack() },
+                onDone = { nav.close("verify?user={user}&start={start}") },
             )
         }
         composable("media") {
             val m = media
-            if (m != null) MediaViewer(session, m, onBack = { nav.popBackStack() }) else LaunchedEffect(Unit) { nav.popBackStack() }
+            if (m != null) MediaViewer(session, m, onBack = { nav.back() }) else LaunchedEffect(Unit) { nav.close("media") }
         }
     }
 
