@@ -32,7 +32,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 
 **Encryption and security**
 - End-to-end encryption on by default for DMs and private rooms, with cross-signing and key backup
-- Verify this device by comparing emojis with another session, or with your recovery key
+- Right after sign-in, confirm it's you: pick another signed-in device (compare emojis) or your recovery key, before the chats appear
 - Accept verification requests from your other devices; verify other people
 - Set up, change or turn off recovery (key storage); reset your identity as a last resort
 - Shields on messages from unverified devices; explanations for messages that can't be decrypted

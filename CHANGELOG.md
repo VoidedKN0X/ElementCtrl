@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Verification now happens right after sign-in, before your chats appear: choose **Use another device** (approve in Element or ElementCtrl and compare emojis) or **Use your recovery key**. Requests started from your other device are answered on the same screen. An unverified device is asked again on every start until it's verified
 - New app icon: twin chat bubbles on deep purple, matching the other Ctrl apps; themed (monochrome) icon and notification icon updated to match
 - The first-start server list now offers just matrix.org and Mozilla, plus servers you used before and custom / self-hosted addresses
 

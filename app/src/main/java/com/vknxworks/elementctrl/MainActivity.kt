@@ -69,7 +69,8 @@ class MainActivity : FragmentActivity() {
                         is AppState.SignedOut -> OnboardingFlow(s.message)
                         // The lock covers the app instead of replacing it, so you come back to where you were.
                         is AppState.SignedIn -> androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-                            MainNav(s.session)
+                            // Unverified devices are asked to confirm it's you before the chats appear.
+                            com.vknxworks.elementctrl.ui.onboarding.VerifyGate(s.session) { MainNav(s.session) }
                             if (lockVm.locked) {
                                 LockScreen(lockVm, onForgot = {
                                     scope.launch {

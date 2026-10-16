@@ -45,7 +45,6 @@ import com.vknxworks.elementctrl.ui.room.MembersScreen
 import com.vknxworks.elementctrl.ui.room.RoomDetailsScreen
 import com.vknxworks.elementctrl.ui.room.RoomScreen
 import com.vknxworks.elementctrl.ui.room.UserScreen
-import com.vknxworks.elementctrl.ui.settings.ConfirmIdentityScreen
 import com.vknxworks.elementctrl.ui.settings.SecurityScreen
 import com.vknxworks.elementctrl.ui.settings.SettingsScreen
 import com.vknxworks.elementctrl.ui.settings.VerifyScreen
@@ -103,18 +102,6 @@ fun MainNav(session: MatrixSession) {
     val openUser by DeepLinks.openUser.collectAsStateWithLifecycle()
     LaunchedEffect(openUser) {
         openUser?.let { DeepLinks.openUser.value = null; nav.navigate("user/${enc(it)}") }
-    }
-
-    // Like Element X: an unverified login is asked to confirm its identity before anything else, because
-    // until then it can't get message keys. Skipping only lasts until the app is restarted.
-    val verification by session.verification.collectAsStateWithLifecycle()
-    var confirmSkipped by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(verification, confirmSkipped) {
-        if (verification != org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED || confirmSkipped) return@LaunchedEffect
-        kotlinx.coroutines.delay(1500) // let the state settle after start-up
-        if (session.verification.value == org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED &&
-            nav.currentBackStackEntry?.destination?.route == "home"
-        ) nav.navigate("confirm")
     }
 
     // Someone asked to verify with us: jump to the verification screen.
@@ -275,14 +262,6 @@ fun MainNav(session: MatrixSession) {
                 onSecurity = { nav.navigate("security") },
                 onOpenUser = { nav.navigate("user/${enc(it)}") },
                 onDevices = { nav.navigate("devices") },
-            )
-        }
-        composable("confirm") {
-            ConfirmIdentityScreen(
-                session,
-                onUseDevice = { nav.navigate("verify?start=true") },
-                onCantConfirm = { nav.navigate("security") },
-                onDone = { confirmSkipped = true; nav.popBackStack("home", inclusive = false) },
             )
         }
         composable("security") {
