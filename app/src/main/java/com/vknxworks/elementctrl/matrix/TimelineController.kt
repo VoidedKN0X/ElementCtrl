@@ -217,7 +217,7 @@ class TimelineController(
                         )
                     }
                     is MsgLikeKind.Redacted -> UiContent.Redacted
-                    is MsgLikeKind.UnableToDecrypt -> UiContent.Encrypted(utdReason(kind.msg))
+                    is MsgLikeKind.UnableToDecrypt -> utdContent(kind.msg)
                     is MsgLikeKind.LiveLocation -> UiContent.Location("Live location", kind.content.locations.lastOrNull()?.geoUri ?: "")
                     is MsgLikeKind.Other -> UiContent.Unsupported("Unsupported event")
                 }
@@ -326,8 +326,14 @@ class TimelineController(
     private fun org.matrix.rustcomponents.sdk.FormattedBody?.html(): String? =
         this?.takeIf { it.format is MessageFormat.Html }?.body
 
-    private fun utdReason(msg: EncryptedMessage): String {
+    private fun utdContent(msg: EncryptedMessage): UiContent.Encrypted {
         val cause = (msg as? EncryptedMessage.MegolmV1AesSha2)?.cause
+        val historical = cause == UtdCause.HISTORICAL_MESSAGE_AND_BACKUP_IS_DISABLED ||
+            cause == UtdCause.HISTORICAL_MESSAGE_AND_DEVICE_IS_UNVERIFIED
+        return UiContent.Encrypted(utdReason(cause), historical)
+    }
+
+    private fun utdReason(cause: UtdCause?): String {
         return when (cause) {
             UtdCause.SENT_BEFORE_WE_JOINED -> "You don't have access to this message: it was sent before you joined."
             UtdCause.VERIFICATION_VIOLATION -> "Not shown: the sender's verified identity changed."

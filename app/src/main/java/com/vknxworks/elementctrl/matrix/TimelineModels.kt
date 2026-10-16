@@ -78,7 +78,8 @@ sealed interface UiContent {
         val disclosed: Boolean,
     ) : UiContent
     data object Redacted : UiContent
-    data class Encrypted(val reason: String) : UiContent
+    /** [historical]: an older message whose key would come from the key backup. */
+    data class Encrypted(val reason: String, val historical: Boolean = false) : UiContent
     /** Room events shown as a line of text: membership, profile and state changes. */
     data class Event(val text: String) : UiContent
     data class Unsupported(val text: String) : UiContent

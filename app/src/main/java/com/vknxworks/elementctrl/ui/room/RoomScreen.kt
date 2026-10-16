@@ -144,6 +144,7 @@ fun RoomScreen(
     onOpenUser: (String) -> Unit,
     onOpenImage: (MediaRequest) -> Unit,
     onOpenRoom: (String) -> Unit,
+    onSecurity: () -> Unit,
 ) {
     val vm: RoomViewModel = viewModel(key = "room:$roomId:${threadRootId.orEmpty()}") { RoomViewModel(session, roomId, threadRootId) }
     val room = vm.room
@@ -170,6 +171,8 @@ fun RoomScreen(
     val roomError by room.error.collectAsStateWithLifecycle()
     val sendOnEnter by ElementCtrlApp.graph.prefs.sendOnEnter.collectAsStateWithLifecycle()
     val showState by ElementCtrlApp.graph.prefs.showStateEvents.collectAsStateWithLifecycle()
+    val verification by session.verification.collectAsStateWithLifecycle()
+    val recovery by session.recovery.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     var composer by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
@@ -251,6 +254,9 @@ fun RoomScreen(
             onJumpToReply = { jumpTo(it) },
             onVote = { item, answer -> item.eventId?.let { timeline.vote(it, answer) } },
             onRetry = { timeline.retry(it) },
+            deviceUnverified = verification == org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED,
+            recoveryIncomplete = recovery == org.matrix.rustcomponents.sdk.RecoveryState.INCOMPLETE,
+            onFixDecryption = onSecurity,
         )
     }
 

@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -32,6 +33,7 @@ import com.vknxworks.elementctrl.ui.room.MembersScreen
 import com.vknxworks.elementctrl.ui.room.RoomDetailsScreen
 import com.vknxworks.elementctrl.ui.room.RoomScreen
 import com.vknxworks.elementctrl.ui.room.UserScreen
+import com.vknxworks.elementctrl.ui.settings.ConfirmIdentityScreen
 import com.vknxworks.elementctrl.ui.settings.SecurityScreen
 import com.vknxworks.elementctrl.ui.settings.SettingsScreen
 import com.vknxworks.elementctrl.ui.settings.VerifyScreen
@@ -72,6 +74,18 @@ fun MainNav(session: MatrixSession) {
         openUser?.let { DeepLinks.openUser.value = null; nav.navigate("user/${enc(it)}") }
     }
 
+    // Like Element X: an unverified login is asked to confirm its identity before anything else, because
+    // until then it can't get message keys. Skipping only lasts until the app is restarted.
+    val verification by session.verification.collectAsStateWithLifecycle()
+    var confirmSkipped by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(verification, confirmSkipped) {
+        if (verification != org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED || confirmSkipped) return@LaunchedEffect
+        kotlinx.coroutines.delay(1500) // let the state settle after start-up
+        if (session.verification.value == org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED &&
+            nav.currentBackStackEntry?.destination?.route == "home"
+        ) nav.navigate("confirm")
+    }
+
     // Someone asked to verify with us: jump to the verification screen.
     val step by session.verificationService.step.collectAsStateWithLifecycle()
     LaunchedEffect(step) {
@@ -100,6 +114,7 @@ fun MainNav(session: MatrixSession) {
                 onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
                 onOpenImage = { media = it; nav.navigate("media") },
                 onOpenRoom = { nav.openRoom(it, replaceCurrent = true) },
+                onSecurity = { nav.navigate("security") },
             )
         }
         composable("thread/{roomId}/{rootId}") { entry ->
@@ -113,6 +128,7 @@ fun MainNav(session: MatrixSession) {
                 onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
                 onOpenImage = { media = it; nav.navigate("media") },
                 onOpenRoom = { nav.openRoom(it) },
+                onSecurity = { nav.navigate("security") },
             )
         }
         composable("details/{roomId}") { entry ->
@@ -160,6 +176,14 @@ fun MainNav(session: MatrixSession) {
         }
         composable("settings") {
             SettingsScreen(session, onBack = { nav.popBackStack() }, onSecurity = { nav.navigate("security") }, onOpenUser = { nav.navigate("user/${enc(it)}") })
+        }
+        composable("confirm") {
+            ConfirmIdentityScreen(
+                session,
+                onUseDevice = { nav.navigate("verify?start=true") },
+                onCantConfirm = { nav.navigate("security") },
+                onDone = { confirmSkipped = true; nav.popBackStack("home", inclusive = false) },
+            )
         }
         composable("security") {
             SecurityScreen(session, onBack = { nav.popBackStack() }, onVerifyDevice = { nav.navigate("verify?start=true") })

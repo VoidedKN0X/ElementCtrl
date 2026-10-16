@@ -67,6 +67,15 @@ class AppGraph(val context: Context) {
         }?.also { s ->
             _state.value = AppState.SignedIn(s)
             scope.launch {
+                // The app may have come on screen while the client was being built.
+                val visible = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState
+                    .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+                if (visible && !s.inForeground) {
+                    s.inForeground = true
+                    s.scope.launch { s.startSync() }
+                }
+            }
+            scope.launch {
                 s.authError.collect { soft ->
                     if (!soft) forgetSession("You were signed out. This session was removed or your password changed.")
                 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- After signing in on an account that already uses encryption, a "Confirm it's you" step asks you to verify the device (another device or recovery key), like Element X. Unverified devices can't get message keys, which made messages slow to decrypt or stay locked
+- Messages that can't be decrypted now say when verifying or entering your recovery key would fix them, with a button to do it
+- Fixed background sync running non-stop (and notification checks being skipped) when Android started the app just for a notification check
+
 ## 1.0.0
 
 First release.

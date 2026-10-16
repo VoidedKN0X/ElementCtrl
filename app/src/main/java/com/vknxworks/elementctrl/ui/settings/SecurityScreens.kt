@@ -391,3 +391,77 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
         }
     }
 }
+
+/**
+ * Shown after signing in on an account that already has encryption set up, like Element X does: until this
+ * device is verified it can't get message keys from your other devices or from key storage.
+ */
+@Composable
+fun ConfirmIdentityScreen(session: MatrixSession, onUseDevice: () -> Unit, onCantConfirm: () -> Unit, onDone: () -> Unit) {
+    val account = remember { AccountService(session) }
+    val verification by session.verification.collectAsStateWithLifecycle()
+    val recovery by session.recovery.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var enterKey by remember { mutableStateOf(false) }
+    var key by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(verification) {
+        if (verification == VerificationState.VERIFIED) onDone()
+    }
+
+    Scaffold { pad ->
+        Column(
+            Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Spacer(Modifier.height(24.dp))
+            Icon(Icons.Default.Devices, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
+            Text("Confirm it's you", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Verify this device to read your encrypted messages. Until then it can't get message keys from your other devices or your key storage, so messages stay locked.",
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center) }
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onUseDevice, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Use another device") }
+            if (recovery != RecoveryState.DISABLED) {
+                OutlinedButton(onClick = { enterKey = true }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text("Enter recovery key")
+                }
+            }
+            TextButton(onClick = onCantConfirm) { Text("Can't confirm?") }
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = onDone) { Text("Skip for now", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            Text(
+                "If you skip, encrypted messages may not decrypt on this device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+
+    if (enterKey) {
+        AlertDialog(
+            onDismissRequest = { enterKey = false },
+            title = { Text("Enter recovery key") },
+            text = { OutlinedTextField(key, { key = it }, label = { Text("Recovery key or passphrase") }, modifier = Modifier.fillMaxWidth()) },
+            confirmButton = {
+                TextButton(enabled = key.isNotBlank(), onClick = {
+                    enterKey = false
+                    busy = true
+                    error = null
+                    scope.launch {
+                        runCatching { account.recover(key) }.onFailure { error = "That key didn't work. " + it.userMessage() }
+                        busy = false
+                    }
+                }) { Text("Confirm") }
+            },
+            dismissButton = { TextButton(onClick = { enterKey = false }) { Text("Cancel") } },
+        )
+    }
+}

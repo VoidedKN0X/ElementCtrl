@@ -92,7 +92,9 @@ class MatrixSession(
     private var listController: RoomListDynamicEntriesController? = null
     private val listMutex = Mutex()
     private var restartJob: Job? = null
-    @Volatile var inForeground = true
+    /** Whether the app is on screen. False when Android started the process only for the background check. */
+    @Volatile var inForeground = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState
+        .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
 
     private var notificationSettings: NotificationSettings? = null
 
@@ -135,7 +137,8 @@ class MatrixSession(
                 _profile.value = UserProfile(userId, client.displayName(), client.avatarUrl(), null, null)
             }
         }
-        scope.launch { startSync() }
+        // In the background the notification worker decides how long to sync.
+        if (inForeground) scope.launch { startSync() }
         scope.launch { observeRoomList() }
         verificationService.prepare()
     }

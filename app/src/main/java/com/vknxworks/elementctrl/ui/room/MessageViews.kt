@@ -86,6 +86,11 @@ class MessageActions(
     val onJumpToReply: (String) -> Unit,
     val onVote: (TimelineEntry.Message, String) -> Unit,
     val onRetry: (TimelineEntry.Message) -> Unit,
+    /** This device isn't verified, so it can't get keys from your other devices or the backup. */
+    val deviceUnverified: Boolean = false,
+    /** Key storage is set up but this device doesn't have the recovery key yet. */
+    val recoveryIncomplete: Boolean = false,
+    val onFixDecryption: () -> Unit = {},
 )
 
 @Composable
@@ -300,10 +305,21 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
             Spacer(Modifier.width(6.dp))
             Text("Message deleted", style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
         }
-        is UiContent.Encrypted -> Row(pad, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Lock, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
-            Spacer(Modifier.width(6.dp))
-            Text(c.reason, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
+        is UiContent.Encrypted -> {
+            // Pick the wording from the live state, so it changes as soon as this device is verified.
+            val (text, action) = when {
+                actions.deviceUnverified -> "Verify this device to read this message." to "Verify"
+                actions.recoveryIncomplete || c.historical -> "Enter your recovery key to read older messages." to "Enter key"
+                else -> c.reason to null
+            }
+            Column(pad) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Lock, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
+                    Spacer(Modifier.width(6.dp))
+                    Text(text, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
+                }
+                if (action != null) TextButton(onClick = actions.onFixDecryption) { Text(action) }
+            }
         }
         is UiContent.Unsupported -> Text(c.text, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f), modifier = pad)
         is UiContent.Event -> Text(c.text, modifier = pad)
