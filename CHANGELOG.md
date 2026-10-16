@@ -2,6 +2,7 @@
 
 ## 1.2.1
 
+- Swipe a message to the right to reply: the reply arrow fills in with a little buzz once you've pulled far enough, and the keyboard opens ready to type
 - Profile pictures next to messages, in direct chats and next to your own messages too (Settings › Appearance › Profile pictures to turn off)
 - Messages sent close together are grouped: the profile picture sits by the last message of the group, and only that bubble keeps its tail
 - Fixed a black screen that could appear when going back or switching screens quickly, until the app was restarted

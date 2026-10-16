@@ -1,6 +1,19 @@
 package com.vknxworks.elementctrl.ui.room
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -109,6 +122,8 @@ class MessageActions(
     val onOpenLink: (String) -> Unit = {},
     /** A formatted link whose text shows a different address than where it really goes: (real URL, shown text). */
     val onSuspiciousLink: (String, String) -> Unit = { _, _ -> },
+    /** Swipe right on a message to reply; null where you can't post. */
+    val onSwipeReply: ((TimelineEntry.Message) -> Unit)? = null,
 )
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
@@ -176,133 +191,181 @@ fun MessageRow(
     val isMedia = item.content is UiContent.Image || item.content is UiContent.Video
     val bigEmoji = (item.content as? UiContent.Text)?.let { it.html == null && isOnlyEmoji(it.body) } == true
 
-    Row(
-        Modifier.fillMaxWidth().padding(
-            start = 8.dp, end = 8.dp,
-            top = if (showSender) (if (flat) 10.dp else 8.dp) else (if (style == BubbleStyle.SHARP) 0.dp else 1.dp),
-            bottom = 1.dp,
+    // Swipe a message to the right to reply to it, like other chat apps.
+    val swipeReply = actions.onSwipeReply?.takeIf { item.canReply && item.eventId != null }
+    val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
+    val threshold = with(density) { 64.dp.toPx() }
+    var swipe by remember(item.key) { mutableFloatStateOf(0f) }
+    var armed by remember(item.key) { mutableStateOf(false) }
+    val swipeScope = rememberCoroutineScope()
+    val currentSwipeReply by androidx.compose.runtime.rememberUpdatedState(swipeReply)
+    fun settle() {
+        armed = false
+        swipeScope.launch { animate(swipe, 0f, animationSpec = spring(dampingRatio = 0.75f, stiffness = 500f)) { v, _ -> swipe = v } }
+    }
+    Box(
+        Modifier.fillMaxWidth().then(
+            if (swipeReply == null) Modifier
+            else Modifier.pointerInput(item.key) {
+                detectHorizontalDragGestures(
+                    onDragEnd = { if (swipe >= threshold) currentSwipeReply?.invoke(item); settle() },
+                    onDragCancel = { settle() },
+                ) { change, drag ->
+                    // Past the trigger point it pulls harder, so it's clear the reply is armed.
+                    val resistance = if (swipe >= threshold && drag > 0) 0.25f else 1f
+                    swipe = (swipe + drag * resistance).coerceIn(0f, threshold * 1.5f)
+                    if (!armed && swipe >= threshold) {
+                        armed = true
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else if (armed && swipe < threshold) armed = false
+                    change.consume()
+                }
+            }
         ),
-        horizontalArrangement = if (own) Arrangement.End else Arrangement.Start,
-        // Bubble layouts put the picture level with the last message of a run; the flat layout keeps it by the name at the top.
-        verticalAlignment = if (flat) Alignment.Top else Alignment.Bottom,
     ) {
-        val avatarSize = if (flat) 36.dp else 32.dp
-        // One picture per group of messages from the same person: by the last bubble, or by the name in the flat layout.
-        val avatarHere = if (flat) showSender else lastInGroup
-        @Composable
-        fun SenderAvatar() {
-            if (avatarHere) {
-                Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).clickable { actions.onOpenUser(item.sender) }) {
-                    Avatar(item.senderName, item.senderAvatar, item.sender, size = avatarSize)
-                }
-            } else {
-                Spacer(Modifier.width(avatarSize))
-            }
-        }
-        if (withAvatar && !own) {
-            SenderAvatar()
-            Spacer(Modifier.width(if (flat) 10.dp else 6.dp))
-        }
-        Column(
-            horizontalAlignment = if (own) Alignment.End else Alignment.Start,
-            modifier = if (flat) Modifier.weight(1f) else Modifier.widthIn(max = 320.dp),
-        ) {
-            if (showSender && withName) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (flat) 0.dp else 12.dp, bottom = 2.dp)) {
-                    Text(
-                        if (flat && item.isOwn) "You" else item.senderName,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = senderColor(item.sender),
-                        modifier = Modifier.clickable { actions.onOpenUser(item.sender) },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (flat) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
-                    }
-                }
-            }
-            Surface(
-                color = if (bigEmoji) Color.Transparent else bubbleColor,
-                contentColor = onBubble,
-                shape = shape,
-                border = if (bigEmoji) null else border,
-                modifier = Modifier.clip(shape).combinedClickable(
-                    onClick = {
-                        when (item.content) {
-                            is UiContent.Image, is UiContent.Video, is UiContent.Audio, is UiContent.File, is UiContent.Location -> actions.onOpenMedia(item)
-                            else -> if (item.status == SendStatus.FAILED) actions.onRetry(item)
-                        }
-                    },
-                    onLongClick = { actions.onLongPress(item) },
-                ),
+        if (swipe > 0f) {
+            val progress = (swipe / threshold).coerceIn(0f, 1f)
+            Box(
+                Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp)
+                    .size(34.dp)
+                    .graphicsLayer { alpha = progress; scaleX = 0.5f + 0.5f * progress; scaleY = scaleX }
+                    .background(if (armed) cs.primary else cs.surfaceContainerHighest, androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center,
             ) {
-                Column(Modifier.padding(if (isMedia && !flat) 4.dp else 0.dp)) {
-                    item.reply?.let { r ->
-                        ReplyQuote(
-                            r.senderName, r.text, onBubble,
-                            Modifier.padding(start = if (flat) 0.dp else 8.dp, end = 8.dp, top = if (flat) 2.dp else 8.dp).clickable { actions.onJumpToReply(r.eventId) },
-                        )
+                Icon(Icons.AutoMirrored.Filled.Reply, null, Modifier.size(18.dp), tint = if (armed) cs.onPrimary else cs.onSurfaceVariant)
+            }
+        }
+        Row(
+            Modifier.offset { IntOffset(swipe.roundToInt(), 0) }.fillMaxWidth().padding(
+                start = 8.dp, end = 8.dp,
+                top = if (showSender) (if (flat) 10.dp else 8.dp) else (if (style == BubbleStyle.SHARP) 0.dp else 1.dp),
+                bottom = 1.dp,
+            ),
+            horizontalArrangement = if (own) Arrangement.End else Arrangement.Start,
+            // Bubble layouts put the picture level with the last message of a run; the flat layout keeps it by the name at the top.
+            verticalAlignment = if (flat) Alignment.Top else Alignment.Bottom,
+        ) {
+            val avatarSize = if (flat) 36.dp else 32.dp
+            // One picture per group of messages from the same person: by the last bubble, or by the name in the flat layout.
+            val avatarHere = if (flat) showSender else lastInGroup
+            @Composable
+            fun SenderAvatar() {
+                if (avatarHere) {
+                    Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).clickable { actions.onOpenUser(item.sender) }) {
+                        Avatar(item.senderName, item.senderAvatar, item.sender, size = avatarSize)
                     }
-                    MessageBody(item, onBubble, bigEmoji, actions, flat)
-                    Row(
-                        Modifier.align(if (flat) Alignment.Start else Alignment.End).padding(end = 10.dp, bottom = if (flat) 2.dp else 6.dp, start = if (flat) 0.dp else 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        item.shield?.let {
-                            Icon(
-                                Icons.Default.Shield, it.text, Modifier.size(12.dp),
-                                tint = if (it.red) cs.error else onBubble.copy(alpha = 0.6f),
+                } else {
+                    Spacer(Modifier.width(avatarSize))
+                }
+            }
+            if (withAvatar && !own) {
+                SenderAvatar()
+                Spacer(Modifier.width(if (flat) 10.dp else 6.dp))
+            }
+            Column(
+                horizontalAlignment = if (own) Alignment.End else Alignment.Start,
+                modifier = if (flat) Modifier.weight(1f) else Modifier.widthIn(max = 320.dp),
+            ) {
+                if (showSender && withName) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (flat) 0.dp else 12.dp, bottom = 2.dp)) {
+                        Text(
+                            if (flat && item.isOwn) "You" else item.senderName,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = senderColor(item.sender),
+                            modifier = Modifier.clickable { actions.onOpenUser(item.sender) },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (flat) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                        }
+                    }
+                }
+                Surface(
+                    color = if (bigEmoji) Color.Transparent else bubbleColor,
+                    contentColor = onBubble,
+                    shape = shape,
+                    border = if (bigEmoji) null else border,
+                    modifier = Modifier.clip(shape).combinedClickable(
+                        onClick = {
+                            when (item.content) {
+                                is UiContent.Image, is UiContent.Video, is UiContent.Audio, is UiContent.File, is UiContent.Location -> actions.onOpenMedia(item)
+                                else -> if (item.status == SendStatus.FAILED) actions.onRetry(item)
+                            }
+                        },
+                        onLongClick = { actions.onLongPress(item) },
+                    ),
+                ) {
+                    Column(Modifier.padding(if (isMedia && !flat) 4.dp else 0.dp)) {
+                        item.reply?.let { r ->
+                            ReplyQuote(
+                                r.senderName, r.text, onBubble,
+                                Modifier.padding(start = if (flat) 0.dp else 8.dp, end = 8.dp, top = if (flat) 2.dp else 8.dp).clickable { actions.onJumpToReply(r.eventId) },
                             )
-                            Spacer(Modifier.width(4.dp))
                         }
-                        if (item.edited) {
-                            Text(if (flat) "(edited)" else "edited · ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
-                        }
-                        if (!flat) Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
-                        if (item.isOwn) {
-                            Spacer(Modifier.width(4.dp))
-                            when (item.status) {
-                                SendStatus.SENDING -> Icon(Icons.Default.AccessTime, "Sending", Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
-                                SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, "Not sent, tap to retry", Modifier.size(14.dp), tint = cs.error)
-                                SendStatus.SENT -> if (!flat || item.readBy.isNotEmpty()) Icon(
-                                    Icons.Default.Done, if (item.readBy.isNotEmpty()) "Read" else "Sent", Modifier.size(12.dp),
-                                    tint = if (item.readBy.isNotEmpty()) (if (style == BubbleStyle.VIVID && own) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
+                        MessageBody(item, onBubble, bigEmoji, actions, flat)
+                        Row(
+                            Modifier.align(if (flat) Alignment.Start else Alignment.End).padding(end = 10.dp, bottom = if (flat) 2.dp else 6.dp, start = if (flat) 0.dp else 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            item.shield?.let {
+                                Icon(
+                                    Icons.Default.Shield, it.text, Modifier.size(12.dp),
+                                    tint = if (it.red) cs.error else onBubble.copy(alpha = 0.6f),
                                 )
+                                Spacer(Modifier.width(4.dp))
+                            }
+                            if (item.edited) {
+                                Text(if (flat) "(edited)" else "edited · ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                            }
+                            if (!flat) Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                            if (item.isOwn) {
+                                Spacer(Modifier.width(4.dp))
+                                when (item.status) {
+                                    SendStatus.SENDING -> Icon(Icons.Default.AccessTime, "Sending", Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
+                                    SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, "Not sent, tap to retry", Modifier.size(14.dp), tint = cs.error)
+                                    SendStatus.SENT -> if (!flat || item.readBy.isNotEmpty()) Icon(
+                                        Icons.Default.Done, if (item.readBy.isNotEmpty()) "Read" else "Sent", Modifier.size(12.dp),
+                                        tint = if (item.readBy.isNotEmpty()) (if (style == BubbleStyle.VIVID && own) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-            if (item.status == SendStatus.FAILED) {
-                Text("Not sent. Tap to retry, hold for options.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(4.dp))
-            }
-            if (item.reactions.isNotEmpty()) {
-                ReactionsRow(item.reactions, own) { actions.onReact(item, it) }
-            }
-            if (item.threadReplies > 0) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).clickable { actions.onOpenThread(item) },
-                ) {
-                    Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Forum, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "${item.threadReplies} ${if (item.threadReplies == 1) "reply" else "replies"}" + (item.threadLatest?.let { " · $it" } ?: ""),
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                if (item.status == SendStatus.FAILED) {
+                    Text("Not sent. Tap to retry, hold for options.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(4.dp))
+                }
+                if (item.reactions.isNotEmpty()) {
+                    ReactionsRow(item.reactions, own) { actions.onReact(item, it) }
+                }
+                if (item.threadReplies > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).clickable { actions.onOpenThread(item) },
+                    ) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Forum, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "${item.threadReplies} ${if (item.threadReplies == 1) "reply" else "replies"}" + (item.threadLatest?.let { " · $it" } ?: ""),
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
-        }
-        if (withAvatar && own) {
-            Spacer(Modifier.width(6.dp))
-            SenderAvatar()
+            if (withAvatar && own) {
+                Spacer(Modifier.width(6.dp))
+                SenderAvatar()
+            }
         }
     }
 }

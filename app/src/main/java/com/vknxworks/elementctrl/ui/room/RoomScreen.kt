@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -211,6 +212,9 @@ fun RoomScreen(
     var islandHeight by remember { mutableStateOf(88.dp) }
     var composer by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var mode by remember { mutableStateOf<ComposerMode>(ComposerMode.Normal) }
+    // Replying (by swipe or from the menu) puts the cursor in the message box and opens the keyboard.
+    val composerFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(mode) { if (mode is ComposerMode.Reply) runCatching { composerFocus.requestFocus() } }
     val mentions = remember { mutableStateListOf<String>() }
     var sheetFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
     var deleting by remember { mutableStateOf<TimelineEntry.Message?>(null) }
@@ -398,6 +402,7 @@ fun RoomScreen(
             } else null,
             onOpenLink = { com.vknxworks.elementctrl.ui.openUrl(context, it) },
             onSuspiciousLink = { url, shown -> suspiciousLink = url to shown },
+            onSwipeReply = if (permissions.canSend && header?.membership == Membership.JOINED) { item -> mode = ComposerMode.Reply(item) } else null,
         )
     }
 
@@ -548,6 +553,7 @@ fun RoomScreen(
                     !permissions.canSend -> IslandNote("You don't have permission to post here.", haze)
                     else -> Composer(
                         haze = haze,
+                        focusRequester = composerFocus,
                         value = composer,
                         onValueChange = {
                             composer = it
@@ -837,6 +843,7 @@ private fun InviteBar(inviter: String?, haze: HazeState, onAccept: () -> Unit, o
 @Composable
 private fun Composer(
     haze: HazeState,
+    focusRequester: androidx.compose.ui.focus.FocusRequester,
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     mode: ComposerMode,
@@ -943,7 +950,7 @@ private fun Composer(
                     unfocusedContainerColor = Color.Transparent,
                 ),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(focusRequester),
             )
             // With nothing typed the button records a voice message instead.
             val voiceMode = !canSend && mode !is ComposerMode.Edit

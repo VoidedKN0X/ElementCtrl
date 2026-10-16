@@ -16,7 +16,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 
 **Messages**
 - Text with formatting and links, notices, emotes (`/me`), images, videos, audio and voice messages, files, stickers, locations and polls
-- Reply, reply in thread, edit, remove, react (quick reactions or the full picker), copy, copy link, pin, report, view source
+- Swipe right to reply; reply, reply in thread, edit, remove, react (quick reactions or the full picker), copy, copy link, pin, report, view source
 - Threads open in their own timeline; reply previews jump to the original message
 - Mention people with `@`, send photos, videos and files with captions, create and vote in polls, end your polls
 - Profile pictures next to messages (can be turned off)
