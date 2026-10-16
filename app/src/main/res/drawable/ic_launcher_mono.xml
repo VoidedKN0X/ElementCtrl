@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon version: back bubble faded, front bubble solid with the dots cut out. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <group android:translateX="18" android:translateY="18" android:scaleX="0.72" android:scaleY="0.72">
-        <path android:strokeColor="#FFFFFF" android:strokeWidth="7" android:strokeLineCap="square"
-            android:pathData="M22,14 L12,14 L12,86 L22,86 M78,14 L88,14 L88,86 L78,86" />
-        <path android:fillColor="#FFFFFF"
-            android:pathData="M30,30 h40 a8,8 0 0 1 8,8 v18 a8,8 0 0 1 -8,8 h-20 l-12,10 v-10 h-8 a8,8 0 0 1 -8,-8 v-18 a8,8 0 0 1 8,-8Z" />
+    <group android:translateX="13.82" android:translateY="13" android:scaleX="0.82" android:scaleY="0.82">
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.5"
+            android:pathData="M26,20 H58 a8,8 0 0 1 8,8 V46 a8,8 0 0 1 -8,8 H36 l-10,8 v-8 a8,8 0 0 1 -8,-8 V28 a8,8 0 0 1 8,-8Z" />
+        <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+            android:pathData="M42,38 H72 a8,8 0 0 1 8,8 V64 a8,8 0 0 1 -8,8 v8 l-10,-8 H42 a8,8 0 0 1 -8,-8 V46 a8,8 0 0 1 8,-8Z M43.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z M53.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z M63.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z" />
     </group>
 </vector>

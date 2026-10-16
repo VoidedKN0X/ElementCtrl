@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New app icon: twin chat bubbles on deep purple, matching the other Ctrl apps; themed (monochrome) icon and notification icon updated to match
+
 ## 1.2.0
 
 - **Instant push notifications** through ntfy or any UnifiedPush app (Settings › Notifications › Delivery). Messages are fetched and decrypted on the phone; notifications are grouped per chat with inline reply and mark-as-read

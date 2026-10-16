@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A chat bubble framed by Matrix-style square brackets. Drawn on a 100-unit grid, scaled into the 72 dp visible area. -->
+<!-- Two overlapping chat bubbles in the two-tone Ctrl style; the front one has typing dots, the last in Matrix green.
+     Drawn on a 96-unit grid, scaled to stay inside the 66 dp safe circle. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <group android:translateX="18" android:translateY="18" android:scaleX="0.72" android:scaleY="0.72">
-        <path android:strokeColor="#E8FFF6" android:strokeWidth="7" android:strokeLineCap="square"
-            android:pathData="M22,14 L12,14 L12,86 L22,86 M78,14 L88,14 L88,86 L78,86" />
+    <group android:translateX="13.82" android:translateY="13" android:scaleX="0.82" android:scaleY="0.82">
+        <path android:fillColor="#B9A4FF" android:fillAlpha="0.55"
+            android:pathData="M26,20 H58 a8,8 0 0 1 8,8 V46 a8,8 0 0 1 -8,8 H36 l-10,8 v-8 a8,8 0 0 1 -8,-8 V28 a8,8 0 0 1 8,-8Z" />
+        <path android:fillColor="#F2EFFF"
+            android:pathData="M42,38 H72 a8,8 0 0 1 8,8 V64 a8,8 0 0 1 -8,8 v8 l-10,-8 H42 a8,8 0 0 1 -8,-8 V46 a8,8 0 0 1 8,-8Z" />
+        <path android:fillColor="#7C4DFF"
+            android:pathData="M43.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z M53.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z" />
         <path android:fillColor="#0DBD8B"
-            android:pathData="M30,30 h40 a8,8 0 0 1 8,8 v18 a8,8 0 0 1 -8,8 h-20 l-12,10 v-10 h-8 a8,8 0 0 1 -8,-8 v-18 a8,8 0 0 1 8,-8Z" />
-        <path android:fillColor="#E8FFF6" android:pathData="M37,47 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0Z M46,47 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0Z M55,47 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0Z" />
+            android:pathData="M63.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z" />
     </group>
 </vector>
