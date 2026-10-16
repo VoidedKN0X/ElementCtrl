@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Self-hosted homeservers on a LAN may use plain http or a private CA installed on the phone. -->
+    <!--
+      Self-hosted homeservers may use a private CA installed on the phone, so user CAs stay trusted.
+      Plain http stays possible at platform level because the homeserver is user-entered; the app itself only
+      allows an http homeserver after an explicit "not encrypted" confirmation and badges it in Settings.
+      Note: Matrix traffic goes through the Rust SDK (reqwest + rustls-platform-verifier), which honours the
+      Android trust store but not this file's cleartext flag, so the in-app check is what really gates http.
+    -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />

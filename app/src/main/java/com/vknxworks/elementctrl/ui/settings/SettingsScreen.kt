@@ -210,6 +210,11 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to set up instant push with ntfy"
                 },
             ) { pushDialog = true }
+            SettingRow(
+                Icons.Default.Visibility, "Show message content in notifications",
+                if (lock.pinSet) "Off by default while app lock is on" else "Sender, chat name and message text",
+                trailing = { Switch(lock.showNotificationContent, { lock.showNotificationContent = it }) },
+            )
             SettingRow(Icons.Default.Group, "Group chats", modeLabel(groupMode)) { modeDialog = false }
             SettingRow(Icons.Default.ChatBubbleOutline, "Direct chats", modeLabel(dmMode)) { modeDialog = true }
             SettingRow(Icons.Default.AlternateEmail, "Mentions", "Notify when someone mentions you or @room", trailing = {
@@ -251,8 +256,14 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     trailing = {
                         Switch(lock.biometricEnabled, { on ->
                             val act = context as? androidx.fragment.app.FragmentActivity
-                            if (on && act != null) com.vknxworks.elementctrl.ui.lock.showBiometricPrompt(act, "Confirm to turn on") { lock.biometricEnabled = true }
-                            else lock.biometricEnabled = false
+                            if (on && act != null) com.vknxworks.elementctrl.ui.lock.showBiometricPrompt(
+                                act, "Confirm to turn on", enrol = true,
+                                onUnavailable = { scope.launch { snackbar.showSnackbar("Fingerprint unlock isn't available on this phone") } },
+                            ) { lock.biometricEnabled = true }
+                            else {
+                                lock.biometricEnabled = false
+                                com.vknxworks.elementctrl.ui.lock.clearBiometricKey()
+                            }
                         }, enabled = bioAvailable)
                     },
                 )
@@ -278,7 +289,10 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             }
 
             SectionHeader("About")
-            SettingRow(Icons.Default.Dns, "Homeserver", session.homeserver) { copyText(context, "Homeserver", session.homeserver) }
+            SettingRow(
+                Icons.Default.Dns, "Homeserver", session.homeserver,
+                trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
+            ) { copyText(context, "Homeserver", session.homeserver) }
             SettingRow(Icons.Default.Info, "ElementCtrl ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Matrix Rust SDK ${runCatching { sdkGitSha().take(8) }.getOrDefault("")}")
 
             HorizontalDivider(Modifier.padding(top = 12.dp))

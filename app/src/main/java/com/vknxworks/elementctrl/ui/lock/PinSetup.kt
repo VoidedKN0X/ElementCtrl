@@ -51,7 +51,7 @@ fun PinSetupDialog(mode: PinMode, onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (needsCurrent) PinField("Current PIN", current) { current = digits(it) }
                 if (needsNew) {
-                    PinField("New PIN ($PIN_MIN–$PIN_MAX digits)", first) { first = digits(it) }
+                    PinField("New PIN ($NEW_PIN_MIN–$PIN_MAX digits)", first) { first = digits(it) }
                     PinField("Repeat new PIN", second) { second = digits(it) }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
@@ -64,7 +64,7 @@ fun PinSetupDialog(mode: PinMode, onDismiss: () -> Unit) {
                     val currentOk = !needsCurrent || withContext(Dispatchers.Default) { lock.checkPin(current) }
                     error = when {
                         !currentOk -> "Current PIN is wrong"
-                        needsNew && first.length < PIN_MIN -> "Use at least $PIN_MIN digits"
+                        needsNew && first.length < NEW_PIN_MIN -> "Use at least $NEW_PIN_MIN digits"
                         needsNew && first != second -> "The PINs don't match"
                         needsNew && first.toSet().size == 1 -> "Pick a PIN that isn't one repeated digit"
                         else -> null

@@ -15,6 +15,7 @@ import com.vknxworks.elementctrl.MainActivity
 import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.matrix.previewText
 import kotlinx.coroutines.launch
+import org.matrix.rustcomponents.sdk.Membership
 import org.matrix.rustcomponents.sdk.MessageLikeEventContent
 import org.matrix.rustcomponents.sdk.NotificationEvent
 import org.matrix.rustcomponents.sdk.ReceiptType
@@ -37,6 +38,16 @@ object PushNotifications {
         if (session.inForeground && OpenRoom.id == roomId) return
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val item = runCatching { session.notificationItem(roomId, eventId) }.getOrNull() ?: return
+        // Only rooms we're in (or invited to): ignore pushes naming a room we've left, been banned from, etc.
+        // A room not in the local store yet (joined on another device since the last sync) is still allowed,
+        // since the homeserver only returned the event because this account can see it.
+        val membership = session.getRoom(roomId)?.use { r -> runCatching { r.roomInfo().membership }.getOrNull() }
+        val isInvite = item.event is NotificationEvent.Invite
+        when (membership) {
+            null, Membership.JOINED -> Unit
+            Membership.INVITED -> if (!isInvite) return
+            else -> return
+        }
         val roomName = item.roomInfo.displayName
         val senderName = item.senderInfo.displayName ?: "Someone"
 
@@ -74,7 +85,30 @@ object PushNotifications {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
+    /** What the lock screen (and, with content hidden, the shade) shows instead of the message. */
+    fun redacted(context: Context, channel: String, count: Int = 1): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, channel)
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setContentTitle("ElementCtrl")
+            .setContentText(if (count > 1) "$count new messages" else "New message")
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+
     private fun post(context: Context, roomId: String, roomName: String, isDm: Boolean, noisy: Boolean, lines: List<Line>) {
+        if (!ElementCtrlApp.graph.lock.showNotificationContent) {
+            // App lock on (or the user chose to hide content): no sender, room or text anywhere, and no inline
+            // reply, which would let anyone with the phone answer without the PIN.
+            val n = redacted(context, Notifier.CHANNEL_MESSAGES, lines.count { !it.own })
+                .setContentIntent(openIntent(context, roomId))
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(!noisy)
+                .setSilent(!noisy)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setPublicVersion(redacted(context, Notifier.CHANNEL_MESSAGES).build())
+                .build()
+            runCatching { NotificationManagerCompat.from(context).notify(roomId.hashCode(), n) }
+            return
+        }
         val me = Person.Builder().setName("You").build()
         val style = NotificationCompat.MessagingStyle(me).setConversationTitle(if (isDm) null else roomName).setGroupConversation(!isDm)
         lines.forEach { l ->
@@ -105,6 +139,8 @@ object PushNotifications {
             .setSilent(!noisy)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(redacted(context, Notifier.CHANNEL_MESSAGES).build())
             .addAction(reply)
             .addAction(read)
             .build()
@@ -112,12 +148,21 @@ object PushNotifications {
     }
 
     private fun postInvite(context: Context, roomId: String, roomName: String, inviter: String, isDm: Boolean) {
+        val hide = !ElementCtrlApp.graph.lock.showNotificationContent
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_INVITES)
             .setSmallIcon(R.drawable.ic_stat_message)
-            .setContentTitle(roomName)
-            .setContentText(if (isDm) "$inviter wants to chat" else "$inviter invited you")
+            .setContentTitle(if (hide) "ElementCtrl" else roomName)
+            .setContentText(if (hide) "New invite" else if (isDm) "$inviter wants to chat" else "$inviter invited you")
             .setContentIntent(openIntent(context, roomId))
             .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(context, Notifier.CHANNEL_INVITES)
+                    .setSmallIcon(R.drawable.ic_stat_message)
+                    .setContentTitle("ElementCtrl")
+                    .setContentText("New invite")
+                    .build()
+            )
             .build()
         runCatching { NotificationManagerCompat.from(context).notify(roomId.hashCode(), n) }
     }

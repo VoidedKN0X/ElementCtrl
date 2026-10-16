@@ -14,19 +14,27 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.2.0"
+        versionName = "1.2.1"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 
-    // Release signing from env (GitHub secrets or variables); falls back to the debug key so the APK is always installable.
+    // Release signing from env (GitHub secrets). Local builds fall back to the debug key; CI must never do that.
     val ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
+    val onCi = System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true"
+    val signingReady = !ksPath.isNullOrBlank() && file(ksPath).exists() &&
+        !System.getenv("SIGNING_STORE_PASSWORD").isNullOrBlank() &&
+        !System.getenv("SIGNING_KEY_ALIAS").isNullOrBlank() &&
+        !System.getenv("SIGNING_KEY_PASSWORD").isNullOrBlank()
+    if (onCi && !signingReady) {
+        throw GradleException("Release signing values are missing on CI; refusing to sign the release with the debug key.")
+    }
     signingConfigs {
-        if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
+        if (signingReady) {
             create("release") {
-                storeFile = file(ksPath)
+                storeFile = file(ksPath!!)
                 storePassword = System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
@@ -39,7 +47,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
+                ?: if (onCi) throw GradleException("No release signing config on CI") else signingConfigs.getByName("debug")
         }
     }
 
@@ -99,7 +108,7 @@ dependencies {
     // Push notifications through ntfy or any other UnifiedPush distributor.
     implementation("org.unifiedpush.android:connector:3.3.5")
     // App lock with fingerprint.
-    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation("androidx.fragment:fragment-ktx:1.8.6")
 
     val coil = "3.1.0"

@@ -96,7 +96,17 @@ object Notifier {
             .setWhen(r.lastTimestamp ?: System.currentTimeMillis())
             .setShowWhen(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-        if (r.isInvite) {
+        builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                PushNotifications.redacted(context, if (r.isInvite) CHANNEL_INVITES else CHANNEL_MESSAGES)
+                    .setContentText(if (r.isInvite) "New invite" else "New message")
+                    .build()
+            )
+        if (!ElementCtrlApp.graph.lock.showNotificationContent) {
+            // Content hidden (default with app lock): no room name, sender or text.
+            builder.setContentTitle("ElementCtrl").setContentText(if (r.isInvite) "New invite" else "New message")
+            if (!r.isInvite) builder.setNumber(r.unreadNotifications.toInt())
+        } else if (r.isInvite) {
             builder.setContentText("${r.inviterName ?: "Someone"} invited you")
         } else {
             val line = listOfNotNull(r.lastSender?.takeIf { !r.isDm }, r.lastMessage).joinToString(": ")

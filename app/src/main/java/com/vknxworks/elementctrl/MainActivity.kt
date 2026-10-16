@@ -7,6 +7,7 @@ import android.view.WindowManager
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -30,6 +31,7 @@ import com.vknxworks.elementctrl.ui.DeepLinks
 import com.vknxworks.elementctrl.ui.ElementCtrlTheme
 import com.vknxworks.elementctrl.ui.MainNav
 import com.vknxworks.elementctrl.ui.SharedContent
+import com.vknxworks.elementctrl.ui.isForeignContentUri
 import com.vknxworks.elementctrl.ui.onboarding.OnboardingFlow
 import org.matrix.rustcomponents.sdk.MatrixId
 import org.matrix.rustcomponents.sdk.parseMatrixEntityFrom
@@ -39,6 +41,8 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Never keep a snapshot of open chats in the recent-apps screen (FLAG_SECURE below is the stronger, optional step).
+        setRecentsScreenshotEnabled(false)
         handleIntent(intent)
         setContent {
             ElementCtrlTheme {
@@ -64,21 +68,25 @@ class MainActivity : FragmentActivity() {
                         onDispose { owner.lifecycle.removeObserver(obs) }
                     }
                     val scope = rememberCoroutineScope()
+                    // While locked the chats aren't composed at all (so nothing is readable through accessibility
+                    // services); their saved state, including the navigation back stack, is kept here so
+                    // unlocking returns to the same screen.
+                    val savedMain = rememberSaveableStateHolder()
                     when (val s = state) {
                         AppState.Loading -> CenteredLoading()
                         is AppState.SignedOut -> OnboardingFlow(s.message)
-                        // The lock covers the app instead of replacing it, so you come back to where you were.
-                        is AppState.SignedIn -> androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-                            // Unverified devices are asked to confirm it's you before the chats appear.
-                            com.vknxworks.elementctrl.ui.onboarding.VerifyGate(s.session) { MainNav(s.session) }
-                            if (lockVm.locked) {
-                                LockScreen(lockVm, onForgot = {
-                                    scope.launch {
-                                        lock.clearPin()
-                                        lockVm.unlock()
-                                        ElementCtrlApp.graph.signOut()
-                                    }
-                                })
+                        is AppState.SignedIn -> if (lockVm.locked) {
+                            LockScreen(lockVm, onForgot = {
+                                scope.launch {
+                                    lock.clearPin()
+                                    lockVm.unlock()
+                                    ElementCtrlApp.graph.signOut()
+                                }
+                            })
+                        } else {
+                            savedMain.SaveableStateProvider("main:${s.session.userId}") {
+                                // Unverified devices are asked to confirm it's you before the chats appear.
+                                com.vknxworks.elementctrl.ui.onboarding.VerifyGate(s.session) { MainNav(s.session) }
                             }
                         }
                     }
@@ -104,7 +112,9 @@ class MainActivity : FragmentActivity() {
             Intent.ACTION_VIEW -> intent.data?.let(::handleUri)
             Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                // Only files from other apps; never file: URIs or our own providers (private-file theft).
                 val stream = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                    ?.takeIf { isForeignContentUri(this, it) }
                 if (text != null || stream != null) DeepLinks.share.value = SharedContent(text, stream)
             }
         }

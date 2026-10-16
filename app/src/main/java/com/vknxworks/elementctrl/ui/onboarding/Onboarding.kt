@@ -76,7 +76,10 @@ import com.vknxworks.elementctrl.data.ServerOption
 import com.vknxworks.elementctrl.data.Servers
 import com.vknxworks.elementctrl.matrix.ServerDetails
 import com.vknxworks.elementctrl.matrix.userMessage
+import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.DeepLinks
+import com.vknxworks.elementctrl.ui.NotEncryptedBadge
+import com.vknxworks.elementctrl.ui.isCleartext
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
 
@@ -105,21 +108,63 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
     var error by remember { mutableStateOf(message) }
     val recent = remember { graph.prefs.recentCustomServers }
 
-    fun connect(address: String) {
-        val target = Servers.normalise(address)
-        if (target.isBlank() || busy != null) return
-        focus.clearFocus()
+    // An http homeserver would get your password and access token in plain text: ask before using one.
+    var insecure by remember { mutableStateOf<String?>(null) }
+    var insecureDetails by remember { mutableStateOf<ServerDetails?>(null) }
+
+    fun discover(target: String, httpConfirmed: Boolean) {
         busy = target
         error = null
         scope.launch {
             runCatching { graph.auth.discover(target) }
                 .onSuccess { details ->
-                    if (Servers.standard.none { it.address.equals(target, true) }) graph.prefs.rememberCustomServer(target)
-                    onServerReady(details)
+                    if (!httpConfirmed && isCleartext(details.url)) {
+                        // .well-known pointed a bare server name at plain http: never downgrade silently.
+                        insecureDetails = details
+                    } else {
+                        if (Servers.standard.none { it.address.equals(target, true) }) graph.prefs.rememberCustomServer(target)
+                        onServerReady(details)
+                    }
                 }
                 .onFailure { error = it.userMessage() }
             busy = null
         }
+    }
+
+    fun connect(address: String) {
+        val target = Servers.normalise(address)
+        if (target.isBlank() || busy != null) return
+        focus.clearFocus()
+        if (isCleartext(target)) { insecure = target; return }
+        discover(target, httpConfirmed = false)
+    }
+
+    insecure?.let { target ->
+        ConfirmDialog(
+            title = "Not encrypted",
+            text = "$target uses plain http. Your password, access token and messages would travel over the network " +
+                "unencrypted, so anyone on the same network could read them or take over your account. Only continue " +
+                "for a server on a network you trust.",
+            confirm = "Connect anyway",
+            destructive = true,
+            onDismiss = { insecure = null },
+            onConfirm = { discover(target, httpConfirmed = true) },
+        )
+    }
+    insecureDetails?.let { details ->
+        ConfirmDialog(
+            title = "Not encrypted",
+            text = "${details.address} points to ${details.url}, which uses plain http. Your password, access token and " +
+                "messages would travel over the network unencrypted. Only continue for a server on a network you trust.",
+            confirm = "Connect anyway",
+            destructive = true,
+            // ConfirmDialog calls onDismiss before onConfirm, so only clear the dialog here.
+            onDismiss = { insecureDetails = null },
+            onConfirm = {
+                if (Servers.standard.none { it.address.equals(details.address, true) }) graph.prefs.rememberCustomServer(details.address)
+                onServerReady(details)
+            },
+        )
     }
 
     Scaffold { pad ->
@@ -188,7 +233,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Text(
-                            "Your server needs Simplified Sliding Sync (built into Synapse 1.114+). Plain http works for local addresses.",
+                            "Your server needs Simplified Sliding Sync (built into Synapse 1.114+). Plain http works for local addresses, after a warning.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -298,6 +343,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                     Column(Modifier.weight(1f)) {
                         Text(server.address, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         Text(server.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        if (isCleartext(server.url)) NotEncryptedBadge(Modifier.padding(top = 4.dp))
                     }
                     TextButton(onClick = onBack) { Text("Change") }
                 }

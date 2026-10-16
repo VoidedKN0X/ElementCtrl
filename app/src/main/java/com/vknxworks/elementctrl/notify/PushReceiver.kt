@@ -12,11 +12,15 @@ import org.unifiedpush.android.connector.data.PushMessage
 /** Receives push messages and endpoint changes from the UnifiedPush distributor (ntfy). */
 class PushReceiver : MessagingReceiver() {
 
+    // The receiver has to be exported for distributors to reach it. The connector library only delivers messages
+    // that carry the registration token it stored, and we additionally check the instance and the IDs; the
+    // event itself is then fetched from the homeserver, so a forged push can't inject notification text.
     override fun onMessage(context: Context, message: PushMessage, instance: String) {
+        if (instance != Push.INSTANCE || !Push.isEnabled(context)) return
         // Homeservers send {"notification":{"event_id":…,"room_id":…,"counts":{"unread":…}}}.
         val n = runCatching { JSONObject(String(message.content)).optJSONObject("notification") }.getOrNull() ?: return
-        val roomId = n.optString("room_id").takeIf { it.isNotBlank() }
-        val eventId = n.optString("event_id").takeIf { it.isNotBlank() }
+        val roomId = n.optString("room_id").takeIf { it.startsWith("!") && it.length <= 255 }
+        val eventId = n.optString("event_id").takeIf { it.startsWith("$") && it.length <= 255 }
         val unread = n.optJSONObject("counts")?.optInt("unread", -1) ?: -1
         val pending = goAsync()
         ElementCtrlApp.graph.scope.launch {
@@ -34,6 +38,7 @@ class PushReceiver : MessagingReceiver() {
     }
 
     override fun onNewEndpoint(context: Context, endpoint: PushEndpoint, instance: String) {
+        if (instance != Push.INSTANCE) return
         val pending = goAsync()
         ElementCtrlApp.graph.scope.launch {
             try { Push.onNewEndpoint(context, endpoint.url) } finally { pending.finish() }
@@ -45,6 +50,7 @@ class PushReceiver : MessagingReceiver() {
     }
 
     override fun onUnregistered(context: Context, instance: String) {
+        if (instance != Push.INSTANCE) return
         Push.onUnregistered(context)
     }
 }

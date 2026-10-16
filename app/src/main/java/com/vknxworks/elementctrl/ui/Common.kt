@@ -268,3 +268,23 @@ fun UnreadBadge(count: Long, highlight: Boolean, muted: Boolean) {
         }
     }
 }
+
+/** True for a plain-http address, where credentials and messages would travel unencrypted. */
+fun isCleartext(url: String): Boolean = url.trim().startsWith("http://", ignoreCase = true)
+
+/** Small red "Not encrypted (HTTP)" label shown next to an http homeserver. */
+@Composable
+fun NotEncryptedBadge(modifier: Modifier = Modifier) {
+    androidx.compose.material3.Surface(
+        modifier = modifier,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Text(
+            "Not encrypted (HTTP)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+    }
+}

@@ -484,13 +484,18 @@ class TimelineController(
 
     /** Copies a picked file into the cache and sends it as an image, video, audio clip or file. */
     fun sendAttachment(context: Context, uri: Uri, caption: String?, replyTo: String?) = launchAction { t ->
+        // Shared/picked files must come from another app, never from our own private storage.
+        if (!com.vknxworks.elementctrl.ui.isForeignContentUri(context, uri)) error("This file can't be sent")
         val resolver = context.contentResolver
         val mime = resolver.getType(uri) ?: "application/octet-stream"
         val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
         } ?: ("upload." + (MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"))
         val dir = File(context.cacheDir, "upload").apply { mkdirs() }
-        val file = File(dir, "${System.currentTimeMillis()}_$name")
+        // The display name comes from another app: keep it to a plain file name inside the upload folder.
+        val safeName = name.substringAfterLast('/').replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().takeIf { it.isNotEmpty() && it != "." && it != ".." } ?: "upload"
+        val file = File(dir, "${System.currentTimeMillis()}_$safeName")
+        if (!file.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
         resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error("Couldn't read the file")
         sendPrepared(t, file, mime, caption, replyTo)
     }

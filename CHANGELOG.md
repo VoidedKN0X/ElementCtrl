@@ -1,8 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.2.1
 
 - Verification now happens right after sign-in, before your chats appear: choose **Use another device** (approve in Element or ElementCtrl and compare emojis) or **Use your recovery key**. Requests started from your other device are answered on the same screen. An unverified device is asked again on every start until it's verified
+- Security hardening:
+  - Plain-http homeservers need an explicit "Not encrypted" confirmation and show a badge in Settings; no silent https→http downgrade
+  - Files shared into ElementCtrl must come from another app (no file: links or ElementCtrl's own files)
+  - While locked, chats aren't drawn at all (nothing for accessibility services to read); the app never leaves a snapshot in recent apps
+  - Message notifications show only "New message" on the lock screen; with app lock on, message content is hidden in notifications too (new setting: Show message content in notifications)
+  - PIN lockout survives clock changes and reboots, with longer waits after repeated wrong PINs; new PINs need at least 6 digits (existing PINs keep working)
+  - Fingerprint unlock is tied to a hardware-backed key (turn it on again once after updating)
+  - Locations only open as map locations; message links are limited to web, matrix and email addresses, and a link whose text shows a different address asks before opening
+  - Draft previews and the Tenor key are stored encrypted; nothing is included in Android backups or device transfers
+  - Pushes for rooms you're not in are ignored
 - New app icon: twin chat bubbles on deep purple, matching the other Ctrl apps; themed (monochrome) icon and notification icon updated to match
 - The first-start server list now offers just matrix.org and Mozilla, plus servers you used before and custom / self-hosted addresses
 

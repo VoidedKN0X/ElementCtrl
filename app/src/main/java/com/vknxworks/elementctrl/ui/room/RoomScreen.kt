@@ -218,6 +218,7 @@ fun RoomScreen(
     var attachMenu by remember { mutableStateOf(false) }
     var creatingPoll by remember { mutableStateOf(false) }
     var pendingAttachment by remember { mutableStateOf<Uri?>(null) }
+    var suspiciousLink by remember { mutableStateOf<Pair<String, String>?>(null) }
     var highlighted by remember { mutableStateOf<String?>(null) }
     var emojiPickerFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
     var stickerSheet by remember { mutableStateOf(false) }
@@ -282,7 +283,7 @@ fun RoomScreen(
         DeepLinks.share.value?.let { shared ->
             DeepLinks.share.value = null
             shared.text?.let { composer = TextFieldValue(it, TextRange(it.length)) }
-            shared.uri?.let { pendingAttachment = it }
+            shared.uri?.takeIf { com.vknxworks.elementctrl.ui.isForeignContentUri(context, it) }?.let { pendingAttachment = it }
         }
     }
 
@@ -384,6 +385,7 @@ fun RoomScreen(
                 { url -> com.vknxworks.elementctrl.matrix.LinkPreviews.load(session, url) }
             } else null,
             onOpenLink = { com.vknxworks.elementctrl.ui.openUrl(context, it) },
+            onSuspiciousLink = { url, shown -> suspiciousLink = url to shown },
         )
     }
 
@@ -741,6 +743,17 @@ fun RoomScreen(
         )
     }
 
+    suspiciousLink?.let { (url, shown) ->
+        com.vknxworks.elementctrl.ui.ConfirmDialog(
+            title = "Open this link?",
+            text = "The link says \"$shown\" but really goes to:\n\n$url",
+            confirm = "Open",
+            destructive = true,
+            onDismiss = { suspiciousLink = null },
+            onConfirm = { com.vknxworks.elementctrl.ui.openUrl(context, url) },
+        )
+    }
+
     pendingAttachment?.let { uri ->
         var caption by remember(uri) { mutableStateOf("") }
         AlertDialog(
@@ -1074,9 +1087,15 @@ private fun openMedia(
 ) {
     when (val c = item.content) {
         is UiContent.Image -> onOpenImage(MediaRequest(c.sourceJson, c.filename, c.mime, c.caption))
-        is UiContent.Location -> runCatching {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(c.geoUri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }.onFailure { scope.launch { snackbar.showSnackbar("No maps app to open this location") } }
+        is UiContent.Location -> {
+            // The URI comes from someone else's event: only ever open it as a map location.
+            val geo = runCatching { Uri.parse(c.geoUri.trim()) }.getOrNull()?.takeIf { it.scheme.equals("geo", ignoreCase = true) }
+            if (geo == null) {
+                scope.launch { snackbar.showSnackbar("This location can't be opened") }
+            } else runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, geo).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.onFailure { scope.launch { snackbar.showSnackbar("No maps app to open this location") } }
+        }
         else -> {
             val info = mediaInfo(c) ?: return
             scope.launch {

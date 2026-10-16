@@ -37,7 +37,7 @@ sealed interface PushStatus {
  */
 object Push {
     private const val TAG = "Push"
-    private const val INSTANCE = "default"
+    const val INSTANCE = "default"
     const val APP_ID = "com.vknxworks.elementctrl"
     /** Public gateway run by the UnifiedPush project, for distributors without their own. */
     private const val FALLBACK_GATEWAY = "https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify"

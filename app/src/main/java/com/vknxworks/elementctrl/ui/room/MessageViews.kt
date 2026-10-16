@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
@@ -106,6 +107,8 @@ class MessageActions(
     /** Loads a link preview through the homeserver; null when previews are off for this chat. */
     val loadPreview: (suspend (String) -> com.vknxworks.elementctrl.matrix.LinkPreview?)? = null,
     val onOpenLink: (String) -> Unit = {},
+    /** A formatted link whose text shows a different address than where it really goes: (real URL, shown text). */
+    val onSuspiciousLink: (String, String) -> Unit = { _, _ -> },
 )
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
@@ -292,7 +295,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
     else Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp)
     when (val c = item.content) {
         is UiContent.Text -> {
-            val text = remember(c.body, c.html) { formatText(c.body, c.html) }
+            val text = remember(c.body, c.html) { formatText(c.body, c.html, actions.onSuspiciousLink) }
             when {
                 bigEmoji -> Text(c.body, fontSize = 40.sp, lineHeight = 48.sp, modifier = Modifier.padding(4.dp))
                 c.kind == TextKind.EMOTE -> Text(
@@ -516,11 +519,47 @@ fun ReadMarkerLine() {
 
 private val urlRegex = Regex("""(https?://[^\s<>"]+[^\s<>".,;:!?)\]}'])|(\bmatrix:[^\s]+)""")
 
+private val allowedLinkSchemes = setOf("http", "https", "matrix", "mailto")
+
+/** The host a piece of visible link text claims to point at ("example.com", "https://example.com/x"), or null. */
+private fun shownHost(text: String): String? {
+    val t = text.trim()
+    if (t.isEmpty() || t.any { it.isWhitespace() }) return null
+    val withScheme = if (Regex("^[a-zA-Z][a-zA-Z0-9+.-]*://").containsMatchIn(t)) t
+    else if (Regex("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}(:\\d+)?([/?#].*)?$").matches(t)) "https://$t"
+    else return null
+    return runCatching { android.net.Uri.parse(withScheme).host }.getOrNull()?.lowercase()?.removePrefix("www.")
+}
+
+/**
+ * Keeps only links to http(s), matrix: and mailto: targets from formatted messages; anything else (intent:,
+ * javascript:, content:, file: …) loses its link. When the visible text is a URL for a different host than
+ * the real target, tapping goes through [onSuspiciousLink] so the real address can be shown first.
+ */
+private fun sanitiseLinks(source: AnnotatedString, linkStyle: TextLinkStyles, onSuspiciousLink: ((String, String) -> Unit)?): AnnotatedString {
+    val links = source.getLinkAnnotations(0, source.length)
+    if (links.isEmpty()) return source
+    val builder = AnnotatedString.Builder(AnnotatedString(source.text, source.spanStyles, source.paragraphStyles))
+    for (range in links) {
+        val url = (range.item as? LinkAnnotation.Url)?.url?.trim() ?: continue
+        val target = runCatching { android.net.Uri.parse(url) }.getOrNull() ?: continue
+        val scheme = target.scheme?.lowercase() ?: continue
+        if (scheme !in allowedLinkSchemes) continue
+        val shown = source.text.substring(range.start, range.end)
+        val claimed = shownHost(shown)
+        val real = target.host?.lowercase()?.removePrefix("www.")
+        val mismatch = claimed != null && claimed != real
+        val listener = if (mismatch && onSuspiciousLink != null) LinkInteractionListener { onSuspiciousLink(url, shown) } else null
+        builder.addLink(LinkAnnotation.Url(url, linkStyle, listener), range.start, range.end)
+    }
+    return builder.toAnnotatedString()
+}
+
 /** Message text with tappable links; HTML-formatted messages keep bold, italics, code and links. */
-fun formatText(body: String, html: String?): AnnotatedString {
+fun formatText(body: String, html: String?, onSuspiciousLink: ((String, String) -> Unit)? = null): AnnotatedString {
     val linkStyle = TextLinkStyles(SpanStyle(textDecoration = TextDecoration.Underline, fontWeight = FontWeight.Medium))
     if (html != null) {
-        return runCatching { AnnotatedString.fromHtml(html.replace("\n", "<br>"), linkStyles = linkStyle) }
+        return runCatching { sanitiseLinks(AnnotatedString.fromHtml(html.replace("\n", "<br>"), linkStyles = linkStyle), linkStyle, onSuspiciousLink) }
             .getOrElse { AnnotatedString(body) }
     }
     return buildAnnotatedString {
