@@ -470,7 +470,15 @@ fun RoomScreen(
                                 val older = visible.getOrNull(index + 1)
                                 val showSender = older !is TimelineEntry.Message || older.sender != entry.sender || older.isStateLike ||
                                     entry.timestamp - older.timestamp > 5 * 60_000
-                                MessageRow(entry, showSender, isDm, actions, highlighted = highlighted != null && highlighted == entry.eventId)
+                                // The list is reversed, so the next (newer) message sits at index - 1.
+                                val newer = visible.getOrNull(index - 1)
+                                val lastInGroup = newer !is TimelineEntry.Message || newer.sender != entry.sender || newer.isStateLike ||
+                                    newer.timestamp - entry.timestamp > 5 * 60_000
+                                MessageRow(
+                                    entry, showSender, isDm, actions,
+                                    highlighted = highlighted != null && highlighted == entry.eventId,
+                                    lastInGroup = lastInGroup,
+                                )
                             }
                         }
                     }

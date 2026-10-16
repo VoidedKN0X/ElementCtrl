@@ -123,6 +123,8 @@ fun MessageRow(
     isDm: Boolean,
     actions: MessageActions,
     highlighted: Boolean = false,
+    /** Last message of a run from the same sender: it carries the profile picture and the bubble tail. */
+    lastInGroup: Boolean = true,
 ) {
     if (item.isStateLike) {
         Text(
@@ -160,8 +162,9 @@ fun MessageRow(
     val shape = when (style) {
         BubbleStyle.MODERN, BubbleStyle.OUTLINED, BubbleStyle.VIVID -> RoundedCornerShape(
             topStart = 18.dp, topEnd = 18.dp,
-            bottomStart = if (own) 18.dp else 6.dp,
-            bottomEnd = if (own) 6.dp else 18.dp,
+            // Only the last bubble of a run keeps the tail, next to the profile picture.
+            bottomStart = if (own || !lastInGroup) 18.dp else 6.dp,
+            bottomEnd = if (!own || !lastInGroup) 18.dp else 6.dp,
         )
         BubbleStyle.ROUND -> RoundedCornerShape(22.dp)
         BubbleStyle.SHARP -> RoundedCornerShape(4.dp)
@@ -180,13 +183,15 @@ fun MessageRow(
             bottom = 1.dp,
         ),
         horizontalArrangement = if (own) Arrangement.End else Arrangement.Start,
-        verticalAlignment = if (flat || withAvatar) Alignment.Top else Alignment.Bottom,
+        // Bubble layouts put the picture level with the last message of a run; the flat layout keeps it by the name at the top.
+        verticalAlignment = if (flat) Alignment.Top else Alignment.Bottom,
     ) {
         val avatarSize = if (flat) 36.dp else 32.dp
-        // One picture per group of messages from the same person, level with the first one.
+        // One picture per group of messages from the same person: by the last bubble, or by the name in the flat layout.
+        val avatarHere = if (flat) showSender else lastInGroup
         @Composable
         fun SenderAvatar() {
-            if (showSender) {
+            if (avatarHere) {
                 Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).clickable { actions.onOpenUser(item.sender) }) {
                     Avatar(item.senderName, item.senderAvatar, item.sender, size = avatarSize)
                 }

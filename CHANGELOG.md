@@ -3,6 +3,7 @@
 ## 1.2.1
 
 - Profile pictures next to messages, in direct chats and next to your own messages too (Settings › Appearance › Profile pictures to turn off)
+- Messages sent close together are grouped: the profile picture sits by the last message of the group, and only that bubble keeps its tail
 - The message box island is evenly balanced: the + and send buttons line up with the text and sit the same distance from the edges
 - The "New messages" line goes away once you've read to the end, instead of staying put; marking a chat read from a notification moves it too
 - "Mark as read" on every message notification, including when message content is hidden
