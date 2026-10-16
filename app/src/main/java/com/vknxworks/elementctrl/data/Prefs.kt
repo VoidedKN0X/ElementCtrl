@@ -48,27 +48,9 @@ class Prefs(context: Context) {
     val linkPreviewsEncrypted: StateFlow<Boolean> = _linkPreviewsEncrypted.asStateFlow()
     fun setLinkPreviewsEncrypted(on: Boolean) { sp.edit().putBoolean("link_previews_e2ee", on).apply(); _linkPreviewsEncrypted.value = on }
 
-    private val _tenorKey = MutableStateFlow(loadTenorKey())
-    /** Your own Tenor API key for GIF search (free from Google Cloud); blank hides GIF search. Stored encrypted. */
-    val tenorKey: StateFlow<String> = _tenorKey.asStateFlow()
-    fun setTenorKey(key: String) {
-        val k = key.trim()
-        val edit = sp.edit().remove("tenor_key")
-        if (k.isEmpty()) edit.remove("tenor_key_enc") else edit.putString("tenor_key_enc", SecureBox.encrypt(k))
-        edit.apply()
-        _tenorKey.value = k
-    }
-
-    private fun loadTenorKey(): String {
-        sp.getString("tenor_key_enc", null)?.let { enc -> return SecureBox.decrypt(enc).orEmpty() }
-        // Older versions kept the key in plain text: move it into encrypted storage.
-        val plain = sp.getString("tenor_key", null) ?: return ""
-        runCatching {
-            val edit = sp.edit().remove("tenor_key")
-            if (plain.isNotBlank()) edit.putString("tenor_key_enc", SecureBox.encrypt(plain))
-            edit.apply()
-        }
-        return plain
+    init {
+        // GIF search was removed: drop any Tenor key older versions stored.
+        if (sp.contains("tenor_key") || sp.contains("tenor_key_enc")) sp.edit().remove("tenor_key").remove("tenor_key_enc").apply()
     }
 
     private val _sendOnEnter = MutableStateFlow(sp.getBoolean("send_on_enter", false))

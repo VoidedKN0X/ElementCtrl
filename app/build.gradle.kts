@@ -113,9 +113,6 @@ dependencies {
 
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")
-    // Animated GIFs and stickers.
+    // Plays animated GIFs and stickers other people send.
     implementation("io.coil-kt.coil3:coil-gif:$coil")
-    // Loads GIF previews from Tenor (Matrix media still goes through the SDK).
-    implementation("io.coil-kt.coil3:coil-network-okhttp:$coil")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

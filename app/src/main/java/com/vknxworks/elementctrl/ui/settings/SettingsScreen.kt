@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
@@ -120,8 +119,6 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     var pushDialog by remember { mutableStateOf(false) }
     val linkPreviews by prefs.linkPreviews.collectAsStateWithLifecycle()
     val linkPreviewsE2ee by prefs.linkPreviewsEncrypted.collectAsStateWithLifecycle()
-    val tenorKey by prefs.tenorKey.collectAsStateWithLifecycle()
-    var tenorDialog by remember { mutableStateOf(false) }
     val lock = graph.lock
     var pinDialog by remember { mutableStateOf<com.vknxworks.elementctrl.ui.lock.PinMode?>(null) }
     var lockAfterDialog by remember { mutableStateOf(false) }
@@ -240,10 +237,6 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     trailing = { Switch(linkPreviewsE2ee, prefs::setLinkPreviewsEncrypted) },
                 )
             }
-            SettingRow(
-                Icons.Default.Gif, "GIF search",
-                if (tenorKey.isBlank()) "Add a free Tenor API key to search GIFs" else "Tenor key set",
-            ) { tenorDialog = true }
 
             SectionHeader("App lock")
             SettingRow(Icons.Default.Lock, "App lock", "Ask for a PIN when opening ElementCtrl", trailing = {
@@ -327,10 +320,6 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             },
             confirmButton = { TextButton(onClick = { lockAfterDialog = false }) { Text("Close") } },
         )
-    }
-
-    if (tenorDialog) {
-        TextInputDialog("Tenor API key", initial = tenorKey, label = "API key", onDismiss = { tenorDialog = false }) { prefs.setTenorKey(it) }
     }
 
     if (pushDialog) PushSetupDialog(session, onDismiss = { pushDialog = false })

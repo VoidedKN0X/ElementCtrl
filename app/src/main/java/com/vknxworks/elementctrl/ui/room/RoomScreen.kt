@@ -221,7 +221,6 @@ fun RoomScreen(
     var suspiciousLink by remember { mutableStateOf<Pair<String, String>?>(null) }
     var highlighted by remember { mutableStateOf<String?>(null) }
     var emojiPickerFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
-    var stickerSheet by remember { mutableStateOf(false) }
     val recorder = remember { VoiceRecorder(context) }
     var recording by remember { mutableStateOf(false) }
     val levels by recorder.levels.collectAsStateWithLifecycle()
@@ -578,7 +577,6 @@ fun RoomScreen(
                                 followLatest = true
                             }
                         },
-                        onStickers = { stickerSheet = true },
                     )
                 }
             }
@@ -653,16 +651,6 @@ fun RoomScreen(
                 SettingRow(Icons.Default.ContentCopy, "Copy text") { copyText(context, "Message", text); sheetFor = null }
             }
             if (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File || item.content is UiContent.Audio) {
-                (item.content as? UiContent.Image)?.let { img ->
-                    SettingRow(Icons.Default.EmojiEmotions, "Add to my stickers") {
-                        sheetFor = null
-                        scope.launch {
-                            runCatching { com.vknxworks.elementctrl.matrix.Stickers.saveToMyPack(session, img.sourceJson, img.filename, img.mime, img.width, img.height) }
-                                .onSuccess { snackbar.showSnackbar("Added to My stickers") }
-                                .onFailure { snackbar.showSnackbar("Couldn't add: ${it.message}") }
-                        }
-                    }
-                }
                 SettingRow(Icons.Default.Download, "Save to Downloads") {
                     sheetFor = null
                     scope.launch { saveMedia(context, session, item, snackbar) }
@@ -782,25 +770,6 @@ fun RoomScreen(
         )
     }
 
-    if (stickerSheet) {
-        StickerGifSheet(
-            session = session,
-            roomId = roomId,
-            onDismiss = { stickerSheet = false },
-            onSticker = { st ->
-                stickerSheet = false
-                followLatest = true
-                scope.launch { runCatching { com.vknxworks.elementctrl.matrix.Stickers.send(session, roomId, st) }.onFailure { snackbar.showSnackbar("Couldn't send: ${it.message}") } }
-            },
-            onGif = { file ->
-                stickerSheet = false
-                followLatest = true
-                timeline.sendLocalFile(file, "image/gif", null, (mode as? ComposerMode.Reply)?.item?.eventId)
-                mode = ComposerMode.Normal
-            },
-        )
-    }
-
     if (creatingPoll) {
         PollDialog(onDismiss = { creatingPoll = false }, onCreate = { q, answers, disclosed -> timeline.createPoll(q, answers, disclosed); creatingPoll = false })
     }
@@ -867,7 +836,6 @@ private fun Composer(
     onMic: () -> Unit = {},
     onCancelRecording: () -> Unit = {},
     onSendRecording: () -> Unit = {},
-    onStickers: () -> Unit = {},
 ) {
     // "@na" before the cursor offers matching members.
     val mentionQuery = remember(value) {
@@ -954,9 +922,6 @@ private fun Composer(
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.weight(1f),
             )
-            if (!canSend) {
-                IconButton(onClick = onStickers) { Icon(Icons.Default.EmojiEmotions, "Stickers and GIFs", tint = cs.onSurfaceVariant) }
-            }
             // With nothing typed the button records a voice message instead.
             val voiceMode = !canSend && mode !is ComposerMode.Edit
             val sendColor by animateColorAsState(if (canSend || voiceMode) cs.primary else cs.surfaceContainerHighest, label = "send")

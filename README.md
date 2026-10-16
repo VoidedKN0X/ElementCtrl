@@ -41,7 +41,7 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 **More**
 - Search inside a chat, including encrypted ones, and jump to any result
 - Voice messages with waveforms; inline playback for audio
-- Link previews, drafts per chat, stickers (Matrix image packs) and GIFs
+- Link previews and drafts per chat
 - Devices list with rename and sign-out; app lock with PIN and fingerprint
 - Two-pane layout on tablets and unfolded foldables
 
@@ -84,10 +84,6 @@ GitHub Actions builds a release APK on every push to `main` and publishes it und
 Without signing secrets the release APK is signed with the debug key. To sign with your own key, set these in the repository's Actions secrets or variables: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 
 Only the `arm64-v8a` native library is packaged, to keep the APK small. Add `x86_64` to `abiFilters` in `app/build.gradle.kts` to run it on an emulator.
-
-## GIFs
-
-Animated GIFs play in chats, and you can send them from your gallery. GIF search uses Tenor, which needs a free API key: create one in the Google Cloud console (Tenor API), then paste it in Settings › Chats › GIF search.
 
 ## Not included yet
 
