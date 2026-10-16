@@ -23,6 +23,15 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Gif
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Dns
@@ -80,7 +89,7 @@ import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.sdkGitSha
 
 @Composable
-fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () -> Unit, onOpenUser: (String) -> Unit) {
+fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () -> Unit, onOpenUser: (String) -> Unit, onDevices: () -> Unit = {}) {
     val graph = ElementCtrlApp.graph
     val prefs = graph.prefs
     val account = remember { AccountService(session) }
@@ -107,6 +116,16 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     var accountUrl by remember { mutableStateOf<String?>(null) }
     var ignored by remember { mutableStateOf<List<String>>(emptyList()) }
     var confirmSignOut by remember { mutableStateOf(false) }
+    val pushStatus by com.vknxworks.elementctrl.notify.Push.status.collectAsStateWithLifecycle()
+    var pushDialog by remember { mutableStateOf(false) }
+    val linkPreviews by prefs.linkPreviews.collectAsStateWithLifecycle()
+    val linkPreviewsE2ee by prefs.linkPreviewsEncrypted.collectAsStateWithLifecycle()
+    val tenorKey by prefs.tenorKey.collectAsStateWithLifecycle()
+    var tenorDialog by remember { mutableStateOf(false) }
+    val lock = graph.lock
+    var pinDialog by remember { mutableStateOf<com.vknxworks.elementctrl.ui.lock.PinMode?>(null) }
+    var lockAfterDialog by remember { mutableStateOf(false) }
+    val bioAvailable = remember { com.vknxworks.elementctrl.ui.lock.biometricAvailable(context) }
     var signingOut by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -162,6 +181,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 },
                 onClick = onSecurity,
             )
+            SettingRow(Icons.Default.Devices, "Devices", "Phones and computers signed in to your account", onClick = onDevices)
             accountUrl?.let { url ->
                 SettingRow(
                     Icons.AutoMirrored.Filled.OpenInNew, "Manage account",
@@ -172,7 +192,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             SectionHeader("Notifications")
             SettingRow(
                 Icons.Default.Notifications, "Notifications on this device",
-                "Checks for new messages about every 15 minutes while the app is closed",
+                null,
                 trailing = {
                     Switch(notifications, { on ->
                         if (on && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -181,6 +201,15 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     })
                 },
             )
+            SettingRow(
+                Icons.Default.Bolt, "Delivery",
+                when (val st = pushStatus) {
+                    is com.vknxworks.elementctrl.notify.PushStatus.Active -> "Instant via ${st.distributor}"
+                    com.vknxworks.elementctrl.notify.PushStatus.Registering -> "Setting up push…"
+                    is com.vknxworks.elementctrl.notify.PushStatus.Failed -> "Push problem: ${st.message}"
+                    com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to set up instant push with ntfy"
+                },
+            ) { pushDialog = true }
             SettingRow(Icons.Default.Group, "Group chats", modeLabel(groupMode)) { modeDialog = false }
             SettingRow(Icons.Default.ChatBubbleOutline, "Direct chats", modeLabel(dmMode)) { modeDialog = true }
             SettingRow(Icons.Default.AlternateEmail, "Mentions", "Notify when someone mentions you or @room", trailing = {
@@ -196,6 +225,48 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             SettingRow(Icons.Default.Palette, "Material You colours", "Use your wallpaper's colours", trailing = { Switch(dynamic, prefs::setDynamicColor) })
             SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
             SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
+
+            SectionHeader("Chats")
+            SettingRow(Icons.Default.Link, "Link previews", "Show a preview card for links, fetched by your homeserver", trailing = { Switch(linkPreviews, prefs::setLinkPreviews) })
+            if (linkPreviews) {
+                SettingRow(
+                    Icons.Default.Lock, "Link previews in encrypted chats",
+                    "Your homeserver would see which links are shared in those chats",
+                    trailing = { Switch(linkPreviewsE2ee, prefs::setLinkPreviewsEncrypted) },
+                )
+            }
+            SettingRow(
+                Icons.Default.Gif, "GIF search",
+                if (tenorKey.isBlank()) "Add a free Tenor API key to search GIFs" else "Tenor key set",
+            ) { tenorDialog = true }
+
+            SectionHeader("App lock")
+            SettingRow(Icons.Default.Lock, "App lock", "Ask for a PIN when opening ElementCtrl", trailing = {
+                Switch(lock.pinSet, { on -> pinDialog = if (on) com.vknxworks.elementctrl.ui.lock.PinMode.New else com.vknxworks.elementctrl.ui.lock.PinMode.Disable })
+            })
+            if (lock.pinSet) {
+                SettingRow(
+                    Icons.Default.Fingerprint, "Unlock with fingerprint",
+                    if (bioAvailable) "Your PIN still works as a backup" else "No secure fingerprint unlock is set up on this phone",
+                    trailing = {
+                        Switch(lock.biometricEnabled, { on ->
+                            val act = context as? androidx.fragment.app.FragmentActivity
+                            if (on && act != null) com.vknxworks.elementctrl.ui.lock.showBiometricPrompt(act, "Confirm to turn on") { lock.biometricEnabled = true }
+                            else lock.biometricEnabled = false
+                        }, enabled = bioAvailable)
+                    },
+                )
+                SettingRow(
+                    Icons.Default.Timer, "Lock again after leaving",
+                    when (lock.lockAfterSeconds) { 0 -> "Instantly"; 30 -> "After 30 seconds"; 60 -> "After 1 minute"; else -> "After 5 minutes" },
+                ) { lockAfterDialog = true }
+                SettingRow(
+                    Icons.Default.VisibilityOff, "Hide from recents & screenshots",
+                    "Blank preview in the app switcher; blocks screenshots and screen recording",
+                    trailing = { Switch(lock.hideContent, { lock.hideContent = it }) },
+                )
+                SettingRow(Icons.Default.Password, "Change PIN") { pinDialog = com.vknxworks.elementctrl.ui.lock.PinMode.Change }
+            }
 
             if (ignored.isNotEmpty()) {
                 SectionHeader("Ignored people")
@@ -221,6 +292,34 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     if (editName) TextInputDialog("Display name", initial = profile.displayName.orEmpty(), onDismiss = { editName = false }) { name ->
         scope.launch { runCatching { account.setDisplayName(name.trim()) }.onFailure { snackbar.showSnackbar(it.userMessage()) } }
     }
+
+    pinDialog?.let { mode -> com.vknxworks.elementctrl.ui.lock.PinSetupDialog(mode) { pinDialog = null } }
+
+    if (lockAfterDialog) {
+        val options = listOf(0 to "Instantly", 30 to "After 30 seconds", 60 to "After 1 minute", 300 to "After 5 minutes")
+        AlertDialog(
+            onDismissRequest = { lockAfterDialog = false },
+            title = { Text("Lock again after leaving") },
+            text = {
+                Column {
+                    options.forEach { (secs, label) ->
+                        Row(Modifier.fillMaxWidth().selectable(lock.lockAfterSeconds == secs) { lock.lockAfterSeconds = secs; lockAfterDialog = false }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(lock.lockAfterSeconds == secs, null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(label)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { lockAfterDialog = false }) { Text("Close") } },
+        )
+    }
+
+    if (tenorDialog) {
+        TextInputDialog("Tenor API key", initial = tenorKey, label = "API key", onDismiss = { tenorDialog = false }) { prefs.setTenorKey(it) }
+    }
+
+    if (pushDialog) PushSetupDialog(session, onDismiss = { pushDialog = false })
 
     if (bubbleDialog) BubbleStylePicker(bubbleStyle, prefs::setBubbleStyle) { bubbleDialog = false }
 

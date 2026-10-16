@@ -1,6 +1,15 @@
 package com.vknxworks.elementctrl.ui.room
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -92,6 +101,11 @@ class MessageActions(
     /** Key storage is set up but this device doesn't have the recovery key yet. */
     val recoveryIncomplete: Boolean = false,
     val onFixDecryption: () -> Unit = {},
+    /** Play or pause an audio clip or voice message inline. */
+    val onToggleAudio: (TimelineEntry.Message) -> Unit = {},
+    /** Loads a link preview through the homeserver; null when previews are off for this chat. */
+    val loadPreview: (suspend (String) -> com.vknxworks.elementctrl.matrix.LinkPreview?)? = null,
+    val onOpenLink: (String) -> Unit = {},
 )
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
@@ -286,14 +300,23 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
                     style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic), modifier = pad,
                 )
                 c.kind == TextKind.NOTICE -> Text(text, style = MaterialTheme.typography.bodyLarge, color = onBubble.copy(alpha = 0.8f), modifier = pad)
-                else -> Text(text, style = MaterialTheme.typography.bodyLarge, modifier = pad)
+                else -> Column {
+                    Text(text, style = MaterialTheme.typography.bodyLarge, modifier = pad)
+                    val loader = actions.loadPreview
+                    val link = remember(c.body) { com.vknxworks.elementctrl.matrix.LinkPreviews.firstUrl(c.body) }
+                    if (loader != null && link != null) LinkPreviewCard(link, onBubble, loader, actions.onOpenLink)
+                }
             }
         }
         is UiContent.Image -> {
             val ratio = if (c.width > 0 && c.height > 0) (c.width.toFloat() / c.height).coerceIn(0.5f, 2.2f) else 1.3f
             Column {
                 AsyncImage(
-                    model = remember(c.sourceJson) { MxcImage(sourceJson = c.thumbnailJson ?: c.sourceJson, size = if (c.thumbnailJson != null) 0 else 800) },
+                    // GIFs load the original so they animate; other pictures use a thumbnail.
+                    model = remember(c.sourceJson) {
+                        if (c.mime == "image/gif" || c.isSticker) MxcImage(sourceJson = c.sourceJson)
+                        else MxcImage(sourceJson = c.thumbnailJson ?: c.sourceJson, size = if (c.thumbnailJson != null) 0 else 800)
+                    },
                     contentDescription = c.caption ?: c.filename,
                     contentScale = if (c.isSticker) ContentScale.Fit else ContentScale.Crop,
                     modifier = Modifier
@@ -328,13 +351,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
                 c.caption?.takeIf { it.isNotBlank() }?.let { Text(formatText(it, null), style = MaterialTheme.typography.bodyLarge, modifier = pad) }
             }
         }
-        is UiContent.Audio -> AttachmentRow(
-            icon = if (c.isVoice) Icons.Default.GraphicEq else Icons.Default.MusicNote,
-            title = if (c.isVoice) "Voice message" else c.filename,
-            subtitle = if (c.durationMs > 0) formatDuration(c.durationMs) else "Audio",
-            onBubble = onBubble,
-            caption = c.caption,
-        )
+        is UiContent.Audio -> AudioRow(item.key, c, onBubble) { actions.onToggleAudio(item) }
         is UiContent.File -> AttachmentRow(
             icon = Icons.Default.AttachFile,
             title = c.filename,
@@ -525,5 +542,101 @@ fun isOnlyEmoji(text: String): Boolean {
     return t.codePoints().allMatch { cp ->
         Character.getType(cp) == Character.OTHER_SYMBOL.toInt() ||
             cp == 0x200D || cp == 0xFE0F || cp in 0x1F3FB..0x1F3FF || Character.isWhitespace(cp) || cp in 0x1F1E6..0x1F1FF
+    }
+}
+
+
+/** Inline player: play/pause, a waveform that fills as it plays (tap to seek), and the time. */
+@Composable
+private fun AudioRow(key: String, c: UiContent.Audio, onBubble: Color, onToggle: () -> Unit) {
+    val player by AudioPlayer.state.collectAsStateWithLifecycle()
+    val mine = player.key == key
+    val playing = mine && player.playing
+    val duration = if (mine && player.durationMs > 0) player.durationMs else c.durationMs
+    val progress = if (mine && duration > 0) (player.positionMs.toFloat() / duration).coerceIn(0f, 1f) else 0f
+    val bars = remember(c.waveform) { if (c.waveform.isNotEmpty()) resample(c.waveform, 36) else List(36) { i -> 0.25f + 0.2f * kotlin.math.abs(kotlin.math.sin(i * 0.7f)) } }
+    Column(Modifier.padding(start = 6.dp, end = 12.dp, top = 8.dp, bottom = 2.dp).widthIn(min = 220.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(onBubble.copy(alpha = 0.14f)).clickable(onClick = onToggle),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (mine && player.loading) {
+                    androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = onBubble)
+                } else {
+                    Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) "Pause" else "Play", tint = onBubble)
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            if (c.isVoice || c.waveform.isNotEmpty()) {
+                Row(
+                    Modifier.weight(1f).height(32.dp).pointerInput(mine) {
+                        detectTapGestures { pos -> if (mine) AudioPlayer.seek(pos.x / size.width) else onToggle() }
+                    },
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    bars.forEachIndexed { i, v ->
+                        val played = i.toFloat() / bars.size < progress
+                        Box(
+                            Modifier.weight(1f).fillMaxHeight((0.15f + 0.85f * v).coerceIn(0.15f, 1f)).clip(RoundedCornerShape(2.dp))
+                                .background(if (played) onBubble else onBubble.copy(alpha = 0.35f)),
+                        )
+                    }
+                }
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Text(c.filename, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                formatDuration(if (mine && player.positionMs > 0) player.positionMs else duration),
+                style = MaterialTheme.typography.labelMedium,
+                color = onBubble.copy(alpha = 0.75f),
+            )
+        }
+        c.caption?.takeIf { it.isNotBlank() }?.let { Text(formatText(it, null), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 4.dp)) }
+    }
+}
+
+private fun resample(src: List<Float>, n: Int): List<Float> =
+    List(n) { i -> src[((i.toFloat() / n) * src.size).toInt().coerceIn(0, src.lastIndex)] }
+
+/** Title, description and picture for the first link in a message, as returned by the homeserver. */
+@Composable
+private fun LinkPreviewCard(
+    url: String,
+    onBubble: Color,
+    loader: suspend (String) -> com.vknxworks.elementctrl.matrix.LinkPreview?,
+    onOpen: (String) -> Unit,
+) {
+    var preview by remember(url) { mutableStateOf(com.vknxworks.elementctrl.matrix.LinkPreviews.cached(url)?.takeUnless { it.isEmpty }) }
+    LaunchedEffect(url) { if (preview == null) preview = loader(url) }
+    val p = preview ?: return
+    Row(
+        Modifier
+            .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 2.dp)
+            .widthIn(max = 296.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(onBubble.copy(alpha = 0.08f))
+            .clickable { onOpen(url) }
+            .height(IntrinsicSize.Min),
+    ) {
+        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+        Column(Modifier.padding(8.dp).weight(1f, fill = false)) {
+            p.siteName?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1) }
+            p.title?.let { Text(it, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            p.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = onBubble.copy(alpha = 0.8f), maxLines = 3, overflow = TextOverflow.Ellipsis) }
+            p.imageUrl?.let { img ->
+                AsyncImage(
+                    model = remember(img) { MxcImage(url = img, size = 600) },
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.padding(top = 6.dp).fillMaxWidth().height(140.dp).clip(RoundedCornerShape(8.dp)),
+                )
+            }
+        }
     }
 }

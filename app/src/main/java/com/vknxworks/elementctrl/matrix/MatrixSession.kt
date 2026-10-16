@@ -97,6 +97,21 @@ class MatrixSession(
         .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
 
     private var notificationSettings: NotificationSettings? = null
+    private var notificationClient: org.matrix.rustcomponents.sdk.NotificationClient? = null
+    private val notificationMutex = Mutex()
+
+    /** Fetches and decrypts one event for a push notification. */
+    suspend fun notificationItem(roomId: String, eventId: String): org.matrix.rustcomponents.sdk.NotificationItem? {
+        val nc = notificationMutex.withLock {
+            notificationClient ?: client.notificationClient(
+                org.matrix.rustcomponents.sdk.NotificationProcessSetup.SingleProcess(syncService)
+            ).also { notificationClient = it }
+        }
+        return when (val status = nc.getNotification(roomId, eventId)) {
+            is org.matrix.rustcomponents.sdk.NotificationStatus.Event -> status.item
+            else -> null
+        }
+    }
 
     fun start() {
         client.setDelegate(object : ClientDelegate {
@@ -249,6 +264,7 @@ class MatrixSession(
         restartJob?.cancel()
         handles.forEach { runCatching { it.cancel() } }
         handles.clear()
+        runCatching { notificationClient?.close() }
         runCatching { listController?.destroy() }
         runCatching { listResult?.destroy() }
         scope.cancel()

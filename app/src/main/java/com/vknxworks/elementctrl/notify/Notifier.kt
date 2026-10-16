@@ -133,17 +133,3 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         return Result.success()
     }
 }
-
-class NotificationActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val roomId = intent.getStringExtra(Notifier.EXTRA_ROOM_ID) ?: return
-        Notifier.clear(context, roomId)
-        val session = ElementCtrlApp.graph.session ?: return
-        val pending = goAsync()
-        session.scope.launch {
-            runCatching { session.getRoom(roomId)?.use { it.markAsRead(ReceiptType.READ) } }
-            session.refreshRoom(roomId)
-            pending.finish()
-        }
-    }
-}

@@ -281,6 +281,35 @@ class RoomController(val session: MatrixSession, val room: Room) {
         room.uploadAvatar(mime, bytes, null)
     }
 
+    // region drafts
+
+    /** The unsent message for this chat (or thread), kept by the SDK in the encrypted database. */
+    suspend fun loadDraft(threadRoot: String?): org.matrix.rustcomponents.sdk.ComposerDraft? =
+        runCatching { room.loadComposerDraft(threadRoot) }.getOrNull()
+
+    /** Saves the draft on the session scope, so it still happens while the screen is closing. */
+    fun saveDraft(text: String, replyTo: String?, editOf: String?, threadRoot: String?) {
+        val drafts = com.vknxworks.elementctrl.ElementCtrlApp.graph.drafts
+        session.scope.launch {
+            runCatching {
+                if (text.isBlank()) {
+                    room.clearComposerDraft(threadRoot)
+                } else {
+                    val type = when {
+                        editOf != null -> org.matrix.rustcomponents.sdk.ComposerDraftType.Edit(editOf)
+                        replyTo != null -> org.matrix.rustcomponents.sdk.ComposerDraftType.Reply(replyTo)
+                        else -> org.matrix.rustcomponents.sdk.ComposerDraftType.NewMessage
+                    }
+                    room.saveComposerDraft(org.matrix.rustcomponents.sdk.ComposerDraft(text, null, type, emptyList()), threadRoot)
+                }
+            }
+            // Edits aren't shown as drafts in the chat list.
+            if (threadRoot == null) drafts.set(roomId, if (editOf != null) null else text)
+        }
+    }
+
+    // endregion
+
     suspend fun permalink(): String? = runCatching { room.matrixToPermalink() }.getOrNull()
     suspend fun eventPermalink(eventId: String): String? = runCatching { room.matrixToEventPermalink(eventId) }.getOrNull()
 }

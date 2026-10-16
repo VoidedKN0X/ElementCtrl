@@ -38,6 +38,13 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 - Shields on messages from unverified devices; explanations for messages that can't be decrypted
 - Session tokens and the database key are encrypted with an Android Keystore key; the SDK's databases are encrypted too
 
+**More**
+- Search inside a chat, including encrypted ones, and jump to any result
+- Voice messages with waveforms; inline playback for audio
+- Link previews, drafts per chat, stickers (Matrix image packs) and GIFs
+- Devices list with rename and sign-out; app lock with PIN and fingerprint
+- Two-pane layout on tablets and unfolded foldables
+
 **Settings**
 - Display name and avatar, manage account (password, devices) on OAuth servers
 - Notifications: on/off for this device, default for group and direct chats, mentions, invites
@@ -51,7 +58,14 @@ An Android Matrix client in the spirit of Element X, for matrix.org, other publi
 
 ## Notifications
 
-There's no Google push service in this app. While the app is closed it checks for new messages about every 15 minutes (Android's minimum for background jobs) and shows a notification per chat with "Mark as read". Turn it off in Settings › Notifications.
+There's no Google push in this app. Two ways to get notified, set in Settings › Notifications › Delivery:
+
+- **Instant push with ntfy** (or any UnifiedPush app). Install [ntfy](https://f-droid.org/packages/io.heckel.ntfy/), pick it in ElementCtrl, and the app registers a Matrix pusher with your homeserver. ntfy.sh works, and so does your own ntfy server (its built-in Matrix gateway is used automatically; otherwise the public UnifiedPush gateway). Only event IDs travel through the push server; ElementCtrl fetches and decrypts the message itself. Notifications are per chat, with reply and mark-as-read.
+- **Background check** every ~15 minutes, needing no other app.
+
+### Self-hosted ntfy and Synapse
+
+Your homeserver must be able to reach the gateway URL (`https://your-ntfy/_matrix/push/v1/notify`). If you run ntfy behind a reverse proxy, make sure `/_matrix/push/v1/notify` is passed through.
 
 ## Self-hosted Synapse notes
 
@@ -71,6 +85,10 @@ Without signing secrets the release APK is signed with the debug key. To sign wi
 
 Only the `arm64-v8a` native library is packaged, to keep the APK small. Add `x86_64` to `abiFilters` in `app/build.gradle.kts` to run it on an emulator.
 
+## GIFs
+
+Animated GIFs play in chats, and you can send them from your gallery. GIF search uses Tenor, which needs a free API key: create one in the Google Cloud console (Tenor API), then paste it in Settings › Chats › GIF search.
+
 ## Not included yet
 
-Voice/video calls, spaces navigation, message search, sending voice messages and live location, multiple accounts at once.
+Voice/video calls, spaces navigation, sending live location, multiple accounts at once.

@@ -38,6 +38,21 @@ class Prefs(context: Context) {
     val bubbleStyle: StateFlow<BubbleStyle> = _bubbles.asStateFlow()
     fun setBubbleStyle(style: BubbleStyle) { sp.edit().putInt("bubble_style", style.ordinal).apply(); _bubbles.value = style }
 
+    private val _linkPreviews = MutableStateFlow(sp.getBoolean("link_previews", true))
+    /** Show previews for links in messages (fetched by your homeserver). */
+    val linkPreviews: StateFlow<Boolean> = _linkPreviews.asStateFlow()
+    fun setLinkPreviews(on: Boolean) { sp.edit().putBoolean("link_previews", on).apply(); _linkPreviews.value = on }
+
+    private val _linkPreviewsEncrypted = MutableStateFlow(sp.getBoolean("link_previews_e2ee", false))
+    /** Also in encrypted chats; off by default because the homeserver then learns which links were shared. */
+    val linkPreviewsEncrypted: StateFlow<Boolean> = _linkPreviewsEncrypted.asStateFlow()
+    fun setLinkPreviewsEncrypted(on: Boolean) { sp.edit().putBoolean("link_previews_e2ee", on).apply(); _linkPreviewsEncrypted.value = on }
+
+    private val _tenorKey = MutableStateFlow(sp.getString("tenor_key", "").orEmpty())
+    /** Your own Tenor API key for GIF search (free from Google Cloud); blank hides GIF search. */
+    val tenorKey: StateFlow<String> = _tenorKey.asStateFlow()
+    fun setTenorKey(key: String) { sp.edit().putString("tenor_key", key.trim()).apply(); _tenorKey.value = key.trim() }
+
     private val _sendOnEnter = MutableStateFlow(sp.getBoolean("send_on_enter", false))
     val sendOnEnter: StateFlow<Boolean> = _sendOnEnter.asStateFlow()
     fun setSendOnEnter(on: Boolean) { sp.edit().putBoolean("send_on_enter", on).apply(); _sendOnEnter.value = on }

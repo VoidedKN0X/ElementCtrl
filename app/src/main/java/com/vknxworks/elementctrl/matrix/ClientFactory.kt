@@ -66,6 +66,9 @@ class ClientFactory(private val context: Context, private val store: SessionStor
             .dmRoomDefinition(DmRoomDefinition.TWO_MEMBERS)
             .requestConfig(RequestConfig(retryLimit = 3u, timeout = 30_000u, maxConcurrentRequests = null, maxRetryTime = null))
             .crossProcessLockConfig(CrossProcessLockConfig.SingleProcess)
+            // Local full-text index for message search, encrypted with the same key as the databases,
+            // so search also works in end-to-end encrypted rooms.
+            .withSearchIndexStore(File(paths.dataDir, "search-index").absolutePath, paths.key)
     }
 
     /** A builder for the sign-in screens: discovers the server and checks it supports native sliding sync. */

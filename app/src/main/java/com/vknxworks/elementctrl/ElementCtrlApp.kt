@@ -58,7 +58,10 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
                     s.inForeground = false
                     s.scope.launch { s.stopSync() }
                 }
-                Notifier.schedule(this@ElementCtrlApp, graph.prefs.notifications.value && graph.session != null)
+                Notifier.schedule(
+                    this@ElementCtrlApp,
+                    graph.prefs.notifications.value && graph.session != null && !com.vknxworks.elementctrl.notify.Push.isEnabled(this@ElementCtrlApp),
+                )
             }
         })
     }
@@ -68,6 +71,8 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
             .components {
                 add(MediaFetcher.Factory { graph.session })
                 add(MediaFetcher.keyer)
+                // Plays animated GIFs and stickers.
+                add(coil3.gif.AnimatedImageDecoder.Factory())
             }
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
             .build()

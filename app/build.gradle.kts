@@ -14,7 +14,7 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.1.0"
+        versionName = "1.2.0"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -96,6 +96,17 @@ dependencies {
     // Frosted-glass blur behind the floating composer island, as in the other Ctrl apps.
     implementation("dev.chrisbanes.haze:haze:1.6.0")
 
+    // Push notifications through ntfy or any other UnifiedPush distributor.
+    implementation("org.unifiedpush.android:connector:3.3.5")
+    // App lock with fingerprint.
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.6")
+
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")
+    // Animated GIFs and stickers.
+    implementation("io.coil-kt.coil3:coil-gif:$coil")
+    // Loads GIF previews from Tenor (Matrix media still goes through the SDK).
+    implementation("io.coil-kt.coil3:coil-network-okhttp:$coil")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

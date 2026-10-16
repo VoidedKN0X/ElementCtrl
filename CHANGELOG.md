@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+- **Instant push notifications** through ntfy or any UnifiedPush app (Settings › Notifications › Delivery). Messages are fetched and decrypted on the phone; notifications are grouped per chat with inline reply and mark-as-read
+- **Search inside a chat**, including encrypted chats, using an on-device index; tap a result to jump to it
+- **Voice messages**: tap the mic when the message box is empty, with a live waveform; voice and audio play inline with a seekable waveform
+- **Link previews** under messages (fetched by your homeserver; off in encrypted chats unless you turn it on)
+- **Drafts** are kept per chat and thread, and shown as "Draft: …" in the chat list
+- **Devices**: see your signed-in sessions, rename them and sign them out (password or your account page)
+- **App lock** with PIN and fingerprint, lock delay and hiding from recents, same as the other Ctrl apps
+- **Stickers** from Matrix image packs (yours and rooms'), "Add to my stickers" on any picture, and **GIFs**: animated playback, sending from the gallery, and Tenor search with your own key
+- **Tablet and foldable layout**: chat list and conversation side by side
+
 ## 1.1.0
 
 - Chats follow new messages as they arrive, unless you've scrolled up to read; then a badge on the jump-down button counts what's new

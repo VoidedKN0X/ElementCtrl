@@ -1,6 +1,7 @@
 package com.vknxworks.elementctrl.ui.room
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.launch
 import com.vknxworks.elementctrl.matrix.MatrixSession
 import com.vknxworks.elementctrl.matrix.RoomController
 import com.vknxworks.elementctrl.matrix.TimelineController
@@ -15,10 +16,11 @@ class RoomViewModel(
     val roomId: String,
     val threadRootId: String? = null,
     withTimeline: Boolean = true,
+    val focusEventId: String? = null,
 ) : ViewModel() {
     private val sdkRoom = session.getRoom(roomId)
     val room: RoomController? = sdkRoom?.let { RoomController(session, it) }
-    val timeline: TimelineController? = if (withTimeline) sdkRoom?.let { TimelineController(session, it, threadRootId) } else null
+    val timeline: TimelineController? = if (withTimeline) sdkRoom?.let { TimelineController(session, it, threadRootId, focusEventId) } else null
 
     init {
         room?.start()
@@ -29,6 +31,10 @@ class RoomViewModel(
     override fun onCleared() {
         timeline?.close()
         room?.close()
-        runCatching { sdkRoom?.close() }
+        // A draft may still be saving as the screen closes; release the room a moment later.
+        session.scope.launch {
+            kotlinx.coroutines.delay(2000)
+            runCatching { sdkRoom?.close() }
+        }
     }
 }

@@ -1,6 +1,12 @@
 package com.vknxworks.elementctrl.ui.room
 
 import android.content.Intent
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.DisposableEffect
+import com.vknxworks.elementctrl.notify.OpenRoom
+import com.vknxworks.elementctrl.notify.PushNotifications
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
@@ -161,8 +167,13 @@ fun RoomScreen(
     onOpenImage: (MediaRequest) -> Unit,
     onOpenRoom: (String) -> Unit,
     onSecurity: () -> Unit,
+    onSearch: () -> Unit = {},
+    focusEventId: String? = null,
+    onJumpToLatest: () -> Unit = {},
 ) {
-    val vm: RoomViewModel = viewModel(key = "room:$roomId:${threadRootId.orEmpty()}") { RoomViewModel(session, roomId, threadRootId) }
+    val vm: RoomViewModel = viewModel(key = "room:$roomId:${threadRootId.orEmpty()}:${focusEventId.orEmpty()}") {
+        RoomViewModel(session, roomId, threadRootId, focusEventId = focusEventId)
+    }
     val room = vm.room
     val timeline = vm.timeline
     if (room == null || timeline == null) {
@@ -207,10 +218,62 @@ fun RoomScreen(
     var pendingAttachment by remember { mutableStateOf<Uri?>(null) }
     var highlighted by remember { mutableStateOf<String?>(null) }
     var emojiPickerFor by remember { mutableStateOf<TimelineEntry.Message?>(null) }
+    var stickerSheet by remember { mutableStateOf(false) }
+    val recorder = remember { VoiceRecorder(context) }
+    var recording by remember { mutableStateOf(false) }
+    val levels by recorder.levels.collectAsStateWithLifecycle()
+    val elapsed by recorder.elapsed.collectAsStateWithLifecycle()
+    DisposableEffect(Unit) { onDispose { recorder.cancel(); AudioPlayer.stop() } }
+    val linkPreviews by ElementCtrlApp.graph.prefs.linkPreviews.collectAsStateWithLifecycle()
+    val linkPreviewsE2ee by ElementCtrlApp.graph.prefs.linkPreviewsEncrypted.collectAsStateWithLifecycle()
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) recording = recorder.start()
+        else scope.launch { snackbar.showSnackbar("Allow the microphone to record voice messages") }
+    }
 
     LaunchedEffect(timelineError) { timelineError?.let { snackbar.showSnackbar(it); timeline.clearError() } }
     LaunchedEffect(roomError) { roomError?.let { snackbar.showSnackbar(it); room.clearError() } }
     LaunchedEffect(Unit) { room.loadMembers() }
+
+    // Push notifications for this chat stay quiet while it's on screen.
+    DisposableEffect(roomId) {
+        OpenRoom.id = roomId
+        PushNotifications.forget(roomId)
+        onDispose { if (OpenRoom.id == roomId) OpenRoom.id = null }
+    }
+
+    // Drafts: restore what was typed last time, keep saving while typing, and save once more on leaving.
+    var draftLoaded by remember { mutableStateOf(false) }
+    var pendingReplyId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        if (focusEventId == null && composer.text.isEmpty() && DeepLinks.share.value == null) {
+            room.loadDraft(threadRootId)?.let { d ->
+                composer = TextFieldValue(d.plainText, TextRange(d.plainText.length))
+                (d.draftType as? org.matrix.rustcomponents.sdk.ComposerDraftType.Reply)?.let { pendingReplyId = it.eventId }
+            }
+        }
+        draftLoaded = true
+    }
+    LaunchedEffect(pendingReplyId, entries) {
+        val id = pendingReplyId ?: return@LaunchedEffect
+        (entries.firstOrNull { it is TimelineEntry.Message && it.eventId == id } as? TimelineEntry.Message)?.let {
+            mode = ComposerMode.Reply(it); pendingReplyId = null
+        }
+    }
+    LaunchedEffect(composer.text, mode) {
+        if (!draftLoaded || focusEventId != null) return@LaunchedEffect
+        kotlinx.coroutines.delay(800)
+        room.saveDraft(composer.text, (mode as? ComposerMode.Reply)?.item?.eventId, (mode as? ComposerMode.Edit)?.item?.eventId, threadRootId)
+    }
+    val latestComposer by androidx.compose.runtime.rememberUpdatedState(composer.text)
+    val latestMode by androidx.compose.runtime.rememberUpdatedState(mode)
+    DisposableEffect(Unit) {
+        onDispose {
+            if (draftLoaded && focusEventId == null) {
+                room.saveDraft(latestComposer, (latestMode as? ComposerMode.Reply)?.item?.eventId, (latestMode as? ComposerMode.Edit)?.item?.eventId, threadRootId)
+            }
+        }
+    }
 
     // Something shared from another app waits here for the user to send it.
     LaunchedEffect(Unit) {
@@ -248,6 +311,23 @@ fun RoomScreen(
     LaunchedEffect(atBottom, entries.size) { if (atBottom && entries.isNotEmpty()) timeline.markAsRead() }
 
     // Load older messages when scrolled near the top.
+    // In a timeline opened at a search result: load newer messages at the bottom, and start on that message.
+    LaunchedEffect(atBottom, entries.size) { if (focusEventId != null && atBottom) timeline.paginateForward() }
+    var focusedOnce by remember { mutableStateOf(false) }
+    LaunchedEffect(visible.size) {
+        if (focusEventId != null && !focusedOnce) {
+            val i = visible.indexOfFirst { it is TimelineEntry.Message && it.eventId == focusEventId }
+            if (i >= 0) {
+                focusedOnce = true
+                followLatest = false
+                listState.scrollToItem(i)
+                highlighted = focusEventId
+                kotlinx.coroutines.delay(2000)
+                highlighted = null
+            }
+        }
+    }
+
     val nearTop by remember { derivedStateOf { (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= visible.size - 8 } }
     LaunchedEffect(nearTop, visible.size) { if (nearTop && !atStart) timeline.paginateBack() }
 
@@ -295,6 +375,13 @@ fun RoomScreen(
             deviceUnverified = verification == org.matrix.rustcomponents.sdk.VerificationState.UNVERIFIED,
             recoveryIncomplete = recovery == org.matrix.rustcomponents.sdk.RecoveryState.INCOMPLETE,
             onFixDecryption = onSecurity,
+            onToggleAudio = { item ->
+                (item.content as? UiContent.Audio)?.let { a -> AudioPlayer.toggle(context, session, item.key, a.sourceJson, a.filename, a.mime) }
+            },
+            loadPreview = if (linkPreviews && (header?.isEncrypted != true || linkPreviewsE2ee)) {
+                { url -> com.vknxworks.elementctrl.matrix.LinkPreviews.load(session, url) }
+            } else null,
+            onOpenLink = { com.vknxworks.elementctrl.ui.openUrl(context, it) },
         )
     }
 
@@ -339,6 +426,7 @@ fun RoomScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onSearch) { Icon(Icons.Default.Search, "Search messages") }
                     if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Default.Info, "Room info") }
                 },
             )
@@ -390,15 +478,30 @@ fun RoomScreen(
                     }
                 }
             }
-            if (!atBottom) {
+            if (focusEventId != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(8.dp),
+                ) {
+                    Row(Modifier.padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Viewing earlier messages", style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = onJumpToLatest) { Text("Jump to latest") }
+                    }
+                }
+            }
+            if (!atBottom || focusEventId != null) {
                 BadgedBox(
                     badge = { if (unseenBelow > 0) Badge { Text(if (unseenBelow > 99) "99+" else "$unseenBelow") } },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = islandHeight + 12.dp),
                 ) {
                     SmallFloatingActionButton(onClick = {
-                        followLatest = true
-                        unseenBelow = 0
-                        scope.launch { listState.animateScrollToItem(0) }
+                        if (focusEventId != null) {
+                            onJumpToLatest()
+                        } else {
+                            followLatest = true
+                            unseenBelow = 0
+                            scope.launch { listState.animateScrollToItem(0) }
+                        }
                     }) { Icon(Icons.Default.KeyboardArrowDown, "Jump to latest") }
                 }
             }
@@ -451,6 +554,27 @@ fun RoomScreen(
                         onPickMedia = { attachMenu = false; pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
                         onPickFile = { attachMenu = false; pickFile.launch(arrayOf("*/*")) },
                         onPoll = { attachMenu = false; creatingPoll = true },
+                        recording = recording,
+                        levels = levels,
+                        elapsed = elapsed,
+                        onMic = {
+                            if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                recording = recorder.start()
+                                if (!recording) scope.launch { snackbar.showSnackbar("Couldn't start the microphone") }
+                            } else micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+                        },
+                        onCancelRecording = { recorder.cancel(); recording = false },
+                        onSendRecording = {
+                            recording = false
+                            val clip = recorder.stop()
+                            if (clip == null) scope.launch { snackbar.showSnackbar("Too short — hold on a little longer") }
+                            else {
+                                timeline.sendVoice(clip.file, clip.durationMs, clip.waveform, (mode as? ComposerMode.Reply)?.item?.eventId)
+                                mode = ComposerMode.Normal
+                                followLatest = true
+                            }
+                        },
+                        onStickers = { stickerSheet = true },
                     )
                 }
             }
@@ -525,6 +649,16 @@ fun RoomScreen(
                 SettingRow(Icons.Default.ContentCopy, "Copy text") { copyText(context, "Message", text); sheetFor = null }
             }
             if (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File || item.content is UiContent.Audio) {
+                (item.content as? UiContent.Image)?.let { img ->
+                    SettingRow(Icons.Default.EmojiEmotions, "Add to my stickers") {
+                        sheetFor = null
+                        scope.launch {
+                            runCatching { com.vknxworks.elementctrl.matrix.Stickers.saveToMyPack(session, img.sourceJson, img.filename, img.mime, img.width, img.height) }
+                                .onSuccess { snackbar.showSnackbar("Added to My stickers") }
+                                .onFailure { snackbar.showSnackbar("Couldn't add: ${it.message}") }
+                        }
+                    }
+                }
                 SettingRow(Icons.Default.Download, "Save to Downloads") {
                     sheetFor = null
                     scope.launch { saveMedia(context, session, item, snackbar) }
@@ -633,6 +767,25 @@ fun RoomScreen(
         )
     }
 
+    if (stickerSheet) {
+        StickerGifSheet(
+            session = session,
+            roomId = roomId,
+            onDismiss = { stickerSheet = false },
+            onSticker = { st ->
+                stickerSheet = false
+                followLatest = true
+                scope.launch { runCatching { com.vknxworks.elementctrl.matrix.Stickers.send(session, roomId, st) }.onFailure { snackbar.showSnackbar("Couldn't send: ${it.message}") } }
+            },
+            onGif = { file ->
+                stickerSheet = false
+                followLatest = true
+                timeline.sendLocalFile(file, "image/gif", null, (mode as? ComposerMode.Reply)?.item?.eventId)
+                mode = ComposerMode.Normal
+            },
+        )
+    }
+
     if (creatingPoll) {
         PollDialog(onDismiss = { creatingPoll = false }, onCreate = { q, answers, disclosed -> timeline.createPoll(q, answers, disclosed); creatingPoll = false })
     }
@@ -693,6 +846,13 @@ private fun Composer(
     onPickMedia: () -> Unit,
     onPickFile: () -> Unit,
     onPoll: () -> Unit,
+    recording: Boolean = false,
+    levels: List<Float> = emptyList(),
+    elapsed: Long = 0,
+    onMic: () -> Unit = {},
+    onCancelRecording: () -> Unit = {},
+    onSendRecording: () -> Unit = {},
+    onStickers: () -> Unit = {},
 ) {
     // "@na" before the cursor offers matching members.
     val mentionQuery = remember(value) {
@@ -743,6 +903,10 @@ private fun Composer(
             }
         }
 
+        if (recording) {
+            RecordingIsland(haze, levels, elapsed, onCancelRecording, onSendRecording)
+            return@Column
+        }
         // The input island.
         Row(
             Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).heightIn(min = 56.dp).padding(horizontal = 4.dp, vertical = 4.dp),
@@ -775,19 +939,56 @@ private fun Composer(
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.weight(1f),
             )
-            val sendColor by animateColorAsState(if (canSend) cs.primary else cs.surfaceContainerHighest, label = "send")
+            if (!canSend) {
+                IconButton(onClick = onStickers) { Icon(Icons.Default.EmojiEmotions, "Stickers and GIFs", tint = cs.onSurfaceVariant) }
+            }
+            // With nothing typed the button records a voice message instead.
+            val voiceMode = !canSend && mode !is ComposerMode.Edit
+            val sendColor by animateColorAsState(if (canSend || voiceMode) cs.primary else cs.surfaceContainerHighest, label = "send")
             Box(
                 Modifier
                     .padding(4.dp)
                     .size(44.dp)
                     .clip(CircleShape)
                     .background(sendColor)
-                    .clickable(enabled = canSend, onClick = onSend),
+                    .clickable(enabled = canSend || voiceMode, onClick = if (voiceMode) onMic else onSend),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, "Send", tint = if (canSend) cs.onPrimary else cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Icon(
+                    if (voiceMode) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
+                    if (voiceMode) "Record voice message" else "Send",
+                    tint = cs.onPrimary,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
+    }
+}
+
+/** Shown in place of the input while recording: live level bars, the timer, cancel and send. */
+@Composable
+private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long, onCancel: () -> Unit, onSend: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).height(56.dp).padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, "Discard recording", tint = cs.error) }
+        Box(Modifier.size(10.dp).clip(CircleShape).background(cs.error))
+        Spacer(Modifier.width(8.dp))
+        Text(formatDuration(elapsed), style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.width(10.dp))
+        Row(Modifier.weight(1f).height(28.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+            val bars = levels.takeLast(32)
+            repeat(32 - bars.size) { Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(cs.onSurfaceVariant.copy(alpha = 0.3f))) }
+            bars.forEach { v ->
+                Box(Modifier.weight(1f).fillMaxHeight((0.12f + 0.88f * v).coerceIn(0.12f, 1f)).clip(RoundedCornerShape(2.dp)).background(cs.primary))
+            }
+        }
+        Box(
+            Modifier.padding(4.dp).size(44.dp).clip(CircleShape).background(cs.primary).clickable(onClick = onSend),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.AutoMirrored.Filled.Send, "Send voice message", tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
     }
 }
 

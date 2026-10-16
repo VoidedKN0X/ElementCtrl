@@ -1,6 +1,16 @@
 package com.vknxworks.elementctrl.ui
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.key
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.vknxworks.elementctrl.ui.room.SearchScreen
+import com.vknxworks.elementctrl.ui.settings.DevicesScreen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,18 +66,37 @@ fun MainNav(session: MatrixSession) {
     var linkError by remember { mutableStateOf<String?>(null) }
     val backStack by nav.currentBackStackEntryAsState()
 
+    // Tablets and unfolded foldables show the chat list and the open chat side by side.
+    val wide = isWideLayout()
+    var paneRoom by rememberSaveable { mutableStateOf<String?>(null) }
+    fun showRoom(id: String) {
+        if (wide) {
+            paneRoom = id
+            if (nav.currentBackStackEntry?.destination?.route != "home") nav.popBackStack("home", inclusive = false)
+        } else nav.openRoom(id)
+    }
+    LaunchedEffect(wide) {
+        val id = paneRoom
+        if (!wide && id != null) { paneRoom = null; nav.openRoom(id) }
+        // Turned or unfolded while a chat was open full screen: move it into the pane.
+        val entry = nav.currentBackStackEntry
+        if (wide && entry?.destination?.route == "room/{roomId}?focus={focus}" && entry.arguments?.getString("focus") == null) {
+            entry.arguments?.getString("roomId")?.let { rid -> paneRoom = rid; nav.popBackStack("home", inclusive = false) }
+        }
+    }
+
     // Notification taps and matrix.to links.
     val openRoom by DeepLinks.openRoom.collectAsStateWithLifecycle()
     LaunchedEffect(openRoom) {
-        openRoom?.let { DeepLinks.openRoom.value = null; nav.openRoom(it) }
+        openRoom?.let { DeepLinks.openRoom.value = null; showRoom(it) }
     }
     val joinTarget by DeepLinks.joinTarget.collectAsStateWithLifecycle()
     LaunchedEffect(joinTarget) {
         val (target, via) = joinTarget ?: return@LaunchedEffect
         DeepLinks.joinTarget.value = null
         val known = session.rooms.value.firstOrNull { it.roomId == target || it.canonicalAlias == target }
-        if (known != null && !known.isInvite) nav.openRoom(known.roomId)
-        else runCatching { account.join(target, via) }.onSuccess { nav.openRoom(it) }.onFailure { linkError = it.userMessage() }
+        if (known != null && !known.isInvite) showRoom(known.roomId)
+        else runCatching { account.join(target, via) }.onSuccess { showRoom(it) }.onFailure { linkError = it.userMessage() }
     }
     val openUser by DeepLinks.openUser.collectAsStateWithLifecycle()
     LaunchedEffect(openUser) {
@@ -96,16 +125,64 @@ fun MainNav(session: MatrixSession) {
 
     NavHost(nav, startDestination = "home") {
         composable("home") {
-            HomeScreen(
-                session,
-                onOpenRoom = { nav.openRoom(it) },
-                onNewChat = { nav.navigate("newchat") },
-                onSettings = { nav.navigate("settings") },
-                onSecurity = { nav.navigate("security") },
-            )
+            val home: @Composable (Modifier) -> Unit = { modifier ->
+                androidx.compose.foundation.layout.Box(modifier) {
+                    HomeScreen(
+                        session,
+                        onOpenRoom = { showRoom(it) },
+                        onNewChat = { nav.navigate("newchat") },
+                        onSettings = { nav.navigate("settings") },
+                        onSecurity = { nav.navigate("security") },
+                        selectedRoomId = if (wide) paneRoom else null,
+                    )
+                }
+            }
+            if (!wide) {
+                home(Modifier.fillMaxSize())
+            } else {
+                Row(Modifier.fillMaxSize()) {
+                    home(Modifier.width(380.dp).fillMaxHeight())
+                    VerticalDivider()
+                    androidx.compose.foundation.layout.Box(Modifier.weight(1f).fillMaxHeight()) {
+                        val id = paneRoom
+                        if (id == null) {
+                            EmptyState(
+                                androidx.compose.material.icons.Icons.AutoMirrored.Filled.Chat,
+                                "Pick a chat",
+                                "Choose a conversation on the left to open it here.",
+                                Modifier.align(androidx.compose.ui.Alignment.Center),
+                            )
+                        } else {
+                            key(id) {
+                                // Each chat in the pane gets its own view-model store, released when another is opened.
+                                ScopedViewModels {
+                                    RoomScreen(
+                                        session, id, threadRootId = null,
+                                        onBack = { paneRoom = null },
+                                        onDetails = { nav.navigate("details/${enc(id)}") },
+                                        onOpenThread = { root -> nav.navigate("thread/${enc(id)}/${enc(root)}") },
+                                        onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(id)}") },
+                                        onOpenImage = { media = it; nav.navigate("media") },
+                                        onOpenRoom = { paneRoom = it },
+                                        onSecurity = { nav.navigate("security") },
+                                        onSearch = { nav.navigate("search/${enc(id)}") },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-        composable("room/{roomId}", arguments = listOf(navArgument("roomId") { type = NavType.StringType })) { entry ->
+        composable(
+            "room/{roomId}?focus={focus}",
+            arguments = listOf(
+                navArgument("roomId") { type = NavType.StringType },
+                navArgument("focus") { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
+        ) { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
+            val focus = entry.arguments?.getString("focus")
             RoomScreen(
                 session, roomId, threadRootId = null,
                 onBack = { nav.popBackStack() },
@@ -115,8 +192,20 @@ fun MainNav(session: MatrixSession) {
                 onOpenImage = { media = it; nav.navigate("media") },
                 onOpenRoom = { nav.openRoom(it, replaceCurrent = true) },
                 onSecurity = { nav.navigate("security") },
+                onSearch = { nav.navigate("search/${enc(roomId)}") },
+                focusEventId = focus,
+                onJumpToLatest = { nav.openRoom(roomId, replaceCurrent = true) },
             )
         }
+        composable("search/{roomId}") { entry ->
+            val roomId = entry.arguments?.getString("roomId").orEmpty()
+            SearchScreen(
+                session, roomId, session.rooms.value.firstOrNull { it.roomId == roomId }?.name,
+                onBack = { nav.popBackStack() },
+                onOpen = { eventId -> nav.navigate("room/${enc(roomId)}?focus=${enc(eventId)}") },
+            )
+        }
+        composable("devices") { DevicesScreen(session, onBack = { nav.popBackStack() }) }
         composable("thread/{roomId}/{rootId}") { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
             val rootId = entry.arguments?.getString("rootId").orEmpty()
@@ -129,6 +218,7 @@ fun MainNav(session: MatrixSession) {
                 onOpenImage = { media = it; nav.navigate("media") },
                 onOpenRoom = { nav.openRoom(it) },
                 onSecurity = { nav.navigate("security") },
+                onSearch = { nav.navigate("search/${enc(roomId)}") },
             )
         }
         composable("details/{roomId}") { entry ->
@@ -138,7 +228,7 @@ fun MainNav(session: MatrixSession) {
                 onBack = { nav.popBackStack() },
                 onMembers = { nav.navigate("members/${enc(roomId)}") },
                 onOpenUser = { nav.navigate("user/${enc(it)}?room=${enc(roomId)}") },
-                onLeft = { nav.popBackStack("home", inclusive = false) },
+                onLeft = { paneRoom = null; nav.popBackStack("home", inclusive = false) },
             )
         }
         composable("members/{roomId}") { entry ->
@@ -153,7 +243,7 @@ fun MainNav(session: MatrixSession) {
             UserScreen(
                 session, userId, entry.arguments?.getString("room"),
                 onBack = { nav.popBackStack() },
-                onOpenRoom = { nav.openRoom(it) },
+                onOpenRoom = { if (wide) showRoom(it) else nav.openRoom(it) },
                 onVerify = { nav.navigate("verify?user=${enc(it)}&start=true") },
             )
         }
@@ -161,21 +251,29 @@ fun MainNav(session: MatrixSession) {
             NewChatScreen(
                 session,
                 onBack = { nav.popBackStack() },
-                onOpenRoom = { nav.openRoom(it, replaceCurrent = true) },
+                onOpenRoom = { if (wide) showRoom(it) else nav.openRoom(it, replaceCurrent = true) },
                 onCreateRoom = { nav.navigate("createroom") },
                 onExplore = { nav.navigate("explore") },
             )
         }
         composable("createroom") {
             CreateRoomScreen(session, onBack = { nav.popBackStack() }, onCreated = { id ->
-                nav.navigate("room/${enc(id)}") { popUpTo("home") }
+                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home") }
             })
         }
         composable("explore") {
-            ExploreScreen(session, onBack = { nav.popBackStack() }, onOpenRoom = { id -> nav.navigate("room/${enc(id)}") { popUpTo("home") } })
+            ExploreScreen(session, onBack = { nav.popBackStack() }, onOpenRoom = { id ->
+                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home") }
+            })
         }
         composable("settings") {
-            SettingsScreen(session, onBack = { nav.popBackStack() }, onSecurity = { nav.navigate("security") }, onOpenUser = { nav.navigate("user/${enc(it)}") })
+            SettingsScreen(
+                session,
+                onBack = { nav.popBackStack() },
+                onSecurity = { nav.navigate("security") },
+                onOpenUser = { nav.navigate("user/${enc(it)}") },
+                onDevices = { nav.navigate("devices") },
+            )
         }
         composable("confirm") {
             ConfirmIdentityScreen(
@@ -216,4 +314,23 @@ fun MainNav(session: MatrixSession) {
             confirmButton = { TextButton(onClick = { linkError = null }) { Text("OK") } },
         )
     }
+}
+
+/** Two panes from 840 dp wide (tablets, unfolded foldables), or 600 dp in landscape. */
+@Composable
+fun isWideLayout(): Boolean {
+    val c = androidx.compose.ui.platform.LocalConfiguration.current
+    return c.screenWidthDp >= 840 || (c.screenWidthDp >= 600 && c.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE)
+}
+
+/** Gives its content a private view-model store that is cleared when the content leaves the screen. */
+@Composable
+private fun ScopedViewModels(content: @Composable () -> Unit) {
+    val owner = remember {
+        object : androidx.lifecycle.ViewModelStoreOwner {
+            override val viewModelStore = androidx.lifecycle.ViewModelStore()
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(owner) { onDispose { owner.viewModelStore.clear() } }
+    androidx.compose.runtime.CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides owner) { content() }
 }

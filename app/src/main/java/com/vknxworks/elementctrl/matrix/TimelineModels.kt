@@ -66,7 +66,16 @@ sealed interface UiContent {
         val filename: String,
         val mime: String,
     ) : UiContent
-    data class Audio(val sourceJson: String, val filename: String, val mime: String, val durationMs: Long, val isVoice: Boolean, val caption: String?) : UiContent
+    data class Audio(
+        val sourceJson: String,
+        val filename: String,
+        val mime: String,
+        val durationMs: Long,
+        val isVoice: Boolean,
+        val caption: String?,
+        /** Loudness bars 0–1 from the sender, for voice messages. */
+        val waveform: List<Float> = emptyList(),
+    ) : UiContent
     data class File(val sourceJson: String, val filename: String, val mime: String, val size: Long, val caption: String?) : UiContent
     data class Location(val body: String, val geoUri: String) : UiContent
     data class Poll(

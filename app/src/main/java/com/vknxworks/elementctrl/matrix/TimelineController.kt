@@ -65,6 +65,8 @@ class TimelineController(
     private val session: MatrixSession,
     private val room: Room,
     val threadRootId: String? = null,
+    /** Open around this event (a search result or link) instead of at the newest messages. */
+    val focusEventId: String? = null,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var timeline: Timeline? = null
@@ -91,9 +93,17 @@ class TimelineController(
         scope.launch {
             runCatching {
                 val config = TimelineConfiguration(
-                    focus = if (threadRootId != null) TimelineFocus.Thread(threadRootId) else TimelineFocus.Live(hideThreadedEvents = true),
+                    focus = when {
+                        threadRootId != null -> TimelineFocus.Thread(threadRootId)
+                        focusEventId != null -> TimelineFocus.Event(
+                            eventId = focusEventId,
+                            numContextEvents = 40u,
+                            threadMode = uniffi.matrix_sdk_ui.TimelineEventFocusThreadMode.Automatic(true),
+                        )
+                        else -> TimelineFocus.Live(hideThreadedEvents = true)
+                    },
                     filter = TimelineFilter.All,
-                    internalIdPrefix = if (threadRootId != null) "thread" else "live",
+                    internalIdPrefix = when { threadRootId != null -> "thread"; focusEventId != null -> "focus"; else -> "live" },
                     dateDividerMode = DateDividerMode.DAILY,
                     trackReadReceipts = TimelineReadReceiptTracking.MESSAGE_LIKE_EVENTS,
                     reportUtds = false,
@@ -307,9 +317,14 @@ class TimelineController(
             sourceJson = type.content.source.toJson(),
             filename = type.content.filename,
             mime = type.content.info?.mimetype ?: "audio/ogg",
-            durationMs = type.content.info?.duration?.toMillis() ?: 0L,
+            durationMs = type.content.info?.duration?.toMillis() ?: type.content.audio?.duration?.toMillis() ?: 0L,
             isVoice = type.content.voice != null,
             caption = type.content.caption,
+            waveform = type.content.audio?.waveform?.let { w ->
+                // Senders scale the waveform to 0..1024; normalise to the loudest bar.
+                val max = (w.maxOfOrNull { it.toInt() } ?: 0).coerceAtLeast(1)
+                w.map { it.toInt().toFloat() / max }
+            }.orEmpty(),
         )
         is MessageType.File -> UiContent.File(
             sourceJson = type.content.source.toJson(),
@@ -383,6 +398,19 @@ class TimelineController(
         }
     }
 
+    private var paginatingForward = false
+
+    /** In an event-focused timeline, loads newer messages when scrolled to the bottom. */
+    fun paginateForward() {
+        if (focusEventId == null || paginatingForward) return
+        val t = timeline ?: return
+        paginatingForward = true
+        scope.launch {
+            runCatching { t.paginateForwards(30u) }
+            paginatingForward = false
+        }
+    }
+
     fun send(text: String, replyTo: String?, mentions: List<String>, emote: Boolean = false) = launchAction { t ->
         val base = if (emote) messageEventContentFromMarkdownAsEmote(text) else messageEventContentFromMarkdown(text)
         val content = base.withMentions(Mentions(userIds = mentions.distinct(), room = text.contains("@room")))
@@ -429,6 +457,22 @@ class TimelineController(
         it.sendLocation("Location: $lat, $lon", geo, null, 15u, null, null)
     }
 
+    /** Sends a recorded voice message (shown with a waveform in Element and other clients). */
+    fun sendVoice(file: java.io.File, durationMs: Long, waveform: List<Float>, replyTo: String?) = launchAction { t ->
+        val params = UploadParameters(
+            source = UploadSource.File(file.absolutePath),
+            caption = null,
+            formattedCaption = null,
+            mentions = null,
+            inReplyTo = replyTo,
+        )
+        t.sendVoiceMessage(
+            params,
+            AudioInfo(duration = java.time.Duration.ofMillis(durationMs), size = file.length().toULong(), mimetype = "audio/ogg"),
+            waveform,
+        ).join()
+    }
+
     /** The event's raw JSON, for "View source". */
     suspend fun source(eventId: String): String? = withContext(Dispatchers.IO) {
         runCatching { timeline?.getEventTimelineItemByEventId(eventId)?.lazyProvider?.debugInfo()?.originalJson }.getOrNull()
@@ -444,6 +488,15 @@ class TimelineController(
         val dir = File(context.cacheDir, "upload").apply { mkdirs() }
         val file = File(dir, "${System.currentTimeMillis()}_$name")
         resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error("Couldn't read the file")
+        sendPrepared(t, file, mime, caption, replyTo)
+    }
+
+    /** Sends a file that's already on disk (a downloaded GIF, for example). */
+    fun sendLocalFile(file: File, mime: String, caption: String?, replyTo: String?) = launchAction { t ->
+        sendPrepared(t, file, mime, caption, replyTo)
+    }
+
+    private suspend fun sendPrepared(t: Timeline, file: File, mime: String, caption: String?, replyTo: String?) {
         val params = UploadParameters(
             source = UploadSource.File(file.absolutePath),
             caption = caption?.takeIf { it.isNotBlank() },

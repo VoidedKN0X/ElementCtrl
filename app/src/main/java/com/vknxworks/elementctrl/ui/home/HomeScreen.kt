@@ -65,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,8 +93,11 @@ fun HomeScreen(
     onNewChat: () -> Unit,
     onSettings: () -> Unit,
     onSecurity: () -> Unit,
+    /** The chat open beside the list on tablets, highlighted. */
+    selectedRoomId: String? = null,
 ) {
     val rooms by session.rooms.collectAsStateWithLifecycle()
+    val drafts by com.vknxworks.elementctrl.ElementCtrlApp.graph.drafts.all.collectAsStateWithLifecycle()
     val loaded by session.roomsLoaded.collectAsStateWithLifecycle()
     val sync by session.syncState.collectAsStateWithLifecycle()
     val profile by session.profile.collectAsStateWithLifecycle()
@@ -264,7 +268,13 @@ fun HomeScreen(
                             },
                         )
                     } else {
-                        RoomRow(room, onClick = { onOpenRoom(room.roomId) }, onLongClick = { menuFor = room })
+                        RoomRow(
+                            room,
+                            draft = drafts[room.roomId]?.takeIf { room.roomId != selectedRoomId },
+                            selected = room.roomId == selectedRoomId,
+                            onClick = { onOpenRoom(room.roomId) },
+                            onLongClick = { menuFor = room },
+                        )
                     }
                 }
             }
@@ -339,10 +349,11 @@ private fun Banner(icon: androidx.compose.ui.graphics.vector.ImageVector, title:
 }
 
 @Composable
-private fun RoomRow(room: RoomSummary, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -379,11 +390,16 @@ private fun RoomRow(room: RoomSummary, onClick: () -> Unit, onLongClick: () -> U
                     Spacer(Modifier.width(4.dp))
                 }
                 Text(
-                    buildString {
+                    if (draft != null) {
+                        androidx.compose.ui.text.buildAnnotatedString {
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)) { append("Draft: ") }
+                            append(draft)
+                        }
+                    } else androidx.compose.ui.text.AnnotatedString(buildString {
                         if (!room.isDm && room.lastSender != null) append(room.lastSender).append(": ")
                         else if (room.isDm && room.lastIsOwn && room.lastSender != null) append("You: ")
                         append(room.lastMessage ?: room.topic ?: "")
-                    },
+                    }),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,

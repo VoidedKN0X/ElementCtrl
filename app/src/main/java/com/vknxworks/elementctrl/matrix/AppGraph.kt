@@ -26,6 +26,8 @@ sealed interface AppState {
 /** App-wide singletons: settings, the stored session, the sign-in flow and the live Matrix session. */
 class AppGraph(val context: Context) {
     val prefs = Prefs(context)
+    val drafts = com.vknxworks.elementctrl.data.Drafts(context)
+    val lock = com.vknxworks.elementctrl.data.LockSettings(context)
     val store = SessionStore(context)
     val factory = ClientFactory(context, store)
     val auth = AuthService(this)
@@ -66,6 +68,7 @@ class AppGraph(val context: Context) {
             }.onFailure { Log.e("AppGraph", "restore failed", it) }.getOrNull()
         }?.also { s ->
             _state.value = AppState.SignedIn(s)
+            com.vknxworks.elementctrl.notify.Push.refresh(context)
             scope.launch {
                 // The app may have come on screen while the client was being built.
                 val visible = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState
@@ -86,6 +89,7 @@ class AppGraph(val context: Context) {
     /** Signs out on the server, then wipes this device's copy of the account. */
     suspend fun signOut() {
         val s = session ?: return
+        com.vknxworks.elementctrl.notify.Push.disable(context, s)
         s.logout()
         wipe(s)
         _state.value = AppState.SignedOut()
@@ -100,6 +104,7 @@ class AppGraph(val context: Context) {
 
     private suspend fun wipe(s: MatrixSession) = withContext(Dispatchers.IO) {
         store.clear()
+        drafts.clearAll()
         s.paths.deleteAll()
     }
 }
