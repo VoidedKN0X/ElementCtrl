@@ -93,7 +93,10 @@ object PushNotifications {
             .setContentText(if (count > 1) "$count new messages" else "New message")
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
 
-    /** "Mark as read" button; safe even when content is hidden, since it reveals nothing. */
+    /**
+     * "Mark as read" button; safe even when content is hidden, since it reveals nothing. It does send read receipts
+     * from your account, so on the lock screen the phone has to be unlocked first.
+     */
     fun markReadAction(context: Context, roomId: String): NotificationCompat.Action = NotificationCompat.Action.Builder(
         0, "Mark as read",
         PendingIntent.getBroadcast(
@@ -101,7 +104,9 @@ object PushNotifications {
             Intent(context, NotificationActionReceiver::class.java).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         ),
-    ).setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ).setShowsUserInterface(false).build()
+    ).setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ).setShowsUserInterface(false)
+        .setAuthenticationRequired(true)
+        .build()
 
     private fun post(context: Context, roomId: String, roomName: String, isDm: Boolean, noisy: Boolean, lines: List<Line>) {
         if (!ElementCtrlApp.graph.lock.showNotificationContent) {
@@ -132,7 +137,10 @@ object PushNotifications {
                 Intent(context, NotificationActionReceiver::class.java).setAction(NotificationActionReceiver.ACTION_REPLY).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             ),
-        ).addRemoteInput(RemoteInput.Builder(KEY_REPLY).setLabel("Message").build()).setAllowGeneratedReplies(true).build()
+        ).addRemoteInput(RemoteInput.Builder(KEY_REPLY).setLabel("Message").build()).setAllowGeneratedReplies(true)
+            // Sending a message as you from the lock screen needs the phone unlocked first.
+            .setAuthenticationRequired(true)
+            .build()
         val read = markReadAction(context, roomId)
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_stat_message)

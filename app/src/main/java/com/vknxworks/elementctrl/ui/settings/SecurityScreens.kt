@@ -56,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -68,6 +70,8 @@ import com.vknxworks.elementctrl.matrix.VerifyStep
 import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.SectionHeader
+import com.vknxworks.elementctrl.ui.SecureDialog
+import com.vknxworks.elementctrl.ui.SecureScreen
 import com.vknxworks.elementctrl.ui.SettingRow
 import com.vknxworks.elementctrl.ui.copyText
 import com.vknxworks.elementctrl.ui.openUrl
@@ -93,6 +97,9 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
     var confirmDisable by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var reset by remember { mutableStateOf<IdentityReset?>(null) }
+
+    // Shows and takes the recovery key: no screenshots or screen recordings while it's open.
+    SecureScreen()
 
     fun act(label: String, block: suspend () -> Unit) {
         busy = label
@@ -207,7 +214,8 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 }
             },
             confirmButton = { TextButton(onClick = { newKey = null }) { Text("I've saved it") } },
-            dismissButton = { TextButton(onClick = { copyText(context, "Recovery key", key) }) { Text("Copy") } },
+            dismissButton = { TextButton(onClick = { copyText(context, "Recovery key", key, sensitive = true) }) { Text("Copy") } },
+            properties = SecureDialog,
         )
     }
 
@@ -217,15 +225,29 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
             onDismissRequest = { enterKey = false },
             title = { Text("Enter recovery key") },
             text = {
-                OutlinedTextField(key, { key = it }, label = { Text("Recovery key or passphrase") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    key, { key = it },
+                    label = { Text("Recovery key or passphrase") },
+                    // Password type: keyboards don't suggest, learn or remember what's typed here.
+                    keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             },
             confirmButton = {
                 TextButton(enabled = key.isNotBlank(), onClick = {
                     enterKey = false
-                    act("recover") { account.recover(key); snackbar.showSnackbar("Recovered. Your messages will decrypt shortly.") }
+                    val entered = key.trim()
+                    busy = "recover"
+                    scope.launch {
+                        runCatching { account.recover(entered) }
+                            .onSuccess { snackbar.showSnackbar("Recovered. Your messages will decrypt shortly.") }
+                            .onFailure { snackbar.showSnackbar(it.userMessage().replace(entered, "…")) }
+                        busy = null
+                    }
                 }) { Text("Confirm") }
             },
             dismissButton = { TextButton(onClick = { enterKey = false }) { Text("Cancel") } },
+            properties = SecureDialog,
         )
     }
 
@@ -264,7 +286,13 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (r.needsPassword) {
                         Text("Enter your account password to confirm.")
-                        OutlinedTextField(password, { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                        OutlinedTextField(
+                            password, { password = it },
+                            label = { Text("Password") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                        )
                     } else {
                         Text("Approve the reset on your server's page that just opened, then come back and tap Done.")
                         r.approvalUrl?.let { url -> TextButton(onClick = { openUrl(context, url) }) { Text("Open the page again") } }
@@ -278,6 +306,7 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 }) { Text(if (r.needsPassword) "Reset" else "Done") }
             },
             dismissButton = { TextButton(onClick = { reset = null; scope.launch { r.cancel() } }) { Text("Cancel") } },
+            properties = SecureDialog,
         )
     }
 }

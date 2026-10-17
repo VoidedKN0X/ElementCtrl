@@ -18,3 +18,11 @@
 
 -dontwarn androidx.window.extensions.**
 -dontwarn androidx.window.sidecar.**
+
+# Release builds drop verbose, debug, info and warning logs entirely (they can name rooms, servers and errors).
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+}

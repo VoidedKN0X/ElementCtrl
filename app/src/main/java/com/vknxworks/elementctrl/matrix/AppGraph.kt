@@ -45,6 +45,15 @@ class AppGraph(val context: Context) {
     fun boot() {
         scope.launch {
             val stored = withContext(Dispatchers.IO) { store.load() }
+            // Databases left behind by a sign-in that never finished (or an older account) are removed.
+            // (Skipped when a saved session exists but couldn't be read, so a passing Keystore hiccup loses nothing.)
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    if (stored != null) removeOrphanSessions(stored.directory)
+                    else if (!store.hasSaved()) removeOrphanSessions(null)
+                    Unit
+                }
+            }
             if (stored == null) {
                 _state.value = AppState.SignedOut()
             } else if (restore(stored) == null) {
@@ -97,14 +106,38 @@ class AppGraph(val context: Context) {
 
     private suspend fun forgetSession(message: String) {
         val s = session ?: return
+        // The token is already dead, so the pusher can't be removed on the server; drop the local registration.
+        runCatching { com.vknxworks.elementctrl.notify.Push.disable(context, null) }
         s.close()
         wipe(s)
         _state.value = AppState.SignedOut(message)
     }
 
+    /**
+     * Removes everything this device knew about the account: the saved session and keys, the SDK's databases
+     * (messages, crypto store, search index, media cache), decrypted attachments and voice messages, the draft index,
+     * notification state, and pictures held in memory.
+     */
     private suspend fun wipe(s: MatrixSession) = withContext(Dispatchers.IO) {
         store.clear()
         drafts.clearAll()
         s.paths.deleteAll()
+        runCatching { removeOrphanSessions(keep = null) }
+        runCatching { MediaFiles.wipeAll(context) }
+        runCatching { com.vknxworks.elementctrl.notify.Notifier.schedule(context, false) }
+        runCatching { com.vknxworks.elementctrl.notify.Notifier.forgetAll(context) }
+        runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
+        runCatching { LinkPreviews.clear() }
+        withContext(Dispatchers.Main) {
+            runCatching { com.vknxworks.elementctrl.ui.room.AudioPlayer.stop() }
+            runCatching { coil3.SingletonImageLoader.get(context).memoryCache?.clear() }
+        }
+    }
+
+    /** Deletes every account folder under files/sessions and cache/sessions except [keep]. */
+    private fun removeOrphanSessions(keep: String?) {
+        listOf(java.io.File(context.filesDir, "sessions"), java.io.File(context.cacheDir, "sessions")).forEach { root ->
+            root.listFiles()?.forEach { dir -> if (dir.name != keep) dir.deleteRecursively() }
+        }
     }
 }

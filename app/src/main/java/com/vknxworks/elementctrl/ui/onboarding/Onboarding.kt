@@ -79,6 +79,7 @@ import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.DeepLinks
 import com.vknxworks.elementctrl.ui.NotEncryptedBadge
+import com.vknxworks.elementctrl.ui.SecureScreen
 import com.vknxworks.elementctrl.ui.isCleartext
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
@@ -284,8 +285,11 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
     var username by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
+    // Not rememberSaveable: the password must never end up in the saved-instance-state Bundle.
+    var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    // No screenshots or recordings of the password (it can be shown in plain text).
+    SecureScreen()
     var busy by remember { mutableStateOf(false) }
     var waitingForBrowser by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }

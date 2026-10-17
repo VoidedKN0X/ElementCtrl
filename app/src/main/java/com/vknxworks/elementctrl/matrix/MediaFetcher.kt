@@ -64,26 +64,55 @@ class MediaFetcher(private val data: MxcImage, private val options: Options, pri
 
     companion object {
         val keyer: Keyer<MxcImage> = object : Keyer<MxcImage> {
-            override fun key(data: MxcImage, options: Options): String = "${data.url ?: data.sourceJson.hashCode()}@${data.size}"
+            // A full hash, so two different sources can never share a cache entry (and show each other's picture).
+            override fun key(data: MxcImage, options: Options): String = "${data.url ?: data.sourceJson?.let(::sha256Hex)}@${data.size}"
         }
     }
 }
+
+internal fun sha256Hex(s: String): String =
+    java.security.MessageDigest.getInstance("SHA-256").digest(s.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
 /** Downloading attachments so they can be opened in another app or saved to Downloads. */
 object MediaFiles {
     private fun mediaDir(context: Context) = File(context.cacheDir, "media").apply { mkdirs() }
 
+    /** Folders that hold decrypted copies of attachments and voice messages, and outgoing uploads. */
+    private fun plainDirs(context: Context) = listOf(File(context.cacheDir, "media"), File(context.cacheDir, "upload"), File(context.cacheDir, "shared"))
+
     suspend fun download(context: Context, session: MatrixSession, sourceJson: String, filename: String, mime: String): File =
         withContext(Dispatchers.IO) {
-            val safeName = filename.replace(Regex("[\\\\/:*?\"<>|]"), "_").ifBlank { "file" }
-            val target = File(mediaDir(context), "${sourceJson.hashCode().toUInt()}_$safeName")
+            val dir = mediaDir(context)
+            val safeName = filename.replace(Regex("[\\\\/:*?\"<>|\\p{Cntrl}]"), "_").trim().take(100)
+                .takeIf { it.isNotEmpty() && it != "." && it != ".." } ?: "file"
+            // Named by a hash of the whole source (not a 32-bit hashCode), so different files can't collide.
+            val target = File(dir, "${sha256Hex(sourceJson).take(32)}_$safeName")
+            if (!target.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
             if (target.exists() && target.length() > 0) return@withContext target
             MediaSource.fromJson(sourceJson).use { src ->
                 val bytes = session.client.getMediaContent(src)
-                target.writeBytes(bytes)
+                val tmp = File(dir, target.name + ".part")
+                tmp.writeBytes(bytes)
+                if (!tmp.renameTo(target)) { tmp.delete(); error("Couldn't store the file") }
             }
             target
         }
+
+    /**
+     * Decrypted attachments are only kept around long enough to be opened or shared: anything older than a day is
+     * removed at start-up (and leftover uploads after an hour).
+     */
+    fun purgeOld(context: Context) {
+        val now = System.currentTimeMillis()
+        File(context.cacheDir, "media").listFiles()?.forEach { if (now - it.lastModified() > 24 * 3_600_000L) it.deleteRecursively() }
+        File(context.cacheDir, "upload").listFiles()?.forEach { if (now - it.lastModified() > 3_600_000L) it.deleteRecursively() }
+        File(context.cacheDir, "shared").listFiles()?.forEach { if (now - it.lastModified() > 24 * 3_600_000L) it.deleteRecursively() }
+    }
+
+    /** Removes every downloaded, decrypted or outgoing file (on sign-out). */
+    fun wipeAll(context: Context) {
+        plainDirs(context).forEach { it.deleteRecursively() }
+    }
 
     fun open(context: Context, file: File, mime: String) {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)

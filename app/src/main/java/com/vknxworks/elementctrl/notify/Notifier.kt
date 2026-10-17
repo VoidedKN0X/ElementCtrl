@@ -59,6 +59,11 @@ object Notifier {
 
     private fun prefs(context: Context) = context.getSharedPreferences("notified", Context.MODE_PRIVATE)
 
+    /** Forgets which rooms were already notified about (on sign-out). */
+    fun forgetAll(context: Context) {
+        prefs(context).edit().clear().commit()
+    }
+
     fun clear(context: Context, roomId: String) {
         NotificationManagerCompat.from(context).cancel(roomId.hashCode())
     }

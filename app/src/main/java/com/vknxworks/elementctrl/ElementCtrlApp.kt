@@ -11,6 +11,7 @@ import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache
 import com.vknxworks.elementctrl.matrix.AppGraph
 import com.vknxworks.elementctrl.matrix.MediaFetcher
+import com.vknxworks.elementctrl.matrix.MediaFiles
 import com.vknxworks.elementctrl.notify.Notifier
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.LogLevel
@@ -30,10 +31,12 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
         runCatching {
             initPlatform(
                 config = TracingConfiguration(
-                    logLevel = if (BuildConfig.DEBUG) LogLevel.DEBUG else LogLevel.WARN,
+                    logLevel = if (BuildConfig.DEBUG) LogLevel.DEBUG else LogLevel.ERROR,
                     traceLogPacks = emptyList(),
                     extraTargets = emptyList(),
-                    writeToStdoutOrSystem = true,
+                    // Release builds don't send the SDK's logs to logcat at all (they can name rooms, users,
+                    // servers and media URLs), the same as Element X.
+                    writeToStdoutOrSystem = BuildConfig.DEBUG,
                     writeToFiles = null,
                     sentryConfig = null,
                 ),
@@ -42,6 +45,8 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
         }.onFailure { Log.e("ElementCtrl", "Rust SDK init failed", it) }
 
         graph = AppGraph(this)
+        // Decrypted attachments only live in the cache for a day.
+        graph.scope.launch(kotlinx.coroutines.Dispatchers.IO) { runCatching { MediaFiles.purgeOld(this@ElementCtrlApp) } }
         Notifier.createChannels(this)
         graph.boot()
 
@@ -75,6 +80,8 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
                 add(coil3.gif.AnimatedImageDecoder.Factory())
             }
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
+            // Pictures (often decrypted from encrypted rooms) are only ever kept in memory, never written to disk.
+            .diskCache { null }
             .build()
 
     companion object {

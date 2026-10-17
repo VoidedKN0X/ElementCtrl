@@ -505,11 +505,16 @@ class TimelineController(
             mentions = null,
             inReplyTo = replyTo,
         )
-        t.sendVoiceMessage(
-            params,
-            AudioInfo(duration = java.time.Duration.ofMillis(durationMs), size = file.length().toULong(), mimetype = "audio/ogg"),
-            waveform,
-        ).join()
+        try {
+            t.sendVoiceMessage(
+                params,
+                AudioInfo(duration = java.time.Duration.ofMillis(durationMs), size = file.length().toULong(), mimetype = "audio/ogg"),
+                waveform,
+            ).join()
+        } finally {
+            // The SDK has its own (encrypted) copy once the send is queued; don't leave the recording lying around.
+            file.delete()
+        }
     }
 
     /** The event's raw JSON, for "View source". */
@@ -531,8 +536,13 @@ class TimelineController(
         val safeName = name.substringAfterLast('/').replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().takeIf { it.isNotEmpty() && it != "." && it != ".." } ?: "upload"
         val file = File(dir, "${System.currentTimeMillis()}_$safeName")
         if (!file.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
-        resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error("Couldn't read the file")
-        sendPrepared(t, file, mime, caption, replyTo)
+        try {
+            resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error("Couldn't read the file")
+            sendPrepared(t, file, mime, caption, replyTo)
+        } finally {
+            // Plain copy of what was sent: removed once the SDK has queued the upload.
+            file.delete()
+        }
     }
 
     /** Sends a file that's already on disk (a downloaded GIF, for example). */

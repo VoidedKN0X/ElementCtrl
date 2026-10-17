@@ -47,7 +47,8 @@ class MainActivity : FragmentActivity() {
         setContent {
             ElementCtrlTheme {
                 val lock = ElementCtrlApp.graph.lock
-                val secure = lock.pinSet && lock.hideContent
+                // Screens holding secrets (recovery key, password sign-in) force it on whatever the setting says.
+                val secure = (lock.pinSet && lock.hideContent) || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
                 LaunchedEffect(secure) {
                     if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)

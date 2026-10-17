@@ -51,6 +51,10 @@ class SessionStore(context: Context) {
     @Synchronized
     fun load(): StoredSession? = sp.getString("current", null)?.let(SecureBox::decrypt)?.let(StoredSession::fromJson)
 
+    /** Whether a session is saved at all, even one that can't be decrypted right now. */
+    @Synchronized
+    fun hasSaved(): Boolean = sp.contains("current")
+
     @Synchronized
     fun save(session: StoredSession) {
         sp.edit().putString("current", SecureBox.encrypt(session.toJson())).commit()

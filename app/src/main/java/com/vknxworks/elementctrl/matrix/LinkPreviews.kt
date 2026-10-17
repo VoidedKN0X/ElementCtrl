@@ -22,6 +22,9 @@ object LinkPreviews {
 
     fun cached(url: String): LinkPreview? = cache.get(url)
 
+    /** Forgets every preview (on sign-out). */
+    fun clear() = cache.evictAll()
+
     suspend fun load(session: MatrixSession, url: String): LinkPreview? = withContext(Dispatchers.IO) {
         cache.get(url)?.let { return@withContext it.takeUnless { p -> p.isEmpty } }
         val preview = runCatching {

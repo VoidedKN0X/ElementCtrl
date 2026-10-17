@@ -2,6 +2,23 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.3
+
+### Security
+- **Recovery key screens are private**: the recovery key entry after sign-in, the Security & recovery screen and its dialogs (new recovery key, enter recovery key, identity-reset password) can no longer be captured in screenshots, screen recordings or screen sharing, whatever the app-lock setting.
+- The recovery key and identity-reset password fields now tell the keyboard not to suggest, learn or remember what you type.
+- Copying a new recovery key marks it as sensitive, so Android hides it from the clipboard preview and keyboards don't keep it in their clipboard history.
+- If a recovery key doesn't work, the error message never repeats the key, and the field is cleared once recovery succeeds.
+- The password sign-in screen is also protected from screenshots and recordings, and the typed password is no longer kept in Android's saved screen state.
+- **Reply** and **Mark as read** on message notifications now ask you to unlock the phone first when used from the lock screen, so nobody holding your locked phone can send messages or read receipts as you.
+- **Signing out now wipes everything** this device had for the account: besides the session, keys and message databases, also downloaded and decrypted attachments and voice messages, files waiting to upload, leftover databases from unfinished sign-ins, the list of already-notified chats, open notifications, link previews and pictures held in memory. Background checks stop too. The same happens when the server signs this device out, which now also drops the local push registration.
+- Pictures (including ones decrypted from encrypted chats) are only ever cached in memory, never written to storage.
+- Downloaded attachments are removed from the app's cache after a day, and the plain copies of files and voice messages you send are deleted as soon as they're handed to the encrypted send queue.
+- Downloaded attachments are stored under a full hash of their source, so two different files can never be mixed up.
+- Device-management requests and the push-gateway check no longer follow redirects (so your access token can't be forwarded to another server) and refuse oversized replies.
+- Error messages shown in the app have anything that looks like a token, password or URL query removed.
+- Release builds no longer write the Matrix SDK's logs, or the app's own info and warning logs, to the system log.
+
 ## 1.2.2
 
 - Version numbers are now plain, with no build number on the end, and a new version only comes out when something in the app actually changes. Nothing else in the app has changed.

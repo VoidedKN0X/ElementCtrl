@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +62,7 @@ import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
 import com.vknxworks.elementctrl.matrix.VerifyStep
 import com.vknxworks.elementctrl.matrix.userMessage
+import com.vknxworks.elementctrl.ui.SecureScreen
 import com.vknxworks.elementctrl.ui.settings.SecurityScreen
 import com.vknxworks.elementctrl.ui.settings.VerifyScreen
 import kotlinx.coroutines.delay
@@ -257,6 +259,8 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     BackHandler(enabled = !busy) { onBack() }
+    // The recovery key unlocks all your encrypted history: no screenshots or screen recordings of it.
+    SecureScreen()
 
     fun submit() {
         if (key.isBlank() || busy) return
@@ -264,7 +268,14 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
         error = null
         scope.launch {
             // Success flips the device to verified, and the gate moves on by itself.
-            runCatching { account.recover(key) }.onFailure { error = "That key didn't work. Check it and try again. (" + it.userMessage() + ")" }
+            val entered = key.trim()
+            runCatching { account.recover(entered) }
+                .onSuccess { key = "" }
+                .onFailure {
+                    // Never echo the key back, even if an SDK error message happened to contain it.
+                    val reason = it.userMessage().replace(entered, "…")
+                    error = "That key didn't work. Check it and try again. ($reason)"
+                }
             busy = false
         }
     }
@@ -290,7 +301,12 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 onValueChange = { key = it; error = null },
                 label = { Text("Recovery key or passphrase") },
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
-                keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, capitalization = KeyboardCapitalization.None),
+                // Password type: keyboards don't suggest, learn or remember what's typed here.
+                keyboardOptions = KeyboardOptions(
+                    autoCorrectEnabled = false,
+                    capitalization = KeyboardCapitalization.None,
+                    keyboardType = KeyboardType.Password,
+                ),
                 isError = error != null,
                 supportingText = error?.let { { Text(it) } },
                 trailingIcon = {

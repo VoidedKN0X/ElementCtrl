@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.matrix.userMessage
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
@@ -112,8 +113,8 @@ object Push {
             // Push replaces the 15-minute background check.
             Notifier.schedule(context, false)
         }.onFailure {
-            Log.w(TAG, "setPusher failed", it)
-            _status.value = PushStatus.Failed(it.message ?: "The homeserver refused the pusher")
+            Log.w(TAG, "setPusher failed: ${it.javaClass.simpleName}")
+            _status.value = PushStatus.Failed(it.userMessage().ifBlank { "The homeserver refused the pusher" })
         }
     }
 
@@ -136,12 +137,14 @@ object Push {
             val port = if (url.port != -1) ":${url.port}" else ""
             val candidate = "${url.protocol}://${url.host}$port/_matrix/push/v1/notify"
             val conn = (URL(candidate).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = false
+                useCaches = false
                 connectTimeout = 8000
                 readTimeout = 8000
             }
             try {
                 if (conn.responseCode == 200) {
-                    val body = conn.inputStream.bufferedReader().readText()
+                    val body = conn.inputStream.use { com.vknxworks.elementctrl.matrix.MatrixHttp.readCapped(it, 64 * 1024) }
                     if (JSONObject(body).optJSONObject("unifiedpush")?.optString("gateway") == "matrix") candidate else null
                 } else null
             } finally {

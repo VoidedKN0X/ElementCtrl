@@ -127,9 +127,43 @@ fun openUrl(context: Context, url: String) {
         .onFailure { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
 }
 
-fun copyText(context: Context, label: String, text: String) {
-    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText(label, text))
+/**
+ * Copies text to the clipboard. With [sensitive] (recovery keys and other secrets) the clip is flagged so Android
+ * hides it from the clipboard preview and keyboards don't keep it in their clipboard history.
+ */
+fun copyText(context: Context, label: String, text: String, sensitive: Boolean = false) {
+    val clip = ClipData.newPlainText(label, text)
+    if (sensitive) {
+        clip.description.extras = android.os.PersistableBundle().apply {
+            putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+        }
+    }
+    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
 }
+
+/**
+ * Decides whether the window gets FLAG_SECURE (blank screenshots, screen recordings and screen sharing) on top of
+ * the app-lock setting: screens that show or take secrets (recovery key, password sign-in) force it while shown.
+ */
+object ScreenPrivacy {
+    var forced by androidx.compose.runtime.mutableIntStateOf(0)
+        private set
+
+    internal fun acquire() { forced++ }
+    internal fun release() { forced = (forced - 1).coerceAtLeast(0) }
+}
+
+/** Keeps FLAG_SECURE on for as long as the calling screen is shown, whatever the app-lock setting says. */
+@Composable
+fun SecureScreen() {
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        ScreenPrivacy.acquire()
+        onDispose { ScreenPrivacy.release() }
+    }
+}
+
+/** Dialog properties for dialogs that show or take a secret: never captured in screenshots or recordings. */
+val SecureDialog = androidx.compose.ui.window.DialogProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn)
 
 fun shareText(context: Context, text: String) {
     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null))

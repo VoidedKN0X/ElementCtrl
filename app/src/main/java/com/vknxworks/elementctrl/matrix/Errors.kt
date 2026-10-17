@@ -39,6 +39,17 @@ fun Throwable.userMessage(): String {
         "certificate" in lower || "invalidcertificate" in lower ->
             "The server's TLS certificate isn't trusted. If it uses your own CA, install that certificate on the phone."
         raw.isBlank() -> this::class.simpleName ?: "Something went wrong"
-        else -> raw.take(300)
+        else -> redactSecrets(raw).take(300)
     }
 }
+
+/**
+ * Strips anything that looks like a credential from text that may be shown on screen: access tokens in URLs or
+ * headers, Synapse/MAS token formats, and URL query strings and user info (which can carry tokens or passwords).
+ */
+fun redactSecrets(text: String): String = text
+    .replace(Regex("""(?i)(access_token|refresh_token|token|password|passwd|secret|key)=[^&\s"']+"""), "$1=…")
+    .replace(Regex("""(?i)bearer\s+[A-Za-z0-9._~+/=-]+"""), "Bearer …")
+    .replace(Regex("""\b(syt|syr|mat|mar|mct|mcr)_[A-Za-z0-9_-]{8,}"""), "…")
+    .replace(Regex("""(https?://)[^/@\s]+@"""), "$1")
+    .replace(Regex("""(https?://[^\s?#"']+)\?[^\s#"']*"""), "$1?…")

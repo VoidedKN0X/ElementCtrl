@@ -138,6 +138,7 @@ import com.vknxworks.elementctrl.matrix.SendStatus
 import com.vknxworks.elementctrl.matrix.TimelineEntry
 import com.vknxworks.elementctrl.matrix.UiContent
 import com.vknxworks.elementctrl.matrix.previewText
+import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.Avatar
 import com.vknxworks.elementctrl.ui.CenteredLoading
 import com.vknxworks.elementctrl.ui.ConfirmDialog
@@ -1149,7 +1150,7 @@ internal fun openMedia(
                 runCatching {
                     val file = MediaFiles.download(context, session, info.first, info.second, info.third)
                     MediaFiles.open(context, file, info.third)
-                }.onFailure { snackbar.showSnackbar("Couldn't open: ${it.message}") }
+                }.onFailure { snackbar.showSnackbar("Couldn't open: ${it.userMessage()}") }
             }
         }
     }
@@ -1169,7 +1170,7 @@ private suspend fun saveMedia(context: android.content.Context, session: MatrixS
         val file = MediaFiles.download(context, session, info.first, info.second, info.third)
         MediaFiles.saveToDownloads(context, file, info.second, info.third)
     }.onSuccess { ok -> snackbar.showSnackbar(if (ok) "Saved to Downloads/ElementCtrl" else "Couldn't save the file") }
-        .onFailure { snackbar.showSnackbar("Couldn't save: ${it.message}") }
+        .onFailure { snackbar.showSnackbar("Couldn't save: ${it.userMessage()}") }
 }
 
 private suspend fun shareMedia(context: android.content.Context, session: MatrixSession, item: TimelineEntry.Message, snackbar: SnackbarHostState) {
@@ -1177,7 +1178,7 @@ private suspend fun shareMedia(context: android.content.Context, session: Matrix
     runCatching {
         val file = MediaFiles.download(context, session, info.first, info.second, info.third)
         MediaFiles.share(context, file, info.third)
-    }.onFailure { snackbar.showSnackbar("Couldn't share: ${it.message}") }
+    }.onFailure { snackbar.showSnackbar("Couldn't share: ${it.userMessage()}") }
 }
 
 /** A picture to show full screen. */

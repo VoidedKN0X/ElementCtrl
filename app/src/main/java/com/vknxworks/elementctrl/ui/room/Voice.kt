@@ -83,6 +83,8 @@ class VoiceRecorder(private val context: Context) {
         r.release()
         recorder = null
         val f = file ?: return null
+        // Hand the file over: cancel() must not delete a clip that is being sent.
+        file = null
         if (!ok || duration < 700) { f.delete(); return null }
         return VoiceClip(f, duration, downsample(samples, 100))
     }

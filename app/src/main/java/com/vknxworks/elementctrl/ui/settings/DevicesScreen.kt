@@ -42,6 +42,7 @@ import com.vknxworks.elementctrl.matrix.DeleteResult
 import com.vknxworks.elementctrl.matrix.DeviceInfo
 import com.vknxworks.elementctrl.matrix.DeviceService
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.SectionHeader
 import com.vknxworks.elementctrl.ui.SettingRow
@@ -69,7 +70,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         scope.launch {
             runCatching { service.list() }
                 .onSuccess { devices = it }
-                .onFailure { snackbar.showSnackbar(it.message ?: "Couldn't load devices") }
+                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't load devices" }) }
             loading = false
         }
     }
@@ -85,7 +86,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
                         is DeleteResult.OpenWebPage -> openUrl(context, r.url)
                     }
                 }
-                .onFailure { snackbar.showSnackbar(it.message ?: "Couldn't sign out") }
+                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't sign out" }) }
         }
     }
 
@@ -148,7 +149,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
     renaming?.let { d ->
         TextInputDialog("Rename device", initial = d.displayName.orEmpty(), onDismiss = { renaming = null }) { name ->
             scope.launch {
-                runCatching { service.rename(d.deviceId, name.trim()) }.onSuccess { reload() }.onFailure { snackbar.showSnackbar(it.message ?: "Couldn't rename") }
+                runCatching { service.rename(d.deviceId, name.trim()) }.onSuccess { reload() }.onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't rename" }) }
             }
         }
     }
