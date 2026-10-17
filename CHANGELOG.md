@@ -1,5 +1,7 @@
 # Changelog
 
+To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
+
 ## 1.2.1
 
 - Chat list: the time of the last message now always sits flush on the right
