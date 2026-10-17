@@ -362,24 +362,29 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    room.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = if (room.hasUnread && !room.isMuted) FontWeight.Bold else FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (room.isEncrypted && !room.isDm) {
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.Lock, "Encrypted", Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Name and lock take all the room left over, so the time always sits flush against the right edge.
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        room.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (room.hasUnread && !room.isMuted) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (room.isEncrypted && !room.isDm) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Default.Lock, "Encrypted", Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                Spacer(Modifier.weight(1f))
                 room.lastTimestamp?.let {
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         shortTime(it),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (room.hasUnread && !room.isMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
             }

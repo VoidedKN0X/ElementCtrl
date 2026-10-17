@@ -2,6 +2,7 @@
 
 ## 1.2.1
 
+- Chat list: the time of the last message now always sits flush on the right
 - **Double-tap to react**: double-tap a message to react with ❤️ (or another emoji, or off, in Settings › Appearance), with a little pop
 - Quick reactions in the message menu start with the emojis you use most recently (shared with Element through your account)
 - **Media and files** in chat info, for direct chats and rooms: a photo and video grid and a list of files, audio and voice messages, by month
