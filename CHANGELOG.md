@@ -2,6 +2,16 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.6
+
+### Fixed
+- **The app no longer loses its connection after you switch away and come back.** Leaving ElementCtrl stopped syncing and returning started it again, but the two could overlap: if you came back before the stop had finished, the stop landed last and the app sat disconnected (no new messages, nothing sending) until it was force-stopped. Syncing is now started and stopped from a single place, one step at a time, the way Element X does it, so this can't happen any more.
+- After a long break the server may have expired the app's sync session; the app now notices that the connection died and reconnects on its own, waiting a little longer after each failed try (1 second up to about half a minute) so it doesn't hammer the server.
+- When Wi-Fi or mobile data comes back (for example after the phone woke up or you left a dead spot), the app reconnects as soon as Android reports a working network, instead of staying in "offline" mode.
+
+### Changed
+- Briefly switching to another app (under 3 seconds) keeps the connection open, so coming straight back doesn't need to reconnect.
+
 ## 1.2.5
 
 ### Fixed

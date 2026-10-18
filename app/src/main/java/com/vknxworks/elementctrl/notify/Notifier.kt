@@ -132,12 +132,12 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val state = withTimeoutOrNull(30_000) { graph.state.first { it !is AppState.Loading } }
         val session = (state as? AppState.SignedIn)?.session ?: return Result.success()
         if (session.inForeground) return Result.success()
-        session.startSync()
-        // Give the sliding sync loop time to bring the room list up to date.
-        withTimeoutOrNull(20_000) { session.roomsLoaded.first { it } }
-        delay(8_000)
-        Notifier.notifyRooms(applicationContext, session.rooms.value)
-        if (!session.inForeground) session.stopSync()
+        session.withBackgroundSync {
+            // Give the sliding sync loop time to bring the room list up to date.
+            withTimeoutOrNull(20_000) { session.roomsLoaded.first { it } }
+            delay(8_000)
+            Notifier.notifyRooms(applicationContext, session.rooms.value)
+        }
         return Result.success()
     }
 }

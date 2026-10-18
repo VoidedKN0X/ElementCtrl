@@ -92,9 +92,22 @@ class MatrixSession(
     private var listController: RoomListDynamicEntriesController? = null
     private val listMutex = Mutex()
     private var restartJob: Job? = null
-    /** Whether the app is on screen. False when Android started the process only for the background check. */
-    @Volatile var inForeground = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState
-        .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+    private val _appActive = MutableStateFlow(
+        androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+    )
+    /**
+     * Whether the app is on screen. False when Android started the process only for a background job. Setting it
+     * is all that's needed: the sync orchestrator starts and stops syncing to match.
+     */
+    var inForeground: Boolean
+        get() = _appActive.value
+        set(value) { _appActive.value = value; syncWake.trySend(Unit) }
+    /** Background jobs (the periodic check) that need syncing while the app isn't on screen. */
+    private val backgroundHolds = java.util.concurrent.atomic.AtomicInteger(0)
+    private val syncWake = Channel<Unit>(Channel.CONFLATED)
+    /** Set when signing out: the orchestrator must not start syncing again. */
+    @Volatile private var shuttingDown = false
+    private val network = NetworkWatch(com.vknxworks.elementctrl.ElementCtrlApp.instance) { syncWake.trySend(Unit) }
 
     private var notificationSettings: NotificationSettings? = null
     private var notificationClient: org.matrix.rustcomponents.sdk.NotificationClient? = null
@@ -131,7 +144,7 @@ class MatrixSession(
         handles += syncService.state(object : SyncServiceStateObserver {
             override fun onUpdate(state: SyncServiceState) {
                 _syncState.value = state
-                if (state == SyncServiceState.ERROR || state == SyncServiceState.TERMINATED) scheduleRestart()
+                syncWake.trySend(Unit)
             }
         })
 
@@ -157,26 +170,77 @@ class MatrixSession(
                 _profile.value = UserProfile(userId, client.displayName(), client.avatarUrl(), null, null)
             }
         }
-        // In the background the notification worker decides how long to sync.
-        if (inForeground) scope.launch { startSync() }
+        network.start()
+        restartJob = scope.launch { orchestrateSync() }
         scope.launch { observeRoomList() }
         verificationService.prepare()
     }
 
-    suspend fun startSync() {
+    private suspend fun startSync() {
         runCatching { syncService.start() }.onFailure { Log.w(TAG, "start sync failed", it) }
     }
 
-    suspend fun stopSync() {
+    private suspend fun stopSync() {
         runCatching { syncService.stop() }
     }
 
-    private fun scheduleRestart() {
-        if (!inForeground) return
-        if (restartJob?.isActive == true) return
-        restartJob = scope.launch {
-            delay(3000)
-            if (inForeground) startSync()
+    /** Keeps syncing for the duration of [block] even though the app isn't on screen (background checks). */
+    suspend fun <T> withBackgroundSync(block: suspend () -> T): T {
+        backgroundHolds.incrementAndGet()
+        syncWake.trySend(Unit)
+        try {
+            return block()
+        } finally {
+            backgroundHolds.decrementAndGet()
+            syncWake.trySend(Unit)
+        }
+    }
+
+    /**
+     * The one place that starts and stops syncing, modelled on Element X's SyncOrchestrator. Calls are made one at
+     * a time from this loop, so a quick leave-and-return can't end with a stop landing after the start (which left
+     * the app idle and disconnected until it was force-stopped). It also:
+     * - starts syncing whenever the app is active, there's a network, and the sync service is idle or stopped;
+     * - waits 3 seconds before stopping after the app leaves the screen, so quick app switches keep the connection;
+     * - restarts a sync service that died (expired session after a long break, server errors) with growing pauses;
+     * - kicks a sync service stuck "offline" although Android reports a working network again.
+     */
+    private suspend fun orchestrateSync() {
+        var inactiveSince = 0L
+        var runningSince = 0L
+        var offlineSince = 0L
+        var attempt = 0
+        var nextRestartAt = 0L
+        while (true) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val active = _appActive.value || backgroundHolds.get() > 0
+            val online = network.online
+            val state = _syncState.value
+            if (active) inactiveSince = 0L else if (inactiveSince == 0L) inactiveSince = now
+            if (state == SyncServiceState.RUNNING) {
+                if (runningSince == 0L) runningSince = now
+                // Healthy for a while: forget earlier failures.
+                if (now - runningSince > 30_000) attempt = 0
+            } else runningSince = 0L
+            if (state == SyncServiceState.OFFLINE) { if (offlineSince == 0L) offlineSince = now } else offlineSince = 0L
+
+            when {
+                shuttingDown -> return
+                !active && (state == SyncServiceState.RUNNING || state == SyncServiceState.OFFLINE) -> {
+                    if (now - inactiveSince >= 3_000) stopSync()
+                }
+                active && online && (state == SyncServiceState.IDLE || state == SyncServiceState.TERMINATED) -> startSync()
+                active && online && (state == SyncServiceState.ERROR ||
+                    (state == SyncServiceState.OFFLINE && now - offlineSince > 10_000)) && now >= nextRestartAt -> {
+                    Log.w(TAG, "sync service is $state, restarting (attempt ${attempt + 1})")
+                    if (state == SyncServiceState.OFFLINE) stopSync()
+                    startSync()
+                    nextRestartAt = now + (1_000L shl attempt.coerceAtMost(5))
+                    attempt++
+                }
+            }
+            // Wait for something to change (state, foreground, network), re-checking regularly either way.
+            kotlinx.coroutines.withTimeoutOrNull(if (active) 1_000L else 5_000L) { syncWake.receive() }
         }
     }
 
@@ -260,6 +324,7 @@ class MatrixSession(
         notificationSettings ?: client.getNotificationSettings().also { notificationSettings = it }
 
     suspend fun logout() = withContext(Dispatchers.IO) {
+        shuttingDown = true
         runCatching { syncService.stop() }
         runCatching { client.logout() }
         close()
@@ -267,12 +332,14 @@ class MatrixSession(
 
     /** Stops syncing and releases everything without contacting the server (used when the session is already dead). */
     suspend fun shutdown() = withContext(Dispatchers.IO) {
+        shuttingDown = true
         runCatching { syncService.stop() }
         close()
     }
 
     fun close() {
         restartJob?.cancel()
+        network.stop()
         handles.forEach { runCatching { it.cancel() } }
         handles.clear()
         runCatching { notificationClient?.close() }
@@ -295,4 +362,33 @@ sealed interface NotificationFetch {
     /** The server didn't have it (yet): worth a generic notification so the message isn't missed. */
     data object NotFound : NotificationFetch
     data object Nothing : NotificationFetch
+}
+
+/** Follows whether Android has a network with internet, and calls [onChange] when that changes. */
+private class NetworkWatch(context: android.content.Context, private val onChange: () -> Unit) {
+    private val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+    @Volatile var online: Boolean = true
+        private set
+    private val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+            update(caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET))
+        }
+        override fun onLost(network: android.net.Network) = update(false)
+        override fun onUnavailable() = update(false)
+    }
+
+    private fun update(value: Boolean) {
+        if (online != value) { online = value; onChange() }
+    }
+
+    fun start() {
+        online = runCatching {
+            cm?.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }.getOrNull() ?: true
+        runCatching { cm?.registerDefaultNetworkCallback(callback) }
+    }
+
+    fun stop() {
+        runCatching { cm?.unregisterNetworkCallback(callback) }
+    }
 }

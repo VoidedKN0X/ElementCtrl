@@ -53,16 +53,11 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
         // Sync while the app is open; the background worker takes over (if enabled) when it isn't.
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
-                graph.session?.let { s ->
-                    s.inForeground = true
-                    s.scope.launch { s.startSync() }
-                }
+                // The session's sync orchestrator starts syncing (or restarts it if it died meanwhile).
+                graph.session?.inForeground = true
             }
             override fun onStop(owner: LifecycleOwner) {
-                graph.session?.let { s ->
-                    s.inForeground = false
-                    s.scope.launch { s.stopSync() }
-                }
+                graph.session?.inForeground = false
                 Notifier.schedule(
                     this@ElementCtrlApp,
                     graph.prefs.notifications.value && graph.session != null && !com.vknxworks.elementctrl.notify.Push.isEnabled(this@ElementCtrlApp),
