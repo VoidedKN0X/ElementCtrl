@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.MarkChatRead
 import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SouthEast
@@ -203,7 +204,26 @@ fun HomeScreen(
                 }
             }
 
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            val notificationsOn by com.vknxworks.elementctrl.ElementCtrlApp.graph.prefs.notifications.collectAsStateWithLifecycle()
+            val unrestricted = com.vknxworks.elementctrl.ui.rememberBatteryUnrestricted()
+            val bannerTick by com.vknxworks.elementctrl.notify.Battery.bannerTick.collectAsStateWithLifecycle()
+            val showBattery = remember(notificationsOn, unrestricted, bannerTick) {
+                com.vknxworks.elementctrl.notify.Battery.shouldShowBanner(ctx, notificationsOn)
+            }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
+                if (showBattery) {
+                    item("battery") {
+                        Banner(
+                            icon = Icons.Default.BatteryAlert,
+                            title = "Notifications may be missed",
+                            body = "Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so messages can't be fetched. Let it run in the background.",
+                            action = "Allow",
+                            onClick = { com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(ctx) },
+                            onDismiss = { com.vknxworks.elementctrl.notify.Battery.dismissBanner(ctx) },
+                        )
+                    }
+                }
                 if (verification == VerificationState.UNVERIFIED) {
                     item("verify") {
                         Banner(
@@ -330,7 +350,14 @@ fun HomeScreen(
 }
 
 @Composable
-private fun Banner(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, body: String, action: String, onClick: () -> Unit) {
+private fun Banner(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    body: String,
+    action: String,
+    onClick: () -> Unit,
+    onDismiss: (() -> Unit)? = null,
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
@@ -343,7 +370,12 @@ private fun Banner(icon: androidx.compose.ui.graphics.vector.ImageVector, title:
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Spacer(Modifier.width(8.dp))
-            Button(onClick = onClick) { Text(action) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Button(onClick = onClick) { Text(action) }
+                if (onDismiss != null) {
+                    androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Not now", color = MaterialTheme.colorScheme.onPrimaryContainer) }
+                }
+            }
         }
     }
 }

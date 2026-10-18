@@ -50,6 +50,10 @@ fun PushSetupDialog(session: MatrixSession, onDismiss: () -> Unit) {
                 distributors.forEach { d ->
                     Option(d.label, "Instant push", selected = current == d.packageName) {
                         Push.enable(context, d)
+                        // Like Element X: push only works reliably if the app may use the network while the phone sleeps.
+                        if (!com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context)) {
+                            com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(context)
+                        }
                         onDismiss()
                     }
                 }

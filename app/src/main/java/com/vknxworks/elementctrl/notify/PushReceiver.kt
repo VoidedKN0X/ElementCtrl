@@ -22,18 +22,14 @@ class PushReceiver : MessagingReceiver() {
         val roomId = n.optString("room_id").takeIf { it.startsWith("!") && it.length <= 255 }
         val eventId = n.optString("event_id").takeIf { it.startsWith("$") && it.length <= 255 }
         val unread = n.optJSONObject("counts")?.optInt("unread", -1) ?: -1
-        val pending = goAsync()
-        ElementCtrlApp.graph.scope.launch {
-            try {
-                if (roomId != null && eventId != null) {
-                    PushNotifications.handle(context, roomId, eventId)
-                } else if (unread == 0) {
-                    // Read on another device: nothing left to show.
-                    PushNotifications.clearAll(context)
-                }
-            } finally {
-                pending.finish()
-            }
+        if (roomId != null && eventId != null) {
+            // Don't fetch here: a broadcast gets only seconds, and an app that has been asleep may have no network
+            // yet. Queue it and let an expedited job fetch it, retrying until it can (as Element X does).
+            PushQueue.add(context, roomId, eventId)
+            FetchPushWorker.enqueue(context)
+        } else if (unread == 0) {
+            // Read on another device: nothing left to show.
+            PushNotifications.clearAll(context)
         }
     }
 

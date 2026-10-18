@@ -33,11 +33,20 @@ object PushNotifications {
     private data class Line(val sender: String, val text: String, val ts: Long, val own: Boolean)
     private val history = HashMap<String, ArrayDeque<Line>>()
 
-    suspend fun handle(context: Context, roomId: String, eventId: String) {
-        val session = Push.waitForSession() ?: return
-        if (session.inForeground && OpenRoom.id == roomId) return
-        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val item = runCatching { session.notificationItem(roomId, eventId) }.getOrNull() ?: return
+    enum class Outcome { SHOWN, SKIPPED, NOT_FOUND }
+
+    /**
+     * Fetches, decrypts and shows one pushed event. Throws if the homeserver couldn't be reached, so the push queue
+     * keeps it and tries again.
+     */
+    suspend fun resolve(context: Context, session: com.vknxworks.elementctrl.matrix.MatrixSession, roomId: String, eventId: String): Outcome {
+        if (session.inForeground && OpenRoom.id == roomId) return Outcome.SKIPPED
+        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return Outcome.SKIPPED
+        val item = when (val r = session.fetchNotification(roomId, eventId)) {
+            is com.vknxworks.elementctrl.matrix.NotificationFetch.Found -> r.item
+            com.vknxworks.elementctrl.matrix.NotificationFetch.NotFound -> return Outcome.NOT_FOUND
+            com.vknxworks.elementctrl.matrix.NotificationFetch.Nothing -> return Outcome.SKIPPED
+        }
         // Only rooms we're in (or invited to): ignore pushes naming a room we've left, been banned from, etc.
         // A room not in the local store yet (joined on another device since the last sync) is still allowed,
         // since the homeserver only returned the event because this account can see it.
@@ -45,8 +54,8 @@ object PushNotifications {
         val isInvite = item.event is NotificationEvent.Invite
         when (membership) {
             null, Membership.JOINED -> Unit
-            Membership.INVITED -> if (!isInvite) return
-            else -> return
+            Membership.INVITED -> if (!isInvite) return Outcome.SKIPPED
+            else -> return Outcome.SKIPPED
         }
         val roomName = item.roomInfo.displayName
         val senderName = item.senderInfo.displayName ?: "Someone"
@@ -54,7 +63,7 @@ object PushNotifications {
         val text: String = when (val ev = item.event) {
             is NotificationEvent.Invite -> {
                 postInvite(context, roomId, roomName, senderName, item.roomInfo.isDm)
-                return
+                return Outcome.SHOWN
             }
             is NotificationEvent.Timeline -> when (val c = ev.event.content()) {
                 is TimelineEventContent.MessageLike -> when (val m = c.content) {
@@ -64,9 +73,9 @@ object PushNotifications {
                     is MessageLikeEventContent.ReactionContent -> "Reacted to your message"
                     is MessageLikeEventContent.CallInvite, is MessageLikeEventContent.RtcNotification -> "📞 Incoming call"
                     is MessageLikeEventContent.RoomEncrypted -> "🔒 New encrypted message"
-                    else -> return
+                    else -> return Outcome.SKIPPED
                 }
-                is TimelineEventContent.State -> return
+                is TimelineEventContent.State -> return Outcome.SKIPPED
             }
         }
         val ts = (item.event as? NotificationEvent.Timeline)?.event?.timestamp()?.toLong() ?: System.currentTimeMillis()
@@ -77,6 +86,28 @@ object PushNotifications {
             }.toList()
         }
         post(context, roomId, roomName, item.roomInfo.isDm, item.isNoisy != false || item.hasMention == true, lines)
+        return Outcome.SHOWN
+    }
+
+    /**
+     * Shown when a pushed message couldn't be fetched (no network in deep sleep, server not answering): better a
+     * plain "New message" than nothing. Doesn't replace a chat's notification that is already showing.
+     */
+    fun postFallback(context: Context, roomId: String) {
+        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        val nm = NotificationManagerCompat.from(context)
+        if (runCatching { nm.activeNotifications.any { it.id == roomId.hashCode() } }.getOrDefault(false)) return
+        val room = ElementCtrlApp.graph.session?.rooms?.value?.firstOrNull { it.roomId == roomId }
+        val builder = redacted(context, Notifier.CHANNEL_MESSAGES)
+            .setContentIntent(openIntent(context, roomId))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(redacted(context, Notifier.CHANNEL_MESSAGES).build())
+            .addAction(markReadAction(context, roomId))
+        if (room != null && ElementCtrlApp.graph.lock.showNotificationContent) builder.setContentTitle(room.name).setContentText("New message")
+        runCatching { nm.notify(roomId.hashCode(), builder.build()) }
+        Battery.noteMissedFetch(context)
     }
 
     private fun openIntent(context: Context, roomId: String) = PendingIntent.getActivity(

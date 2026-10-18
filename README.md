@@ -52,6 +52,7 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 ## Tips and troubleshooting
 
 - **Notifications:** for instant notifications, install [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) and pick it in *Settings → Notifications*. Without it, ElementCtrl checks for new messages about every 15 minutes.
+- **Reliable notifications:** allow ElementCtrl to run in the background (*Settings → Notifications → Run in the background*). A battery-optimised app gets no network while the phone sleeps, so pushed messages can't be fetched. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in the app's *App info → Battery*.
 - **Self-hosted ntfy:** your Matrix server must be able to reach `https://your-ntfy/_matrix/push/v1/notify`.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.

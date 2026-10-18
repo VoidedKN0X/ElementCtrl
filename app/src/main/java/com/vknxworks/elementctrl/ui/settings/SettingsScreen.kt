@@ -45,6 +45,9 @@ import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -214,6 +217,20 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to set up instant push with ntfy"
                 },
             ) { pushDialog = true }
+            val unrestricted = com.vknxworks.elementctrl.ui.rememberBatteryUnrestricted()
+            SettingRow(
+                if (unrestricted) Icons.Default.BatteryFull else Icons.Default.BatteryAlert,
+                "Run in the background",
+                if (unrestricted) "Allowed. Messages are fetched even while the phone sleeps."
+                else "Restricted by battery optimisation: notifications can be late or missing after the app hasn't been used for a while. Tap to allow.",
+                tint = if (unrestricted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            ) { com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(context) }
+            if (com.vknxworks.elementctrl.notify.Battery.hasVendorLimits) {
+                SettingRow(
+                    Icons.Default.PhoneAndroid, "OPPO / OnePlus / realme background limits",
+                    "Also open App info › Battery and turn on \"Allow background activity\" (and \"Auto launch\" if shown), or ColorOS may still stop the app.",
+                ) { com.vknxworks.elementctrl.notify.Battery.openAppInfo(context) }
+            }
             SettingRow(
                 Icons.Default.Visibility, "Show message content in notifications",
                 if (lock.pinSet) "Off by default while app lock is on" else "Sender, chat name and message text",

@@ -145,6 +145,7 @@ class AppGraph(val context: Context) {
         runCatching { MediaFiles.wipeAll(context) }
         runCatching { com.vknxworks.elementctrl.notify.Notifier.forgetAll(context) }
         runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
+        runCatching { com.vknxworks.elementctrl.notify.PushQueue.clear(context) }
     }
 
     /** Deletes every account folder under files/sessions and cache/sessions except [keep]. */

@@ -75,12 +75,27 @@ object Push {
         val dist = selectedDistributor(context)
         if (endpoint != null && gateway != null && dist != null) _status.value = PushStatus.Active(labelOf(context, dist), gateway)
         runCatching { UnifiedPush.register(context, INSTANCE, "ElementCtrl") }
+        // Make sure the homeserver still has our pusher, now and twice a day.
+        PusherCheckWorker.schedule(context)
+        // Anything that arrived while the app couldn't fetch it.
+        if (PushQueue.pending(context).isNotEmpty()) FetchPushWorker.enqueue(context)
+    }
+
+    fun storedEndpoint(context: Context): String? = prefs(context).getString("endpoint", null)
+
+    /** Asks the push app for an endpoint again, e.g. after it lost our registration. */
+    fun reregister(context: Context) {
+        if (!isEnabled(context)) return
+        runCatching { UnifiedPush.register(context, INSTANCE, "ElementCtrl") }
     }
 
     suspend fun disable(context: Context, session: MatrixSession?) {
         val endpoint = prefs(context).getString("endpoint", null)
         prefs(context).edit().clear().apply()
         runCatching { UnifiedPush.unregister(context, INSTANCE) }
+        PusherCheckWorker.cancel(context)
+        FetchPushWorker.cancel(context)
+        PushQueue.clear(context)
         if (endpoint != null && session != null) {
             withContext(Dispatchers.IO) { runCatching { session.client.deletePusher(PusherIdentifiers(endpoint, APP_ID)) } }
         }
@@ -112,6 +127,7 @@ object Push {
             _status.value = PushStatus.Active(labelOf(context, selectedDistributor(context) ?: ""), gateway)
             // Push replaces the 15-minute background check.
             Notifier.schedule(context, false)
+            PusherCheckWorker.schedule(context)
         }.onFailure {
             Log.w(TAG, "setPusher failed: ${it.javaClass.simpleName}")
             _status.value = PushStatus.Failed(it.userMessage().ifBlank { "The homeserver refused the pusher" })
@@ -153,9 +169,9 @@ object Push {
         }.getOrNull() ?: FALLBACK_GATEWAY
     }
 
-    suspend fun waitForSession(): MatrixSession? {
+    suspend fun waitForSession(timeoutMs: Long = 30_000): MatrixSession? {
         val graph = ElementCtrlApp.graph
-        return kotlinx.coroutines.withTimeoutOrNull(30_000) {
+        return kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
             graph.state.first { it !is com.vknxworks.elementctrl.matrix.AppState.Loading }
         }.let { (it as? com.vknxworks.elementctrl.matrix.AppState.SignedIn)?.session }
     }

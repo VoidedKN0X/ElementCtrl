@@ -100,16 +100,21 @@ class MatrixSession(
     private var notificationClient: org.matrix.rustcomponents.sdk.NotificationClient? = null
     private val notificationMutex = Mutex()
 
-    /** Fetches and decrypts one event for a push notification. */
-    suspend fun notificationItem(roomId: String, eventId: String): org.matrix.rustcomponents.sdk.NotificationItem? {
+    /**
+     * Fetches and decrypts one event for a push notification. Throws when the homeserver can't be reached,
+     * so the caller can try again later instead of dropping the notification.
+     */
+    suspend fun fetchNotification(roomId: String, eventId: String): NotificationFetch {
         val nc = notificationMutex.withLock {
             notificationClient ?: client.notificationClient(
                 org.matrix.rustcomponents.sdk.NotificationProcessSetup.SingleProcess(syncService)
             ).also { notificationClient = it }
         }
         return when (val status = nc.getNotification(roomId, eventId)) {
-            is org.matrix.rustcomponents.sdk.NotificationStatus.Event -> status.item
-            else -> null
+            is org.matrix.rustcomponents.sdk.NotificationStatus.Event -> NotificationFetch.Found(status.item)
+            org.matrix.rustcomponents.sdk.NotificationStatus.EventNotFound -> NotificationFetch.NotFound
+            // Filtered out by push rules (muted, own message…) or already deleted: nothing to show.
+            else -> NotificationFetch.Nothing
         }
     }
 
@@ -283,3 +288,11 @@ class MatrixSession(
 
 /** RoomListService.setRoomSubscriptions keeps a room's state fully synced while its screen is open. */
 private suspend fun RoomListService.subscribeToRooms(ids: List<String>) = setRoomSubscriptions(ids)
+
+/** What fetching a pushed event gave. */
+sealed interface NotificationFetch {
+    data class Found(val item: org.matrix.rustcomponents.sdk.NotificationItem) : NotificationFetch
+    /** The server didn't have it (yet): worth a generic notification so the message isn't missed. */
+    data object NotFound : NotificationFetch
+    data object Nothing : NotificationFetch
+}

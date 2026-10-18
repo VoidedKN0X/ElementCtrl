@@ -322,3 +322,19 @@ fun NotEncryptedBadge(modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** Whether the app is exempt from battery optimisation, re-checked whenever the screen comes back (e.g. from Settings). */
+@Composable
+fun rememberBatteryUnrestricted(): Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var unrestricted by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context)) }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) unrestricted = com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context)
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    return unrestricted
+}

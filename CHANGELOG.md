@@ -2,6 +2,20 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.5
+
+### Fixed
+- **Notifications no longer go missing when ElementCtrl hasn't been opened for a while.** Before, a push from ntfy had to be turned into a notification within the few seconds Android gives a sleeping app, and if the phone was in deep sleep the app had no network to fetch the message, so the notification was silently dropped. Now each push is saved first and fetched by a priority background job (the same approach Element X uses), which Android starts straight away and which keeps trying until the network is back, so the notification still arrives.
+- If a message really can't be fetched after a few tries (server unreachable, message not found yet), you now get a plain "New message" notification for that chat instead of nothing. Tapping it opens the chat, and it has Mark as read.
+- **Lost push registrations are repaired automatically.** Synapse quietly deletes a pusher when the push gateway reports it as unknown (for example after the ntfy server restarted), after which no pushes arrive at all. ElementCtrl now checks at every start and twice a day that the homeserver still has its pusher, and adds it back if it's gone.
+- Pushes that arrived while the app couldn't handle them are picked up the next time it starts.
+
+### New
+- **Run in the background** in Settings › Notifications shows whether battery optimisation is restricting ElementCtrl, and opens Android's prompt to allow it. Restricted apps get no network in deep sleep, which is the main reason notifications go missing (Element X asks for the same permission).
+- On OPPO, OnePlus and realme phones there's an extra shortcut to App info, where ColorOS keeps its own "Allow background activity" and "Auto launch" switches that can also stop notifications.
+- A banner on the chat list warns when notifications are on but the app is battery-restricted, with **Allow** and **Not now**. After Not now it only comes back if a message actually had to fall back to a plain notification.
+- Choosing ntfy (or another push app) in Settings now asks right away to let ElementCtrl run in the background.
+
 ## 1.2.4
 
 ### Security
