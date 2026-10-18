@@ -48,7 +48,13 @@ fun Throwable.userMessage(): String {
  * headers, Synapse/MAS token formats, and URL query strings and user info (which can carry tokens or passwords).
  */
 fun redactSecrets(text: String): String = text
-    .replace(Regex("""(?i)(access_token|refresh_token|token|password|passwd|secret|key)=[^&\s"']+"""), "$1=…")
+    // name=value (query strings, forms) and "name": "value" / name: value (JSON, debug output).
+    .replace(
+        Regex("""(?i)("?\b(?:access_token|refresh_token|id_token|login_token|token|password|passwd|passphrase|secret|recovery_key|key)"?\s*[=:]\s*"?)[^&\s"',;}]+"""),
+        "$1…",
+    )
+    // JSON Web Tokens (OIDC id/access tokens).
+    .replace(Regex("""\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*"""), "…")
     .replace(Regex("""(?i)bearer\s+[A-Za-z0-9._~+/=-]+"""), "Bearer …")
     .replace(Regex("""\b(syt|syr|mat|mar|mct|mcr)_[A-Za-z0-9_-]{8,}"""), "…")
     .replace(Regex("""(https?://)[^/@\s]+@"""), "$1")

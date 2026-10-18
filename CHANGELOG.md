@@ -2,6 +2,15 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.4
+
+### Security
+- **Sign-out wipe can't be left half done**: if the app is closed (or the phone turns off) in the middle of signing out, the next start finishes the job, removing any drafts, downloaded or decrypted attachments, files waiting to upload and notification state that were left behind. Before, some of these could stay on the phone after sign-out.
+- When the server signs this device out, syncing now stops before the account's data is deleted, so nothing new can be written back into the folders being removed.
+- Downloaded and decrypted attachments older than a day are now also removed while the app keeps running, not only when it starts, so they don't stay around for days when the app is never fully closed.
+- Error messages shown in the app now also hide tokens and passwords in the formats servers and the Matrix SDK use in JSON and debug output (for example `"access_token": "…"`), and web tokens (JWTs) used by OIDC sign-in.
+- The password field when signing out other devices now tells the keyboard not to suggest, learn or remember what you type.
+
 ## 1.2.3
 
 ### Security

@@ -42,7 +42,8 @@ class Drafts(context: Context) {
 
     fun clearAll() {
         _all.value = emptyMap()
-        sp.edit().clear().apply()
+        // Written straight away: this runs during sign-out, and the app may be closed right after.
+        sp.edit().clear().commit()
     }
 
     private companion object {

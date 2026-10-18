@@ -88,7 +88,9 @@ object MediaFiles {
             // Named by a hash of the whole source (not a 32-bit hashCode), so different files can't collide.
             val target = File(dir, "${sha256Hex(sourceJson).take(32)}_$safeName")
             if (!target.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
-            if (target.exists() && target.length() > 0) return@withContext target
+            // Decrypted copies older than a day go now too, not only at start-up (the app can run for days).
+            purgeOldThrottled(context)
+            if (target.exists() && target.length() > 0) return@withContext target.also { it.setLastModified(System.currentTimeMillis()) }
             MediaSource.fromJson(sourceJson).use { src ->
                 val bytes = session.client.getMediaContent(src)
                 val tmp = File(dir, target.name + ".part")
@@ -102,6 +104,15 @@ object MediaFiles {
      * Decrypted attachments are only kept around long enough to be opened or shared: anything older than a day is
      * removed at start-up (and leftover uploads after an hour).
      */
+    @Volatile private var lastPurge = 0L
+
+    private fun purgeOldThrottled(context: Context) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastPurge != 0L && now - lastPurge < 3_600_000L) return
+        lastPurge = now
+        runCatching { purgeOld(context) }
+    }
+
     fun purgeOld(context: Context) {
         val now = System.currentTimeMillis()
         File(context.cacheDir, "media").listFiles()?.forEach { if (now - it.lastModified() > 24 * 3_600_000L) it.deleteRecursively() }

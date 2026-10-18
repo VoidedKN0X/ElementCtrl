@@ -170,7 +170,17 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { passwordFor = null },
             title = { Text("Confirm with your password") },
-            text = { OutlinedTextField(password, { password = it }, label = { Text("Password") }, singleLine = true, visualTransformation = PasswordVisualTransformation()) },
+            text = {
+                OutlinedTextField(
+                    password, { password = it }, label = { Text("Password") }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    // Password type: keyboards don't suggest, learn or remember what's typed here.
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        autoCorrectEnabled = false,
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                    ),
+                )
+            },
             confirmButton = { TextButton(enabled = password.isNotEmpty(), onClick = { passwordFor = null; signOut(ids, password, authSession) }) { Text("Sign out") } },
             dismissButton = { TextButton(onClick = { passwordFor = null }) { Text("Cancel") } },
         )

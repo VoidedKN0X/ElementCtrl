@@ -260,6 +260,12 @@ class MatrixSession(
         close()
     }
 
+    /** Stops syncing and releases everything without contacting the server (used when the session is already dead). */
+    suspend fun shutdown() = withContext(Dispatchers.IO) {
+        runCatching { syncService.stop() }
+        close()
+    }
+
     fun close() {
         restartJob?.cancel()
         handles.forEach { runCatching { it.cancel() } }

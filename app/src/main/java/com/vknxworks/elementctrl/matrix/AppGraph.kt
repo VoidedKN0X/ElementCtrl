@@ -50,7 +50,12 @@ class AppGraph(val context: Context) {
             withContext(Dispatchers.IO) {
                 runCatching {
                     if (stored != null) removeOrphanSessions(stored.directory)
-                    else if (!store.hasSaved()) removeOrphanSessions(null)
+                    else if (!store.hasSaved()) {
+                        // Signed out: finish a sign-out wipe that was cut short (e.g. the app was closed halfway),
+                        // so no drafts, decrypted attachments or notification state outlive the account.
+                        removeOrphanSessions(null)
+                        wipeLocalLeftovers()
+                    }
                     Unit
                 }
             }
@@ -108,7 +113,8 @@ class AppGraph(val context: Context) {
         val s = session ?: return
         // The token is already dead, so the pusher can't be removed on the server; drop the local registration.
         runCatching { com.vknxworks.elementctrl.notify.Push.disable(context, null) }
-        s.close()
+        // Stop syncing first, so nothing writes new files into the folders that are about to be deleted.
+        s.shutdown()
         wipe(s)
         _state.value = AppState.SignedOut(message)
     }
@@ -119,19 +125,26 @@ class AppGraph(val context: Context) {
      * notification state, and pictures held in memory.
      */
     private suspend fun wipe(s: MatrixSession) = withContext(Dispatchers.IO) {
+        // The saved session goes first, so the account can never be reopened from a half-wiped device. Anything
+        // after it that is cut short (app closed mid-wipe) is finished at the next start (see boot()).
         store.clear()
-        drafts.clearAll()
-        s.paths.deleteAll()
+        runCatching { s.paths.deleteAll() }
         runCatching { removeOrphanSessions(keep = null) }
-        runCatching { MediaFiles.wipeAll(context) }
+        wipeLocalLeftovers()
         runCatching { com.vknxworks.elementctrl.notify.Notifier.schedule(context, false) }
-        runCatching { com.vknxworks.elementctrl.notify.Notifier.forgetAll(context) }
-        runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
         runCatching { LinkPreviews.clear() }
         withContext(Dispatchers.Main) {
             runCatching { com.vknxworks.elementctrl.ui.room.AudioPlayer.stop() }
             runCatching { coil3.SingletonImageLoader.get(context).memoryCache?.clear() }
         }
+    }
+
+    /** Account data kept outside the SDK's folders: drafts, decrypted/outgoing files and notification state. */
+    private fun wipeLocalLeftovers() {
+        runCatching { drafts.clearAll() }
+        runCatching { MediaFiles.wipeAll(context) }
+        runCatching { com.vknxworks.elementctrl.notify.Notifier.forgetAll(context) }
+        runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
     }
 
     /** Deletes every account folder under files/sessions and cache/sessions except [keep]. */
