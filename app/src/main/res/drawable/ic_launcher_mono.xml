@@ -1,12 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon version: back bubble faded, front bubble solid with the dots cut out. -->
+<!-- Themed-icon layer: Android tints this one colour, using alpha for depth. 108dp adaptive canvas, art inside the 66dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <group android:translateX="13.82" android:translateY="13" android:scaleX="0.82" android:scaleY="0.82">
-        <path android:fillColor="#FFFFFF" android:fillAlpha="0.5"
-            android:pathData="M26,20 H58 a8,8 0 0 1 8,8 V46 a8,8 0 0 1 -8,8 H36 l-10,8 v-8 a8,8 0 0 1 -8,-8 V28 a8,8 0 0 1 8,-8Z" />
-        <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
-            android:pathData="M42,38 H72 a8,8 0 0 1 8,8 V64 a8,8 0 0 1 -8,8 v8 l-10,-8 H42 a8,8 0 0 1 -8,-8 V46 a8,8 0 0 1 8,-8Z M43.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z M53.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z M63.6,55 a3.4,3.4 0 1,1 6.8,0 a3.4,3.4 0 1,1 -6.8,0Z" />
-    </group>
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillAlpha="0.35"
+        android:fillType="evenOdd"
+        android:pathData="M37,31 H71 A13,13 0 0 1 84,44 V65 A13,13 0 0 1 71,78 H37 A13,13 0 0 1 24,65 V44 A13,13 0 0 1 37,31 Z M37,32 H71 A9,9 0 0 1 80,41 V57 A9,9 0 0 1 71,66 H37 A9,9 0 0 1 28,57 V41 A9,9 0 0 1 37,32 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M37,32 H71 A9,9 0 0 1 80,41 V57 A9,9 0 0 1 71,66 H37 A9,9 0 0 1 28,57 V41 A9,9 0 0 1 37,32 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round"
+        android:pathData="M44,37 H55 A4,4 0 0 1 59,41 V46 A4,4 0 0 1 55,50 H47 L43.5,53.5 V50 A4,4 0 0 1 40,46 V41 A4,4 0 0 1 44,37 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M53,44 H65 A4,4 0 0 1 69,48 V54 A4,4 0 0 1 65,58 H64.5 V62 L60.5,58 H53 A4,4 0 0 1 49,54 V48 A4,4 0 0 1 53,44 Z M53.00,51.00 a1.5,1.5 0 1,0 3.00,0 a1.5,1.5 0 1,0 -3.00,0 Z M57.50,51.00 a1.5,1.5 0 1,0 3.00,0 a1.5,1.5 0 1,0 -3.00,0 Z M62.00,51.00 a1.5,1.5 0 1,0 3.00,0 a1.5,1.5 0 1,0 -3.00,0 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M47,72.5 H61" />
 </vector>
