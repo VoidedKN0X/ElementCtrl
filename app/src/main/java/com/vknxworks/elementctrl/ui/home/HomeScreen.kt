@@ -178,18 +178,30 @@ fun HomeScreen(
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
-            AnimatedVisibility(sync == SyncServiceState.OFFLINE || sync == SyncServiceState.ERROR) {
+            val stuck by session.stuck.collectAsStateWithLifecycle()
+            AnimatedVisibility(stuck || sync == SyncServiceState.OFFLINE || sync == SyncServiceState.ERROR) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
                 Row(
-                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 16.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Default.CloudOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (sync == SyncServiceState.OFFLINE) "Offline — showing saved messages" else "Connection problem, retrying…",
+                        when {
+                            stuck -> "Can't reach the server"
+                            sync == SyncServiceState.OFFLINE -> "Offline — showing saved messages"
+                            else -> "Connection problem, retrying…"
+                        },
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
                     )
+                    // Reloads the app's connection, the same as force-stopping and reopening it.
+                    androidx.compose.material3.TextButton(onClick = {
+                        com.vknxworks.elementctrl.matrix.ConnectionLog.log("Reconnect tapped (sync $sync)")
+                        com.vknxworks.elementctrl.AppRestart.restart(ctx)
+                    }) { Text("Reconnect", color = MaterialTheme.colorScheme.onErrorContainer) }
                 }
             }
             if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth())

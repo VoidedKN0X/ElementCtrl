@@ -107,6 +107,13 @@ class MatrixSession(
     private val syncWake = Channel<Unit>(Channel.CONFLATED)
     /** Set when signing out: the orchestrator must not start syncing again. */
     @Volatile private var shuttingDown = false
+    /** When the room list's "still syncing" indicator turned on (0 when off): a sign the sync isn't getting answers. */
+    @Volatile private var indicatorShownSince = 0L
+    private val _stuck = MutableStateFlow(false)
+    /** The connection couldn't be brought back by restarting the sync; the app offers (or does) a full reload. */
+    val stuck: StateFlow<Boolean> = _stuck.asStateFlow()
+    /** Called once when the session gets stuck; set by AppGraph. */
+    @Volatile var onStuck: ((String) -> Unit)? = null
     private val network = NetworkWatch(com.vknxworks.elementctrl.ElementCtrlApp.instance) { syncWake.trySend(Unit) }
 
     private var notificationSettings: NotificationSettings? = null
@@ -143,6 +150,7 @@ class MatrixSession(
 
         handles += syncService.state(object : SyncServiceStateObserver {
             override fun onUpdate(state: SyncServiceState) {
+                if (_syncState.value != state) ConnectionLog.log("sync state: $state")
                 _syncState.value = state
                 syncWake.trySend(Unit)
             }
@@ -171,6 +179,16 @@ class MatrixSession(
             }
         }
         network.start()
+        runCatching {
+            handles += roomListService.syncIndicator(3_000u, 0u, object : org.matrix.rustcomponents.sdk.RoomListServiceSyncIndicatorListener {
+                override fun onUpdate(syncIndicator: org.matrix.rustcomponents.sdk.RoomListServiceSyncIndicator) {
+                    val show = syncIndicator == org.matrix.rustcomponents.sdk.RoomListServiceSyncIndicator.SHOW
+                    if (show && indicatorShownSince == 0L) indicatorShownSince = now()
+                    if (!show) indicatorShownSince = 0L
+                    syncWake.trySend(Unit)
+                }
+            })
+        }
         restartJob = scope.launch { orchestrateSync() }
         scope.launch { observeRoomList() }
         verificationService.prepare()
@@ -196,49 +214,113 @@ class MatrixSession(
         }
     }
 
+    private fun now() = android.os.SystemClock.elapsedRealtime()
+
+    /** Runs a start/stop/expire call with a time limit, so a call stuck on a dead connection can't block everything. */
+    private suspend fun timed(name: String, limitMs: Long, block: suspend () -> Unit): Boolean {
+        val t0 = now()
+        val ok = kotlinx.coroutines.withTimeoutOrNull(limitMs) { block(); true } ?: false
+        ConnectionLog.log(if (ok) "$name: done in ${now() - t0} ms" else "$name: NO ANSWER after ${now() - t0} ms")
+        return ok
+    }
+
+    private fun reportStuck(reason: String) {
+        if (_stuck.value) return
+        _stuck.value = true
+        ConnectionLog.log("stuck: $reason")
+        onStuck?.invoke(reason)
+    }
+
     /**
      * The one place that starts and stops syncing, modelled on Element X's SyncOrchestrator. Calls are made one at
-     * a time from this loop, so a quick leave-and-return can't end with a stop landing after the start (which left
-     * the app idle and disconnected until it was force-stopped). It also:
-     * - starts syncing whenever the app is active, there's a network, and the sync service is idle or stopped;
+     * a time from this loop, each with a time limit, so a quick leave-and-return can't end with a stop landing after
+     * the start, and a call hanging on a connection that died while the phone slept can't freeze it. It:
+     * - starts syncing whenever the app is active, there's a working network, and the sync service is idle or stopped;
      * - waits 3 seconds before stopping after the app leaves the screen, so quick app switches keep the connection;
-     * - restarts a sync service that died (expired session after a long break, server errors) with growing pauses;
-     * - kicks a sync service stuck "offline" although Android reports a working network again.
+     * - after a longer break, restarts the sync on return even if it still claims to be running (its connection
+     *   usually died while the app was frozen in the background);
+     * - restarts a sync service that died, with growing pauses, and from the third try also starts a fresh sync
+     *   session with the server (the old one may have expired);
+     * - restarts a sync that is "running" but hasn't finished a round for 40 seconds;
+     * - and when nothing helps (not syncing for 45 seconds, or a call never answering), reports the session as stuck,
+     *   which reloads the app's connection like a force stop would.
      */
     private suspend fun orchestrateSync() {
         var inactiveSince = 0L
+        var wasActive = _appActive.value
         var runningSince = 0L
         var offlineSince = 0L
+        var notSyncingSince = 0L
+        var lastKick = 0L
         var attempt = 0
         var nextRestartAt = 0L
+        ConnectionLog.log("session started (app ${if (wasActive) "on screen" else "in background"}, network ${if (network.online) "up" else "down"})")
         while (true) {
-            val now = android.os.SystemClock.elapsedRealtime()
+            if (shuttingDown) return
+            val now = now()
             val active = _appActive.value || backgroundHolds.get() > 0
             val online = network.online
             val state = _syncState.value
+
+            if (active != wasActive) {
+                val away = if (inactiveSince > 0) (now - inactiveSince) / 1000 else 0
+                ConnectionLog.log(if (active) "app active (away ${away}s), sync $state" else "app inactive, sync $state")
+                if (active && away >= 60 && (state == SyncServiceState.RUNNING || state == SyncServiceState.OFFLINE)) {
+                    // The process may have been frozen with the sync mid-request: start over rather than trust it.
+                    ConnectionLog.log("back after ${away}s with sync still $state: restarting it")
+                    timed("stop", 15_000) { stopSync() }
+                    if (!timed("start", 20_000) { startSync() }) reportStuck("start didn't answer")
+                    lastKick = now
+                }
+                wasActive = active
+            }
             if (active) inactiveSince = 0L else if (inactiveSince == 0L) inactiveSince = now
             if (state == SyncServiceState.RUNNING) {
                 if (runningSince == 0L) runningSince = now
                 // Healthy for a while: forget earlier failures.
-                if (now - runningSince > 30_000) attempt = 0
+                if (now - runningSince > 30_000 && indicatorShownSince == 0L) {
+                    attempt = 0
+                    if (_stuck.value) { _stuck.value = false; ConnectionLog.log("connection healthy again") }
+                }
             } else runningSince = 0L
             if (state == SyncServiceState.OFFLINE) { if (offlineSince == 0L) offlineSince = now } else offlineSince = 0L
+            val syncing = state == SyncServiceState.RUNNING && indicatorShownSince == 0L
+            if (!active || !online || syncing) notSyncingSince = 0L else if (notSyncingSince == 0L) notSyncingSince = now
+            // Counted from when the sync (re)started, since the indicator also shows while syncing is stopped.
+            val stalledFor = if (state == SyncServiceState.RUNNING && indicatorShownSince > 0 && runningSince > 0) {
+                now - maxOf(indicatorShownSince, runningSince)
+            } else 0L
 
             when {
-                shuttingDown -> return
                 !active && (state == SyncServiceState.RUNNING || state == SyncServiceState.OFFLINE) -> {
-                    if (now - inactiveSince >= 3_000) stopSync()
+                    if (now - inactiveSince >= 3_000 && !timed("stop", 15_000) { stopSync() }) {
+                        ConnectionLog.log("stop didn't answer; it will be restarted when the app comes back")
+                    }
                 }
-                active && online && (state == SyncServiceState.IDLE || state == SyncServiceState.TERMINATED) -> startSync()
+                active && online && (state == SyncServiceState.IDLE || state == SyncServiceState.TERMINATED) -> {
+                    if (!timed("start (was $state)", 20_000) { startSync() }) reportStuck("start didn't answer")
+                }
                 active && online && (state == SyncServiceState.ERROR ||
                     (state == SyncServiceState.OFFLINE && now - offlineSince > 10_000)) && now >= nextRestartAt -> {
-                    Log.w(TAG, "sync service is $state, restarting (attempt ${attempt + 1})")
-                    if (state == SyncServiceState.OFFLINE) stopSync()
-                    startSync()
+                    ConnectionLog.log("sync is $state, restarting (try ${attempt + 1})")
+                    if (attempt >= 2) {
+                        // Repeated failures: the server may have expired our sync session after the long break.
+                        timed("expire sync sessions", 15_000) { syncService.expireSessions() }
+                    } else if (state == SyncServiceState.OFFLINE) {
+                        timed("stop", 15_000) { stopSync() }
+                    }
+                    if (!timed("start", 20_000) { startSync() }) reportStuck("start didn't answer")
                     nextRestartAt = now + (1_000L shl attempt.coerceAtMost(5))
                     attempt++
                 }
+                active && online && stalledFor > 40_000 && now - lastKick > 60_000 -> {
+                    ConnectionLog.log("sync running but no round finished for ${stalledFor / 1000}s: restarting it")
+                    lastKick = now
+                    timed("stop", 15_000) { stopSync() }
+                    if (!timed("start", 20_000) { startSync() }) reportStuck("start didn't answer")
+                }
             }
+            if (notSyncingSince > 0 && now() - notSyncingSince > 45_000) reportStuck("not syncing for 45 s (state $state)")
             // Wait for something to change (state, foreground, network), re-checking regularly either way.
             kotlinx.coroutines.withTimeoutOrNull(if (active) 1_000L else 5_000L) { syncWake.receive() }
         }
@@ -371,14 +453,21 @@ private class NetworkWatch(context: android.content.Context, private val onChang
         private set
     private val callback = object : android.net.ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
-            update(caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET))
+            update(
+                caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            )
         }
         override fun onLost(network: android.net.Network) = update(false)
         override fun onUnavailable() = update(false)
     }
 
     private fun update(value: Boolean) {
-        if (online != value) { online = value; onChange() }
+        if (online != value) {
+            online = value
+            ConnectionLog.log("network ${if (value) "up" else "down"}")
+            onChange()
+        }
     }
 
     fun start() {

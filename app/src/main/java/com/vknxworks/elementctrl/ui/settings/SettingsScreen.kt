@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -325,6 +327,29 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
             ) { copyText(context, "Homeserver", session.homeserver) }
             SettingRow(Icons.Default.Info, "ElementCtrl ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Matrix Rust SDK ${runCatching { sdkGitSha().take(8) }.getOrDefault("")}")
+            var connectionLog by remember { mutableStateOf<String?>(null) }
+            SettingRow(
+                Icons.Default.Sync, "Connection log",
+                "What the connection did recently, to explain disconnects. No messages, names or servers.",
+            ) { connectionLog = com.vknxworks.elementctrl.matrix.ConnectionLog.read().lines().takeLast(400).joinToString("\n") }
+            connectionLog?.let { text ->
+                AlertDialog(
+                    onDismissRequest = { connectionLog = null },
+                    title = { Text("Connection log") },
+                    text = {
+                        androidx.compose.foundation.text.selection.SelectionContainer {
+                            Text(
+                                text.ifBlank { "Nothing logged yet." },
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState(Int.MAX_VALUE)),
+                            )
+                        }
+                    },
+                    confirmButton = { TextButton(onClick = { copyText(context, "Connection log", text); connectionLog = null }) { Text("Copy") } },
+                    dismissButton = { TextButton(onClick = { connectionLog = null }) { Text("Close") } },
+                )
+            }
 
             HorizontalDivider(Modifier.padding(top = 12.dp))
             SettingRow(Icons.AutoMirrored.Filled.Logout, if (signingOut) "Signing out…" else "Sign out", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {

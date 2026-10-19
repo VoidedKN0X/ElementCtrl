@@ -70,6 +70,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Reloads the app (like a force stop) when its connection can't be recovered; runs in its own process. -->
+        <activity
+            android:name=".AppRestart$RestartActivity"
+            android:process=":restart"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <receiver
             android:name=".notify.NotificationActionReceiver"
             android:exported="false" />

@@ -81,6 +81,7 @@ class AppGraph(val context: Context) {
                 MatrixSession(client, sync, paths).also { it.start() }
             }.onFailure { Log.e("AppGraph", "restore failed", it) }.getOrNull()
         }?.also { s ->
+            s.onStuck = { reason -> scope.launch { onSessionStuck(s, reason) } }
             _state.value = AppState.SignedIn(s)
             com.vknxworks.elementctrl.notify.Push.refresh(context)
             scope.launch {
@@ -96,6 +97,37 @@ class AppGraph(val context: Context) {
             }
         }
     }
+
+    /**
+     * The sync couldn't be brought back by restarting it. If the homeserver answers and the app is on screen,
+     * reload the app (what a force stop does), at most once every 10 minutes so a server problem can't cause a loop.
+     * Otherwise the chat list's banner offers a manual Reconnect.
+     */
+    private suspend fun onSessionStuck(s: MatrixSession, reason: String) {
+        if (!s.inForeground) return
+        val reachable = withContext(Dispatchers.IO) { serverAnswers(s.homeserver) }
+        ConnectionLog.log("homeserver ${if (reachable) "answers" else "doesn't answer"}")
+        if (!reachable) return
+        val p = context.getSharedPreferences("connection", Context.MODE_PRIVATE)
+        val last = p.getLong("auto_reload_at", 0)
+        if (System.currentTimeMillis() - last < 10 * 60_000) {
+            ConnectionLog.log("not reloading automatically: already did in the last 10 minutes")
+            return
+        }
+        p.edit().putLong("auto_reload_at", System.currentTimeMillis()).commit()
+        ConnectionLog.log("reloading the app to reconnect ($reason)")
+        com.vknxworks.elementctrl.AppRestart.restart(context, com.vknxworks.elementctrl.notify.OpenRoom.id)
+    }
+
+    private fun serverAnswers(homeserver: String): Boolean = runCatching {
+        val conn = (java.net.URL(homeserver.trimEnd('/') + "/_matrix/client/versions").openConnection() as java.net.HttpURLConnection).apply {
+            instanceFollowRedirects = false
+            useCaches = false
+            connectTimeout = 8_000
+            readTimeout = 8_000
+        }
+        try { conn.responseCode in 200..299 } finally { conn.disconnect() }
+    }.getOrDefault(false)
 
     /** Signs out on the server, then wipes this device's copy of the account. */
     suspend fun signOut() {
@@ -143,6 +175,7 @@ class AppGraph(val context: Context) {
         runCatching { com.vknxworks.elementctrl.notify.Notifier.forgetAll(context) }
         runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
         runCatching { com.vknxworks.elementctrl.notify.PushQueue.clear(context) }
+        runCatching { ConnectionLog.clear() }
     }
 
     /** Deletes every account folder under files/sessions and cache/sessions except [keep]. */

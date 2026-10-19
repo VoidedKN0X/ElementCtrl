@@ -24,7 +24,10 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        // The restart helper process only relaunches the app; nothing else may start there.
+        if (AppRestart.isRestartProcess()) return
         instance = this
+        com.vknxworks.elementctrl.matrix.ConnectionLog.init(this)
         // Native SDK first: it needs the Context for TLS checks, then logging/runtime setup.
         runCatching { org.matrix.rustsdk.Android.init(this) }
             .onFailure { Log.e("ElementCtrl", "Rust SDK Android init failed", it) }

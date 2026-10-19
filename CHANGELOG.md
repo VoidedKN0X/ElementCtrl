@@ -10,6 +10,19 @@ README only; the app itself hasn't changed, so this doesn't make a new release.
 
 - **PrintCtrl in the Ctrl series list.** The README's table of Ctrl apps now includes [PrintCtrl](https://github.com/VoidedKN0X/PrintCtrl), the app for Bambu Lab printers through a self-hosted Bambuddy server, and Spoolman spools.
 
+## 1.2.7
+
+### Fixed
+- **Coming back to the app after a while in the background no longer leaves it disconnected.** While the app sits in the background Android freezes it, and the connection it had open can die without the app noticing. Each start, stop and restart of the connection now has a time limit, so one that never gets an answer can't block the others, and after more than a minute away the app always opens a fresh connection when you return instead of trusting the old one.
+- The app now notices when the connection says it's running but hasn't received anything from the server for 40 seconds, and restarts it.
+- When the connection keeps failing, the app now also asks the server for a completely new sync session (from the third try), since the old one may have expired during the break.
+- **Last resort, automatic reload:** if the app still isn't syncing after 45 seconds on screen while the phone has a working network and your homeserver is answering, it reloads itself, exactly like force-stopping and reopening it, and reopens the chat you were in. This happens at most once every 10 minutes, so a server problem can't cause a reload loop. If app lock is on you'll be asked to unlock again.
+- "Online" now means a network that Android has confirmed actually reaches the internet, so Wi-Fi without internet (or a captive portal) no longer counts as a working connection.
+
+### New
+- **Reconnect** button on the chat list's connection banner ("Offline", "Connection problem", "Can't reach the server"): reloads the app's connection on the spot, without having to force-stop it in Android's settings.
+- **Connection log** in Settings › About: a record of what the connection did (going to the background and back, network changes, every start, stop and restart and how long it took). It contains no messages, names, servers or tokens. If disconnects still happen, tap it and use Copy to share what happened. It's deleted when you sign out.
+
 ## 1.2.6
 
 ### Fixed
