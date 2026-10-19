@@ -2,6 +2,12 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.13
+
+### New
+- **Support ElementCtrl** under Settings → About opens VKNXWorks' GitHub Sponsors page in your browser. ElementCtrl is free and open source, and this is the place to sponsor its development if you'd like to. Settings opens when you tap your profile picture at the top of Chats; the new row is the first one under About, above Homeserver.
+- The README's **Support the project** section now also points to the **Support ElementCtrl** button.
+
 ## 1.2.12
 
 ### Fixed

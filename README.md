@@ -99,7 +99,7 @@ The APK only includes 64-bit ARM code. To run it on an emulator, add `x86_64` to
 
 ## Support the project
 
-ElementCtrl is free and open source. If it's useful to you, you can support development on [GitHub Sponsors](https://github.com/sponsors/VoidedKN0X). Starring the repo and [reporting bugs](https://github.com/VoidedKN0X/ElementCtrl/issues) helps too.
+ElementCtrl is free and open source. If it's useful to you, you can support development on [GitHub Sponsors](https://github.com/sponsors/VoidedKN0X), or tap **Support ElementCtrl** under **Settings → About** in the app (tap your profile picture on the Chats screen). Starring the repo and [reporting bugs](https://github.com/VoidedKN0X/ElementCtrl/issues) helps too.
 
 ## The Ctrl series
 

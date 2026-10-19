@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Insights
@@ -76,10 +77,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vknxworks.elementctrl.BuildConfig
 import com.vknxworks.elementctrl.ElementCtrlApp
+import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.data.ThemeMode
 import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
@@ -95,6 +98,8 @@ import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.RecoveryState
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.sdkGitSha
+
+private const val SPONSOR_URL = "https://github.com/sponsors/VoidedKN0X"
 
 @Composable
 fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () -> Unit, onOpenUser: (String) -> Unit, onDevices: () -> Unit = {}) {
@@ -342,6 +347,11 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             }
 
             SectionHeader("About")
+            SettingRow(
+                Icons.Default.Favorite,
+                stringResource(R.string.support_title),
+                stringResource(R.string.support_subtitle),
+            ) { openUrl(context, SPONSOR_URL) }
             SettingRow(
                 Icons.Default.Dns, "Homeserver", session.homeserver,
                 trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
