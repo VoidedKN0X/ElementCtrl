@@ -214,7 +214,10 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             SettingRow(
                 Icons.Default.Bolt, "Delivery",
                 when (val st = pushStatus) {
-                    is com.vknxworks.elementctrl.notify.PushStatus.Active -> "Instant via ${st.distributor}"
+                    is com.vknxworks.elementctrl.notify.PushStatus.Active ->
+                        if (com.vknxworks.elementctrl.notify.Push.usesPublicGateway(st.gateway)) {
+                            "Instant via ${st.distributor}, through the public UnifiedPush gateway (it only sees room and message IDs, never content)"
+                        } else "Instant via ${st.distributor}"
                     com.vknxworks.elementctrl.notify.PushStatus.Registering -> "Setting up push…"
                     is com.vknxworks.elementctrl.notify.PushStatus.Failed -> "Push problem: ${st.message}"
                     com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to set up instant push with ntfy"

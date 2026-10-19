@@ -2,6 +2,15 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.10
+
+A privacy review of the new optional usage stats and of every connection the app makes. The stats are still off unless you said yes.
+
+### Security
+
+- **Switching usage stats off now throws away anything not yet sent.** Before, a stat recorded just before you switched them off could still be waiting in the app, and if you switched stats back on within a few seconds it could have been sent after all. Now everything waiting is discarded the moment you switch stats off, so nothing recorded before that point can ever go out.
+- **Settings shows when pushes go through the public UnifiedPush gateway.** If your push app has no Matrix gateway of its own (ntfy has one), your homeserver sends pushes through the public gateway run by the UnifiedPush project. A push only ever carries the room and message IDs and an unread count, never the message, sender or room name, but it's still a third party, so *Settings → Notifications → Delivery* now says "through the public UnifiedPush gateway" when that's the case. The README explains what a push contains.
+
 ## 1.2.9
 
 ### Changed

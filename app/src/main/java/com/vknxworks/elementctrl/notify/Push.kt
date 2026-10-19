@@ -43,6 +43,9 @@ object Push {
     /** Public gateway run by the UnifiedPush project, for distributors without their own. */
     private const val FALLBACK_GATEWAY = "https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify"
 
+    /** Whether pushes go through the public UnifiedPush gateway (a third party) rather than the push app's own. */
+    fun usesPublicGateway(gateway: String): Boolean = gateway == FALLBACK_GATEWAY
+
     private val _status = MutableStateFlow<PushStatus>(PushStatus.Off)
     val status: StateFlow<PushStatus> = _status.asStateFlow()
 

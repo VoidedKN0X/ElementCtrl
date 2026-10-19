@@ -54,6 +54,7 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 - **Notifications:** for instant notifications, install [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) and pick it in *Settings → Notifications*. Without it, ElementCtrl checks for new messages about every 15 minutes.
 - **Reliable notifications:** allow ElementCtrl to run in the background (*Settings → Notifications → Run in the background*). A battery-optimised app gets no network while the phone sleeps, so pushed messages can't be fetched. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in the app's *App info → Battery*.
 - **Self-hosted ntfy:** your Matrix server must be able to reach `https://your-ntfy/_matrix/push/v1/notify`.
+- **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to your push app's own Matrix gateway (ntfy has one built in); if the push app doesn't have one, it goes through the public UnifiedPush gateway (`matrix.gateway.unifiedpush.org`) instead, and *Settings → Notifications → Delivery* says so.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
@@ -64,6 +65,7 @@ ElementCtrl can share anonymous usage stats, **only if you say yes**. It asks on
 - **Shared:** which screens you open (the kind of screen, like "chat list", "room" or "settings", never which room or person), whether you send a text, voice message, picture or file (only the kind, never the message or the chat), whether you use search, the app version, Android version, phone model, language, phone or tablet, and whether notifications come through push, the background check or are off.
 - **Never shared:** your homeserver, your Matrix ID or anyone else's, room names or IDs, what you write, send or search for, how many messages you send in a chat, or any ID that stays the same between sessions.
 - **Where:** VKNXWorks' own self-hosted [Aptabase](https://aptabase.com) server. Nothing goes to Google or analytics companies. Like any website, the server sees your IP address; Aptabase uses it only to work out the country and doesn't store it. Your chats themselves still only go to your homeserver.
+- **Switching stats off** stops them straight away and throws away anything not yet sent.
 
 Builds from source don't include the stats key, so they can't send anything and the setting is hidden. The code is in [`Telemetry.kt`](app/src/main/java/com/vknxworks/elementctrl/telemetry/Telemetry.kt).
 
