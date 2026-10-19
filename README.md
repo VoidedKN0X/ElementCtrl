@@ -28,6 +28,10 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **App lock** with PIN and fingerprint, and hiding chats from Recents and screenshots
 - Two-pane layout on tablets and foldables
 
+## Screenshots
+
+Coming soon.
+
 ## Requirements
 
 - Android 13 or newer on a 64-bit ARM phone

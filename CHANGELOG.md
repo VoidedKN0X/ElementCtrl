@@ -2,6 +2,12 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## Unreleased
+
+### Changed
+
+- **README**: a Screenshots section (screenshots are coming soon), and a link preview image (`.github/assets/social-preview.png`) with ElementCtrl's icon, name and summary, for when the repo is shared on Reddit, Discord or elsewhere
+
 ## 1.2.14
 
 ### Changed
