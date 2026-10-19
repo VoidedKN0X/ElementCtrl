@@ -2,6 +2,12 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## Unreleased
+
+### Changed
+
+- **README brought up to date with ElementCtrl 1.2.10.** The feature list no longer suggests you can send stickers (the sticker and GIF picker was removed in 1.2.1); it now says stickers and GIFs other people send still show in chats. It now also mentions swipe to reply, double-tap to react, read receipts, the six chat bubble styles, the media and files view for each chat, reply and Mark as read on notifications, member management and moderation, sharing into ElementCtrl from other apps, renaming and signing out devices, and hiding chats from Recents and screenshots. Getting started now uses the **Use another device** and **Use your recovery key** buttons by name. The Usage stats section now lists the one other server the app contacts: your push app's server, once, to check for a Matrix gateway when you turn on push. No change to the app itself
+
 ## 1.2.10
 
 A privacy review of the new optional usage stats and of every connection the app makes. The stats are still off unless you said yes.

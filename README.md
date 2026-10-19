@@ -15,12 +15,17 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Any server**: matrix.org, other public servers, or your own address
 - **Sign in** with OAuth (including creating an account), username and password, or single sign-on
 - **End-to-end encryption** by default, with device verification and key backup
-- **Messages**: replies, threads, reactions, edits, polls, stickers, voice messages, images, videos and files
+- **Messages**: replies, threads, reactions, edits, polls, voice messages, images, videos and files; stickers and GIFs other people send show in the chat
+- **Quick gestures**: swipe a message to reply, double-tap to react, and see who has read up to where
+- **Chat bubbles** in six styles, from Modern to no bubbles at all (like Element Web)
+- **Media and files** for each chat: a photo and video grid and a list of files and voice messages
 - **Search inside chats**, including encrypted ones
-- **Push notifications through ntfy** (UnifiedPush), no Google services needed
+- **Push notifications through ntfy** (UnifiedPush), no Google services needed, grouped per chat with reply and Mark as read
 - **Link previews and drafts** for every chat
-- **Create rooms**, start direct chats and explore public rooms
-- **Device list**, app lock with PIN and fingerprint
+- **Create rooms**, start direct chats, explore public rooms, and manage members and moderation
+- **Share to ElementCtrl** from other apps
+- **Device list**: rename your signed-in sessions or sign them out
+- **App lock** with PIN and fingerprint, and hiding chats from Recents and screenshots
 - Two-pane layout on tablets and foldables
 
 ## Requirements
@@ -47,7 +52,7 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 
 1. Pick a server from the list, or enter your own (`example.com` or `https://matrix.example.com`).
 2. Sign in with whatever your server offers.
-3. Confirm it's you with another signed-in device or your recovery key, and your chats appear.
+3. Confirm it's you: tap **Use another device** (approve in Element or ElementCtrl and compare emojis) or **Use your recovery key**, and your chats appear.
 
 ## Tips and troubleshooting
 
@@ -66,6 +71,8 @@ ElementCtrl can share anonymous usage stats, **only if you say yes**. It asks on
 - **Never shared:** your homeserver, your Matrix ID or anyone else's, room names or IDs, what you write, send or search for, how many messages you send in a chat, or any ID that stays the same between sessions.
 - **Where:** VKNXWorks' own self-hosted [Aptabase](https://aptabase.com) server. Nothing goes to Google or analytics companies. Like any website, the server sees your IP address; Aptabase uses it only to work out the country and doesn't store it. Your chats themselves still only go to your homeserver.
 - **Switching stats off** stops them straight away and throws away anything not yet sent.
+
+**Other connections.** Apart from your homeserver (and the stats above, only if you said yes), ElementCtrl only contacts one other server: when you turn on push, it asks your push app's server (for example your ntfy server) once whether it has its own Matrix gateway. Link previews are fetched by your homeserver, never by the phone, and pushes reach the phone through your push app (see *What a push contains* above).
 
 Builds from source don't include the stats key, so they can't send anything and the setting is hidden. The code is in [`Telemetry.kt`](app/src/main/java/com/vknxworks/elementctrl/telemetry/Telemetry.kt).
 
