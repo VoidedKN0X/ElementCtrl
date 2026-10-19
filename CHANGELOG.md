@@ -2,6 +2,14 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.14
+
+### Changed
+- **One About section in every Ctrl app**: Support, Report a bug, Source code and Licence (GPL-3.0), with the version underneath, at the bottom of Settings (tap your profile picture at the top of Chats). The rows are in the same order, with the same wording and icons, as in the other Ctrl apps. **Report a bug** ("Found a problem or have an idea? Open an issue on GitHub") opens ElementCtrl's issue tracker, **Source code** opens its GitHub page and **Licence** opens the GNU General Public License v3.0. The version ("ElementCtrl 1.2.14 · VKNXWorks") is shown under the section instead of in its own row.
+- **Homeserver moved to the Account section.** The row showing your homeserver address (tap to copy, with the "not encrypted" badge for http:// servers) is now under Account instead of About.
+- **New Troubleshooting section** with the **Connection log** and the **Matrix Rust SDK** version the app is built with, both of which used to be under About.
+- **Sign out** is now just above the About section, which is the last section in Settings.
+
 ## 1.2.13
 
 ### New

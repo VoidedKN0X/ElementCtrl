@@ -21,6 +21,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AlternateEmail
@@ -100,6 +104,9 @@ import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.sdkGitSha
 
 private const val SPONSOR_URL = "https://github.com/sponsors/VoidedKN0X"
+private const val REPO_URL = "https://github.com/VoidedKN0X/ElementCtrl"
+private const val ISSUES_URL = "https://github.com/VoidedKN0X/ElementCtrl/issues"
+private const val LICENCE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
 
 @Composable
 fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () -> Unit, onOpenUser: (String) -> Unit, onDevices: () -> Unit = {}) {
@@ -203,6 +210,10 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     "Password, email, signed-in devices",
                 ) { openUrl(context, url) }
             }
+            SettingRow(
+                Icons.Default.Dns, "Homeserver", session.homeserver,
+                trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
+            ) { copyText(context, "Homeserver", session.homeserver) }
 
             SectionHeader("Notifications")
             SettingRow(
@@ -346,17 +357,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 }
             }
 
-            SectionHeader("About")
-            SettingRow(
-                Icons.Default.Favorite,
-                stringResource(R.string.support_title),
-                stringResource(R.string.support_subtitle),
-            ) { openUrl(context, SPONSOR_URL) }
-            SettingRow(
-                Icons.Default.Dns, "Homeserver", session.homeserver,
-                trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
-            ) { copyText(context, "Homeserver", session.homeserver) }
-            SettingRow(Icons.Default.Info, "ElementCtrl ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Matrix Rust SDK ${runCatching { sdkGitSha().take(8) }.getOrDefault("")}")
+            SectionHeader("Troubleshooting")
             var connectionLog by remember { mutableStateOf<String?>(null) }
             SettingRow(
                 Icons.Default.Sync, "Connection log",
@@ -381,11 +382,28 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 )
             }
 
+            SettingRow(Icons.Default.Info, "Matrix Rust SDK", runCatching { sdkGitSha().take(8) }.getOrDefault(""))
+
             HorizontalDivider(Modifier.padding(top = 12.dp))
             SettingRow(Icons.AutoMirrored.Filled.Logout, if (signingOut) "Signing out…" else "Sign out", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                 if (!signingOut) confirmSignOut = true
             }
-            Spacer(Modifier.height(32.dp))
+            HorizontalDivider()
+
+            SectionHeader(stringResource(R.string.group_about))
+            val chevron: @Composable () -> Unit = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            SettingRow(Icons.Default.Favorite, stringResource(R.string.support_title), stringResource(R.string.support_subtitle), trailing = chevron) { openUrl(context, SPONSOR_URL) }
+            SettingRow(Icons.Default.BugReport, stringResource(R.string.bugs_title), stringResource(R.string.bugs_subtitle), trailing = chevron) { openUrl(context, ISSUES_URL) }
+            SettingRow(Icons.Default.Code, stringResource(R.string.source_title), stringResource(R.string.source_subtitle), trailing = chevron) { openUrl(context, REPO_URL) }
+            SettingRow(Icons.Default.Gavel, stringResource(R.string.licence_title), stringResource(R.string.licence_subtitle), trailing = chevron) { openUrl(context, LICENCE_URL) }
+            Text(
+                stringResource(R.string.about_footer, BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Spacer(Modifier.height(16.dp))
         }
     }
 
