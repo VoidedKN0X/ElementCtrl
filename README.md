@@ -32,6 +32,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 
 - Android 13 or newer on a 64-bit ARM phone
 - A Matrix server with **Simplified Sliding Sync** (Synapse 1.114 or newer, Conduit, Conduwuit or Tuwunel)
+- **Google-free:** works without Google Play services, contains no Google libraries that contact Google, and draws emoji with your phone's own emoji font
 
 ## Install
 

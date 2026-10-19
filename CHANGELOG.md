@@ -2,10 +2,18 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
-## Unreleased
+## 1.2.11
+
+ElementCtrl is now completely Google-free. Nothing changes in how you use it.
+
+### Privacy
+
+- **Emoji no longer make ElementCtrl ask Google for a font.** A standard Android library inside the app asked Google Play services for a downloadable emoji font every time ElementCtrl started, which could make Google Play services fetch that font from Google. This lookup is now switched off: emoji are drawn with your phone's own emoji font. On phones without Google Play services nothing changes; on other phones, emoji can look slightly different if the phone's built-in emoji font is older.
+- **Checked: ElementCtrl is Google-free.** It contains no Google Play services, Firebase, ML Kit, Google Cast or Play Core, and it doesn't load fonts or anything else from Google's servers. It also never switches server addresses by itself: it always uses the address you set up, and only you can change it.
 
 ### Changed
 
+- **README: new Google-free line** under Requirements: works without Google Play services, contains no Google libraries that contact Google, and draws emoji with your phone's own emoji font.
 - **README brought up to date with ElementCtrl 1.2.10.** The feature list no longer suggests you can send stickers (the sticker and GIF picker was removed in 1.2.1); it now says stickers and GIFs other people send still show in chats. It now also mentions swipe to reply, double-tap to react, read receipts, the six chat bubble styles, the media and files view for each chat, reply and Mark as read on notifications, member management and moderation, sharing into ElementCtrl from other apps, renaming and signing out devices, and hiding chats from Recents and screenshots. Getting started now uses the **Use another device** and **Use your recovery key** buttons by name. The Usage stats section now lists the one other server the app contacts: your push app's server, once, to check for a Matrix gateway when you turn on push. No change to the app itself
 
 ## 1.2.10
