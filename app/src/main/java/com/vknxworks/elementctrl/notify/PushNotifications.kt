@@ -30,10 +30,11 @@ object OpenRoom {
 /** Turns pushed event IDs into chat-style notifications (one per room) with reply and mark-as-read. */
 object PushNotifications {
     const val KEY_REPLY = "reply_text"
-    private data class Line(val sender: String, val text: String, val ts: Long, val own: Boolean)
+    private data class Line(val sender: String, val text: String, val ts: Long, val own: Boolean, val eventId: String? = null)
     private val history = HashMap<String, ArrayDeque<Line>>()
 
-    enum class Outcome { SHOWN, SKIPPED, NOT_FOUND }
+    /** ENCRYPTED: shown as "🔒 New encrypted message" because the key hasn't arrived yet; worth fetching again. */
+    enum class Outcome { SHOWN, ENCRYPTED, SKIPPED, NOT_FOUND }
 
     /**
      * Fetches, decrypts and shows one pushed event. Throws if the homeserver couldn't be reached, so the push queue
@@ -78,15 +79,26 @@ object PushNotifications {
                 is TimelineEventContent.State -> return Outcome.SKIPPED
             }
         }
+        val encrypted = (item.event as? NotificationEvent.Timeline)?.let { ev ->
+            ((ev.event.content() as? TimelineEventContent.MessageLike)?.content) is MessageLikeEventContent.RoomEncrypted
+        } == true
         val ts = (item.event as? NotificationEvent.Timeline)?.event?.timestamp()?.toLong() ?: System.currentTimeMillis()
+        var replaced = false
         val lines = synchronized(history) {
             history.getOrPut(roomId) { ArrayDeque() }.apply {
-                addLast(Line(senderName, text, ts, false))
+                // A message fetched again once its key arrived replaces its "encrypted" placeholder in place.
+                val i = indexOfFirst { it.eventId == eventId }
+                if (i >= 0) {
+                    if (this[i].text == text) return if (encrypted) Outcome.ENCRYPTED else Outcome.SKIPPED
+                    this[i] = Line(senderName, text, ts, false, eventId)
+                    replaced = true
+                } else addLast(Line(senderName, text, ts, false, eventId))
                 while (size > 8) removeFirst()
             }.toList()
         }
-        post(context, roomId, roomName, item.roomInfo.isDm, item.isNoisy != false || item.hasMention == true, lines)
-        return Outcome.SHOWN
+        // Updating a placeholder with the real text shouldn't ring a second time.
+        post(context, roomId, roomName, item.roomInfo.isDm, !replaced && (item.isNoisy != false || item.hasMention == true), lines)
+        return if (encrypted) Outcome.ENCRYPTED else Outcome.SHOWN
     }
 
     /**

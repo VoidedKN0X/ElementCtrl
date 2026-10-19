@@ -96,6 +96,8 @@ class FetchPushWorker(context: Context, params: WorkerParameters) : CoroutineWor
         }
         // Pushes that arrive while this runs are picked up by the next round.
         val done = HashSet<String>()
+        val touchedRooms = LinkedHashSet<String>()
+        val stillEncrypted = ArrayList<PushQueue.Pending>()
         while (true) {
             val batch = PushQueue.pending(context).filter { it.eventId !in done }
             if (batch.isEmpty()) break
@@ -103,7 +105,12 @@ class FetchPushWorker(context: Context, params: WorkerParameters) : CoroutineWor
                 done += p.eventId
                 runCatching { PushNotifications.resolve(context, session, p.roomId, p.eventId) }
                     .onSuccess { outcome ->
-                        if (outcome == PushNotifications.Outcome.NOT_FOUND) PushNotifications.postFallback(context, p.roomId)
+                        when (outcome) {
+                            PushNotifications.Outcome.NOT_FOUND -> PushNotifications.postFallback(context, p.roomId)
+                            PushNotifications.Outcome.ENCRYPTED -> stillEncrypted += p
+                            else -> Unit
+                        }
+                        if (outcome != PushNotifications.Outcome.SKIPPED) touchedRooms += p.roomId
                         PushQueue.remove(context, p.eventId)
                     }
                     .onFailure {
@@ -115,7 +122,37 @@ class FetchPushWorker(context: Context, params: WorkerParameters) : CoroutineWor
                     }
             }
         }
+        if (touchedRooms.isNotEmpty()) catchUp(session, touchedRooms.toList(), stillEncrypted)
         return if (PushQueue.pending(context).isNotEmpty()) Result.retry() else Result.success()
+    }
+
+    /**
+     * Like Element X's "opportunistic sync": keep syncing those rooms for a little while after the notification so
+     * the keys for messages that arrived while the phone slept come in. Notifications that showed
+     * "🔒 New encrypted message" are fetched again and updated in place (without ringing again) once they can be
+     * read, and the chat is already decrypted when you open it.
+     */
+    private suspend fun catchUp(
+        session: com.vknxworks.elementctrl.matrix.MatrixSession,
+        rooms: List<String>,
+        encrypted: List<PushQueue.Pending>,
+    ) {
+        val context = applicationContext
+        session.withBackgroundSync {
+            session.subscribeToRooms(rooms)
+            var waiting = encrypted
+            val until = android.os.SystemClock.elapsedRealtime() + if (waiting.isEmpty()) 10_000 else 30_000
+            while (android.os.SystemClock.elapsedRealtime() < until) {
+                kotlinx.coroutines.delay(if (waiting.isEmpty()) 10_000 else 2_500)
+                if (waiting.isEmpty()) break
+                waiting = waiting.filter { p ->
+                    runCatching { PushNotifications.resolve(context, session, p.roomId, p.eventId) }
+                        .getOrNull() == PushNotifications.Outcome.ENCRYPTED
+                }
+                if (waiting.isEmpty()) break
+            }
+            if (waiting.isNotEmpty()) Log.w(TAG, "${waiting.size} notification(s) still encrypted after catching up")
+        }
     }
 
     companion object {

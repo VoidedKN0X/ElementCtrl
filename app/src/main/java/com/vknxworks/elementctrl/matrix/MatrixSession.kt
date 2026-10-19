@@ -398,6 +398,11 @@ class MatrixSession(
         runCatching { client.getRoom(roomId) }.getOrNull()
             ?: runCatching { roomListService.room(roomId) }.getOrNull()
 
+    /** Keeps these rooms fully synced (latest events, keys) for a while, e.g. right after a push. */
+    suspend fun subscribeToRooms(roomIds: List<String>) {
+        if (roomIds.isNotEmpty()) runCatching { roomListService.subscribeToRooms(roomIds) }
+    }
+
     suspend fun subscribeToRoom(roomId: String) {
         runCatching { roomListService.subscribeToRooms(listOf(roomId)) }
     }

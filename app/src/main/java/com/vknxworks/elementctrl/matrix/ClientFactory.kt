@@ -58,6 +58,9 @@ class ClientFactory(private val context: Context, private val store: SessionStor
             .setSessionDelegate(delegate)
             .userAgent("ElementCtrl/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; ${Build.MODEL})")
             .autoEnableBackups(true)
+            // When a message can't be decrypted (its key never reached this device, e.g. it was asleep or offline
+            // when it was sent), fetch that key from the key backup straight away, as Element X does.
+            .backupDownloadStrategy(uniffi.matrix_sdk.BackupDownloadStrategy.AFTER_DECRYPTION_FAILURE)
             .autoEnableCrossSigning(true)
             .roomKeyRecipientStrategy(CollectStrategy.ERROR_ON_VERIFIED_USER_PROBLEM)
             .decryptionSettings(DecryptionSettings(senderDeviceTrustRequirement = TrustRequirement.UNTRUSTED))

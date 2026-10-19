@@ -2,6 +2,13 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.2.12
+
+### Fixed
+- **Messages that arrive after the app hasn't been used for a while are decrypted much sooner.** When a message's key hadn't reached your phone yet (it was asleep or offline when the message was sent), the app now fetches that key from your encrypted key backup straight away, instead of waiting for another device to send it. This works both for notifications and for messages you see when opening a chat.
+- **"🔒 New encrypted message" notifications now update themselves.** After a push, the app keeps syncing that chat for up to 30 seconds in the background (like Element X's "opportunistic sync") so the key can come in, then fetches the message again and replaces the placeholder with the real text in the same notification, without ringing a second time.
+- After any message notification, the app also keeps that chat syncing for about 10 seconds, so when you tap the notification the chat is already up to date and decrypted.
+
 ## 1.2.11
 
 ElementCtrl is now completely Google-free. Nothing changes in how you use it.
