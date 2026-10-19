@@ -57,6 +57,16 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
+## Usage stats
+
+ElementCtrl can share anonymous usage stats, **only if you say yes**. It asks once after you sign in, and you can change it any time in **Settings > Usage stats**.
+
+- **Shared:** which screens you open (the kind of screen, like "chat list", "room" or "settings", never which room or person), whether you send a text, voice message, picture or file (only the kind, never the message or the chat), whether you use search, the app version, Android version, phone model, language, phone or tablet, and whether notifications come through push, the background check or are off.
+- **Never shared:** your homeserver, your Matrix ID or anyone else's, room names or IDs, what you write, send or search for, how many messages you send in a chat, or any ID that stays the same between sessions.
+- **Where:** VKNXWorks' own self-hosted [Aptabase](https://aptabase.com) server. Nothing goes to Google or analytics companies. Like any website, the server sees your IP address; Aptabase uses it only to work out the country and doesn't store it. Your chats themselves still only go to your homeserver.
+
+Builds from source don't include the stats key, so they can't send anything and the setting is hidden. The code is in [`Telemetry.kt`](app/src/main/java/com/vknxworks/elementctrl/telemetry/Telemetry.kt).
+
 ## Build from source
 
 You need [Android Studio](https://developer.android.com/studio), or JDK 17 and the Android SDK.

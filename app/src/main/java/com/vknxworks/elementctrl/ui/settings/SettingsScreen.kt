@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Notifications
@@ -310,6 +311,22 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     trailing = { Switch(lock.hideContent, { lock.hideContent = it }) },
                 )
                 SettingRow(Icons.Default.Password, "Change PIN") { pinDialog = com.vknxworks.elementctrl.ui.lock.PinMode.Change }
+            }
+
+            if (graph.telemetry.available) {
+                val usageStats by prefs.usageStats.collectAsStateWithLifecycle()
+                SectionHeader("Usage stats")
+                SettingRow(
+                    Icons.Default.Insights, "Share anonymous usage stats",
+                    "Helps decide what to improve next",
+                    trailing = { Switch(usageStats, prefs::answerUsageStats) },
+                )
+                Text(
+                    USAGE_STATS_DESCRIPTION,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
             }
 
             if (ignored.isNotEmpty()) {

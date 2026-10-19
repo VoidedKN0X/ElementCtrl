@@ -69,9 +69,15 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
     val atEnd by remember { derivedStateOf { (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= results.size - 4 } }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    var searchTracked by remember { mutableStateOf(false) }
     LaunchedEffect(query) {
         delay(300)
         search.query(query)
+        // Usage stats (if opted in): that search inside a chat was used, once per visit. Never the words or the chat.
+        if (query.isNotBlank() && !searchTracked) {
+            searchTracked = true
+            com.vknxworks.elementctrl.ElementCtrlApp.graph.telemetry.track("search_used", mapOf("where" to "chat"))
+        }
     }
     // The index keeps growing while history is fetched, so keep asking for more while scrolled to the end.
     LaunchedEffect(atEnd, results.size, loading) { if (atEnd && query.isNotBlank() && !loading && !endReached) search.more() }

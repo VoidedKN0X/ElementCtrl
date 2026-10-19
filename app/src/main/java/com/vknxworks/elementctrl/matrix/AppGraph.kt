@@ -33,6 +33,7 @@ class AppGraph(val context: Context) {
     val auth = AuthService(this)
     val redirectScheme: String = context.getString(R.string.login_redirect_scheme)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val telemetry = com.vknxworks.elementctrl.telemetry.Telemetry(context, prefs, scope)
 
     private val _state = MutableStateFlow<AppState>(AppState.Loading)
     val state: StateFlow<AppState> = _state.asStateFlow()

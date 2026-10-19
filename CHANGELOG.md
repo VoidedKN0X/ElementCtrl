@@ -2,13 +2,17 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
-## Unreleased
+## 1.2.8
 
-README only; the app itself hasn't changed, so this doesn't make a new release.
+### New
+- **Optional anonymous usage stats.** After you sign in, ElementCtrl asks once whether you'd like to share anonymous usage stats. Nothing is sent unless you tap **Share stats**, and you can switch it on or off any time in **Settings › Usage stats**.
+- **What's shared:** which screens you open (the kind of screen, for example the chat list, a room or Settings, never which room or person), whether you send a text, voice message, picture or file (only the kind of message), whether you use search in the chat list or inside a chat, the app version, Android version, phone model, language, phone or tablet, and whether your notifications come through push, the background check or are off.
+- **What's never shared:** your homeserver, your Matrix ID or anyone else's, room names or IDs, who you talk to, what you write, send or search for, how many messages you send in any chat, or any ID that follows you between sessions. Each session gets a new random ID, and stats from before and after you switch them off and on again aren't linked.
+- **Where it goes:** to VKNXWorks' own self-hosted server (Aptabase), not to Google or any analytics company. Your messages still only go to your homeserver. Builds you make from source can't send stats at all, and the setting doesn't appear in them.
 
 ### Changed
-
 - **PrintCtrl in the Ctrl series list.** The README's table of Ctrl apps now includes [PrintCtrl](https://github.com/VoidedKN0X/PrintCtrl), the app for Bambu Lab printers through a self-hosted Bambuddy server, and Spoolman spools.
+- The README has a new **Usage stats** section listing exactly what's collected.
 
 ## 1.2.7
 

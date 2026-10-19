@@ -44,6 +44,7 @@ class MainActivity : FragmentActivity() {
         // Never keep a snapshot of open chats in the recent-apps screen (FLAG_SECURE below is the stronger, optional step).
         setRecentsScreenshotEnabled(false)
         handleIntent(intent)
+        if (savedInstanceState == null) ElementCtrlApp.graph.telemetry.appOpened()
         setContent {
             ElementCtrlTheme {
                 val lock = ElementCtrlApp.graph.lock

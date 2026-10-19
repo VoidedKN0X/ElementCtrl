@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
 import com.vknxworks.elementctrl.matrix.VerifyStep
@@ -136,6 +137,19 @@ fun MainNav(session: MatrixSession) {
             nav.navigate("verify?start=false")
         }
     }
+
+    // Usage stats (only if the user opted in): the kind of screen, never the room, person or event it shows.
+    val entryId = backStack?.id
+    val screen = backStack?.destination?.route?.let(::screenName)
+    LaunchedEffect(entryId) {
+        if (screen != null) ElementCtrlApp.graph.telemetry.track("screen_viewed", mapOf("screen" to screen))
+    }
+    // A chat opened in the tablet pane isn't a screen change; count it as the room screen.
+    val paneOpen = paneRoom
+    LaunchedEffect(paneOpen) {
+        if (paneOpen != null) ElementCtrlApp.graph.telemetry.track("screen_viewed", mapOf("screen" to "room"))
+    }
+    com.vknxworks.elementctrl.ui.settings.UsageStatsPrompt()
 
     NavHost(nav, startDestination = "home") {
         composable("home") {
@@ -330,6 +344,12 @@ fun MainNav(session: MatrixSession) {
         )
     }
 }
+
+/**
+ * "room/{roomId}?focus={focus}" -> "room". Only the route's fixed name: the destination's pattern never holds the
+ * actual room, user or event IDs, and everything after the first "/" or "?" is dropped anyway.
+ */
+private fun screenName(route: String): String = route.substringBefore('/').substringBefore('?')
 
 /** Two panes from 840 dp wide (tablets, unfolded foldables), or 600 dp in landscape. */
 @Composable

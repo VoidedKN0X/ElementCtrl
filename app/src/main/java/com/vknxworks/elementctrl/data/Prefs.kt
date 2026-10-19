@@ -77,6 +77,21 @@ class Prefs(context: Context) {
     val showStateEvents: StateFlow<Boolean> = _showHiddenEvents.asStateFlow()
     fun setShowStateEvents(on: Boolean) { sp.edit().putBoolean("show_state_events", on).apply(); _showHiddenEvents.value = on }
 
+    private val _usageStats = MutableStateFlow(sp.getBoolean("usage_stats", false))
+    /** Opt-in anonymous usage stats (off until the user says yes). */
+    val usageStats: StateFlow<Boolean> = _usageStats.asStateFlow()
+
+    private val _usageStatsAsked = MutableStateFlow(sp.getBoolean("usage_stats_asked", false))
+    /** Whether the one-time usage stats question has been answered. */
+    val usageStatsAsked: StateFlow<Boolean> = _usageStatsAsked.asStateFlow()
+
+    /** Answers the first-run question, or flips the switch in Settings (which counts as an answer too). */
+    fun answerUsageStats(on: Boolean) {
+        sp.edit().putBoolean("usage_stats", on).putBoolean("usage_stats_asked", true).apply()
+        _usageStatsAsked.value = true
+        _usageStats.value = on
+    }
+
     /** Custom servers signed in to before, newest first, offered again on the server picker. */
     var recentCustomServers: List<String>
         get() = sp.getString("recent_servers", "").orEmpty().split('\n').filter { it.isNotBlank() }
