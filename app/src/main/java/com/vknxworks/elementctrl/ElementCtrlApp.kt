@@ -63,7 +63,8 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
                 graph.session?.inForeground = false
                 Notifier.schedule(
                     this@ElementCtrlApp,
-                    graph.prefs.notifications.value && graph.session != null && !com.vknxworks.elementctrl.notify.Push.isEnabled(this@ElementCtrlApp),
+                    // Also with push through ntfy: the 15-minute check catches anything a push didn't bring.
+                    graph.prefs.notifications.value && graph.session != null,
                 )
             }
         })

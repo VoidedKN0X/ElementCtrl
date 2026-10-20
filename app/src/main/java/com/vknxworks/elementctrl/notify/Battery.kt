@@ -1,6 +1,7 @@
 package com.vknxworks.elementctrl.notify
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -26,6 +27,33 @@ object Battery {
 
     fun isUnrestricted(context: Context): Boolean =
         context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
+
+    /**
+     * Battery usage set to "Restricted" in Android's settings: Android then holds back every background job,
+     * including the one that fetches a pushed message, until the app is opened.
+     */
+    fun isBackgroundRestricted(context: Context): Boolean =
+        context.getSystemService(ActivityManager::class.java)?.isBackgroundRestricted == true
+
+    /**
+     * Whether ntfy may run unrestricted. If it is optimised, Android cuts its connection to your ntfy server in
+     * deep sleep and pushes arrive late or not at all. Android answers this for other apps too.
+     */
+    fun isNtfyUnrestricted(context: Context): Boolean =
+        context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(UnifiedPush.NTFY) == true
+
+    /** ntfy's App info page, where Battery › Unrestricted (and on ColorOS "Allow background activity") is set. */
+    fun openNtfyAppInfo(context: Context) {
+        if (!launch(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${UnifiedPush.NTFY}")))) {
+            launch(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
+
+    /** Opens ntfy itself (it offers to turn off its own battery optimisation). */
+    fun openNtfy(context: Context): Boolean {
+        val intent = context.packageManager.getLaunchIntentForPackage(UnifiedPush.NTFY) ?: return false
+        return launch(context, intent)
+    }
 
     /** OPPO, OnePlus and realme (ColorOS) add their own background limits on top of Android's. */
     val hasVendorLimits: Boolean
@@ -63,9 +91,14 @@ object Battery {
         _bannerTick.value++
     }
 
-    /** Show the home-screen banner: notifications are on, the app is optimised, and it wasn't dismissed since the last miss. */
+    /**
+     * Show the home-screen banner: notifications are on, ElementCtrl (or ntfy, with push on) is held back by battery
+     * settings, and it wasn't dismissed since the last miss.
+     */
     fun shouldShowBanner(context: Context, notificationsOn: Boolean): Boolean {
-        if (!notificationsOn || isUnrestricted(context)) return false
+        if (!notificationsOn) return false
+        val ntfyHeldBack = Push.isEnabled(context) && UnifiedPush.isNtfyInstalled(context) && !isNtfyUnrestricted(context)
+        if (isUnrestricted(context) && !isBackgroundRestricted(context) && !ntfyHeldBack) return false
         val p = prefs(context)
         val dismissed = p.getLong("dismissed_at", 0)
         return dismissed == 0L || p.getLong("missed_at", 0) > dismissed

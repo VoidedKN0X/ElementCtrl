@@ -2,6 +2,28 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.3.0
+
+### Changed
+- **Push notifications through ntfy only.** Instant push now always comes through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/), and other push apps can no longer be picked. If you used ntfy before, nothing changes: your registration and your homeserver's pusher are kept as they are. If you used another push app, ElementCtrl removes its registration there and moves to ntfy automatically when ntfy is installed; otherwise instant push is off until you install ntfy and turn it on in *Settings → Notifications → Delivery*. The background check keeps running either way.
+- **Pushes only go through your own ntfy server.** Your homeserver now always sends pushes to the Matrix push gateway built into your ntfy server (`/_matrix/push/v1/notify`). The public UnifiedPush gateway (`matrix.gateway.unifiedpush.org`) is no longer used as a fallback. If your ntfy server's gateway can't be found, *Settings → Notifications* shows a clear error (with a **Try again** button) instead of quietly sending pushes through another server, and a pusher left over from the public gateway is removed from your homeserver.
+- **The 15-minute background check now always runs**, also when push through ntfy is on. If a push never arrives (ntfy lost its connection, or your homeserver dropped the pusher), the message still turns into a notification within about 15 minutes. Messages that already showed a notification from a push aren't shown a second time.
+- **The Notifications settings warn clearly when something will stop notifications**, each with buttons to fix it:
+  - **ntfy isn't installed**, with an **Install ntfy** button that opens ntfy on F-Droid. This is checked again every time you come back to the screen, so it disappears as soon as ntfy is installed.
+  - **ElementCtrl is battery-restricted** (battery optimisation on, or battery usage set to Restricted), with **Allow** and **App info** buttons.
+  - **ntfy is battery-restricted**: Android can then cut ntfy's connection to your ntfy server while the phone sleeps. With **ntfy's App info** (to set its battery usage to Unrestricted) and **Open ntfy** buttons.
+  - **Instant push isn't working**, with the reason in full (for example "ntfy didn't answer" or a missing gateway) and a **Try again** button.
+- **The "Notifications may be missed" banner** in the chat list now also appears when ntfy is battery-optimised, and its button takes you to ntfy's battery setting.
+- **ntfy temporarily unavailable**: when ntfy reports that your ntfy server is down, *Delivery* now says so. Push picks up again by itself once the server is back, and the background check keeps running in the meantime.
+
+### Fixed
+- **Messages that sometimes didn't arrive as notifications.** A message pushed while ElementCtrl was still catching up on an earlier one could wait up to half a minute, plus a growing back-off delay, before it was fetched; it is now fetched right away. A message that can't be fetched yet (no network, homeserver not answering) is now tried again within 20 to 60 seconds in a separate job, so new pushes never wait behind it, and after three tries it still shows a "New message" notification instead of nothing.
+- **Push setup no longer hangs on "Setting up push…"** when ntfy doesn't answer: after 30 seconds it says so and asks you to open ntfy once.
+
+### Privacy
+- **De-Googled.** The push library ElementCtrl used is gone, together with the Google crypto library (Tink) it brought along and its built-in check for Google Play services. ElementCtrl now talks to ntfy directly, contains no Google libraries or services and never contacts Google. The "ntfy on Play" button and every other mention of Google in the app are gone; ntfy is only offered from F-Droid.
+- **README**: the Google-free line now reads "Google-free and de-Googled", push is described as ntfy-only with the background check as a fallback, and the setup steps are updated.
+
 ## 1.2.15
 
 ### Privacy

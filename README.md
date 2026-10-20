@@ -20,7 +20,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Chat bubbles** in six styles, from Modern to no bubbles at all (like Element Web)
 - **Media and files** for each chat: a photo and video grid and a list of files and voice messages
 - **Search inside chats**, including encrypted ones
-- **Push notifications through ntfy** (UnifiedPush), no Google services needed, grouped per chat with reply and Mark as read
+- **Push notifications through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/)** only, grouped per chat with reply and Mark as read, with a background check every ~15 minutes as a fallback
 - **Link previews and drafts** for every chat
 - **Create rooms**, start direct chats, explore public rooms, and manage members and moderation
 - **Share to ElementCtrl** from other apps
@@ -36,7 +36,7 @@ Coming soon.
 
 - Android 13 or newer on a 64-bit ARM phone
 - A Matrix server with **Simplified Sliding Sync** (Synapse 1.114 or newer, Conduit, Conduwuit or Tuwunel)
-- **Google-free:** works without Google Play services, contains no Google libraries that contact Google, and draws emoji with your phone's own emoji font
+- **Google-free and de-Googled:** no Google Play services, Firebase or other Google services, and the app never contacts Google. It works the same on de-Googled phones (GrapheneOS, CalyxOS, /e/OS, LineageOS without Google apps).
 
 ## Install
 
@@ -61,18 +61,18 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 
 ## Tips and troubleshooting
 
-- **Notifications:** for instant notifications, install [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) and pick it in *Settings → Notifications*. Without it, ElementCtrl checks for new messages about every 15 minutes.
-- **Reliable notifications:** allow ElementCtrl to run in the background (*Settings → Notifications → Run in the background*). A battery-optimised app gets no network while the phone sleeps, so pushed messages can't be fetched. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in the app's *App info → Battery*.
-- **Self-hosted ntfy:** your Matrix server must be able to reach `https://your-ntfy/_matrix/push/v1/notify`.
-- **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to your push app's own Matrix gateway (ntfy has one built in); if the push app doesn't have one, it goes through the public UnifiedPush gateway (`matrix.gateway.unifiedpush.org`) instead, and *Settings → Notifications → Delivery* says so.
+- **Notifications:** instant push comes through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) only (no other push apps). Install ntfy, then turn it on in *Settings → Notifications → Delivery → Instant push with ntfy*. ElementCtrl also checks for new messages about every 15 minutes, with or without ntfy, so a push that doesn't arrive still turns into a notification.
+- **Reliable notifications:** let both ElementCtrl and ntfy run unrestricted in the background. *Settings → Notifications* warns when either is battery-restricted and has buttons to fix it. A battery-optimised ElementCtrl gets no network while the phone sleeps, so pushed messages can't be fetched; a battery-optimised ntfy loses its connection to your ntfy server. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in *App info → Battery* for both apps.
+- **Self-hosted ntfy:** your ntfy server's Matrix push gateway (`https://your-ntfy/_matrix/push/v1/notify`, built into ntfy) is used for every push, so your Matrix server must be able to reach it, and the ntfy server needs `base-url` set in its config. ntfy.sh works too. If the gateway can't be found, *Settings → Notifications* shows an error; no other gateway is ever used.
+- **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to the Matrix gateway of your own ntfy server, which passes it to ntfy on your phone.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
 ## Privacy
 
-**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser) and, if you turn on push, your push app's server, such as your ntfy server.
+**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser) and, if you turn on push, your ntfy server.
 
-- **Push:** when you turn it on, ElementCtrl asks your push app's server once whether it has its own Matrix gateway. Pushes then reach the phone through your push app (see *What a push contains* above).
+- **Push:** when you turn it on, ElementCtrl asks your ntfy server whether its Matrix gateway is there. Pushes then reach the phone through ntfy (see *What a push contains* above).
 - **Link previews** are fetched by your homeserver, never by the phone.
 - **The Matrix SDK's crash reporting is switched off**, and release builds don't write the SDK's logs anywhere.
 

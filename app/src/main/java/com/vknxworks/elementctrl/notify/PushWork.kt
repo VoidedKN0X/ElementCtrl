@@ -2,7 +2,6 @@ package com.vknxworks.elementctrl.notify
 
 import android.content.Context
 import android.util.Log
-import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -13,10 +12,13 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.vknxworks.elementctrl.matrix.MatrixHttp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Pushed event IDs waiting to be turned into notifications. Kept on disk so that nothing is lost when Android
@@ -75,102 +77,147 @@ object PushQueue {
 
 /**
  * Turns queued pushes into notifications, the way Element X does it: as an expedited WorkManager job, which
- * Android starts straight away and lets finish even when the app was asleep or stopped, and which retries
- * when there's no network yet instead of silently dropping the message.
+ * Android starts straight away and lets finish even when the app was asleep or stopped. A message that can't be
+ * fetched yet (no network, homeserver not answering) stays queued and is tried again shortly, and after a few tries
+ * a plain "New message" notification is shown instead of nothing.
  */
 class FetchPushWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = running.withLock { fetchAll() }
+
+    private suspend fun fetchAll(): Result {
         val context = applicationContext
         if (!Push.isEnabled(context)) {
             PushQueue.clear(context)
             return Result.success()
         }
+        if (PushQueue.pending(context).isEmpty()) return Result.success()
+        val attempt = inputData.getInt(KEY_ATTEMPT, 0)
         val session = Push.waitForSession(timeoutMs = 60_000)
         if (session == null) {
             // Still starting up (or no session at all): try again shortly, and after a few tries show what we have.
-            if (runAttemptCount < 3) return Result.retry()
-            PushQueue.pending(context).forEach { PushNotifications.postFallback(context, it.roomId) }
-            PushQueue.clear(context)
+            if (attempt < MAX_TRIES) {
+                scheduleRetry(context, attempt + 1)
+            } else {
+                PushQueue.pending(context).forEach { PushNotifications.postFallback(context, it.roomId) }
+                PushQueue.clear(context)
+            }
             return Result.success()
         }
-        // Pushes that arrive while this runs are picked up by the next round.
-        val done = HashSet<String>()
-        val touchedRooms = LinkedHashSet<String>()
-        val stillEncrypted = ArrayList<PushQueue.Pending>()
-        while (true) {
-            val batch = PushQueue.pending(context).filter { it.eventId !in done }
-            if (batch.isEmpty()) break
-            for (p in batch) {
-                done += p.eventId
-                runCatching { PushNotifications.resolve(context, session, p.roomId, p.eventId) }
-                    .onSuccess { outcome ->
-                        when (outcome) {
-                            PushNotifications.Outcome.NOT_FOUND -> PushNotifications.postFallback(context, p.roomId)
-                            PushNotifications.Outcome.ENCRYPTED -> stillEncrypted += p
-                            else -> Unit
-                        }
-                        if (outcome != PushNotifications.Outcome.SKIPPED) touchedRooms += p.roomId
-                        PushQueue.remove(context, p.eventId)
-                    }
-                    .onFailure {
-                        Log.w(TAG, "fetch failed: ${it.javaClass.simpleName}")
-                        if (PushQueue.failed(context, p.eventId) >= MAX_TRIES) {
-                            PushNotifications.postFallback(context, p.roomId)
+        val tried = HashSet<String>()
+        var encrypted = emptyList<PushQueue.Pending>()
+        var rounds = 0
+        while (rounds++ < MAX_ROUNDS) {
+            val touchedRooms = LinkedHashSet<String>()
+            val stillEncrypted = ArrayList(encrypted)
+            // Pushes that arrive while this runs are picked up by the next round, not left waiting.
+            while (true) {
+                val batch = PushQueue.pending(context).filter { it.eventId !in tried }
+                if (batch.isEmpty()) break
+                for (p in batch) {
+                    tried += p.eventId
+                    runCatching { PushNotifications.resolve(context, session, p.roomId, p.eventId) }
+                        .onSuccess { outcome ->
+                            when (outcome) {
+                                PushNotifications.Outcome.NOT_FOUND -> PushNotifications.postFallback(context, p.roomId)
+                                PushNotifications.Outcome.ENCRYPTED -> stillEncrypted += p
+                                else -> Unit
+                            }
+                            if (outcome != PushNotifications.Outcome.SKIPPED) touchedRooms += p.roomId
                             PushQueue.remove(context, p.eventId)
                         }
-                    }
+                        .onFailure {
+                            Log.w(TAG, "fetch failed: ${it.javaClass.simpleName}")
+                            if (PushQueue.failed(context, p.eventId) >= MAX_TRIES) {
+                                PushNotifications.postFallback(context, p.roomId)
+                                PushQueue.remove(context, p.eventId)
+                            }
+                        }
+                }
             }
+            if (touchedRooms.isEmpty() && stillEncrypted.isEmpty()) break
+            encrypted = catchUp(session, (touchedRooms + stillEncrypted.map { it.roomId }).distinct(), stillEncrypted, tried)
+            // Leave the loop unless a new push came in while catching up.
+            if (PushQueue.pending(context).none { it.eventId !in tried }) break
         }
-        if (touchedRooms.isNotEmpty()) catchUp(session, touchedRooms.toList(), stillEncrypted)
-        return if (PushQueue.pending(context).isNotEmpty()) Result.retry() else Result.success()
+        when {
+            // Couldn't fetch some of them this time: try again soon instead of waiting for the next push.
+            PushQueue.pending(context).any { it.eventId in tried } -> scheduleRetry(context, attempt + 1)
+            // More kept coming in: carry on in a fresh run.
+            PushQueue.pending(context).isNotEmpty() -> enqueue(context)
+        }
+        return Result.success()
     }
 
     /**
      * Like Element X's "opportunistic sync": keep syncing those rooms for a little while after the notification so
      * the keys for messages that arrived while the phone slept come in. Notifications that showed
      * "🔒 New encrypted message" are fetched again and updated in place (without ringing again) once they can be
-     * read, and the chat is already decrypted when you open it.
+     * read, and the chat is already decrypted when you open it. Stops early when a new push arrives, and returns
+     * the messages that are still encrypted.
      */
     private suspend fun catchUp(
         session: com.vknxworks.elementctrl.matrix.MatrixSession,
         rooms: List<String>,
         encrypted: List<PushQueue.Pending>,
-    ) {
+        tried: Set<String>,
+    ): List<PushQueue.Pending> {
         val context = applicationContext
+        var waiting = encrypted
         session.withBackgroundSync {
             session.subscribeToRooms(rooms)
-            var waiting = encrypted
             val until = android.os.SystemClock.elapsedRealtime() + if (waiting.isEmpty()) 10_000 else 30_000
             while (android.os.SystemClock.elapsedRealtime() < until) {
-                kotlinx.coroutines.delay(if (waiting.isEmpty()) 10_000 else 2_500)
-                if (waiting.isEmpty()) break
+                kotlinx.coroutines.delay(if (waiting.isEmpty()) 2_000 else 2_500)
+                if (PushQueue.pending(context).any { it.eventId !in tried }) break
+                if (waiting.isEmpty()) continue
                 waiting = waiting.filter { p ->
                     runCatching { PushNotifications.resolve(context, session, p.roomId, p.eventId) }
                         .getOrNull() == PushNotifications.Outcome.ENCRYPTED
                 }
-                if (waiting.isEmpty()) break
             }
             if (waiting.isNotEmpty()) Log.w(TAG, "${waiting.size} notification(s) still encrypted after catching up")
         }
+        return waiting
     }
 
     companion object {
         private const val TAG = "FetchPush"
         private const val WORK = "push-fetch"
+        private const val RETRY = "push-fetch-retry"
+        private const val KEY_ATTEMPT = "attempt"
         private const val MAX_TRIES = 3
+        private const val MAX_ROUNDS = 10
+        /** One fetch at a time, whether started by a push or by a retry. */
+        private val running = Mutex()
+
+        private val network get() = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
         fun enqueue(context: Context) {
             val request = OneTimeWorkRequestBuilder<FetchPushWorker>()
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.SECONDS)
+                .setConstraints(network)
                 .build()
-            // A running job loops until the queue is empty, so a new push doesn't need a second one.
-            WorkManager.getInstance(context).enqueueUniqueWork(WORK, ExistingWorkPolicy.KEEP, request)
+            // Queued behind a run that is still going (it may be past its last look at the queue), so a push that
+            // arrives at that moment is never left behind; it starts straight away otherwise.
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 
-        fun cancel(context: Context) = WorkManager.getInstance(context).cancelUniqueWork(WORK)
+        /** A separate, delayed job for retries, so a new push never has to wait behind a back-off. */
+        private fun scheduleRetry(context: Context, attempt: Int) {
+            val request = OneTimeWorkRequestBuilder<FetchPushWorker>()
+                .setInitialDelay(20L * attempt, TimeUnit.SECONDS)
+                .setConstraints(network)
+                .setInputData(workDataOf(KEY_ATTEMPT to attempt))
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(RETRY, ExistingWorkPolicy.REPLACE, request)
+        }
+
+        fun cancel(context: Context) {
+            val wm = WorkManager.getInstance(context)
+            wm.cancelUniqueWork(WORK)
+            wm.cancelUniqueWork(RETRY)
+        }
     }
 }
 

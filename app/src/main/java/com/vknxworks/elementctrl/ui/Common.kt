@@ -323,18 +323,38 @@ fun NotEncryptedBadge(modifier: Modifier = Modifier) {
     }
 }
 
-/** Whether the app is exempt from battery optimisation, re-checked whenever the screen comes back (e.g. from Settings). */
+/** What can stop pushes from turning into notifications, re-checked whenever the screen comes back (e.g. from Settings). */
+data class PushHealth(
+    /** ElementCtrl is exempt from battery optimisation. */
+    val appUnrestricted: Boolean,
+    /** ElementCtrl's battery usage is set to "Restricted". */
+    val appBackgroundRestricted: Boolean,
+    val ntfyInstalled: Boolean,
+    /** ntfy is exempt from battery optimisation (only meaningful when installed). */
+    val ntfyUnrestricted: Boolean,
+)
+
+private fun readPushHealth(context: android.content.Context) = PushHealth(
+    appUnrestricted = com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context),
+    appBackgroundRestricted = com.vknxworks.elementctrl.notify.Battery.isBackgroundRestricted(context),
+    ntfyInstalled = com.vknxworks.elementctrl.notify.UnifiedPush.isNtfyInstalled(context),
+    ntfyUnrestricted = com.vknxworks.elementctrl.notify.Battery.isNtfyUnrestricted(context),
+)
+
 @Composable
-fun rememberBatteryUnrestricted(): Boolean {
+fun rememberPushHealth(): PushHealth {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var unrestricted by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context)) }
+    var health by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(readPushHealth(context)) }
     val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(owner) {
         val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
-            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) unrestricted = com.vknxworks.elementctrl.notify.Battery.isUnrestricted(context)
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                health = readPushHealth(context)
+                com.vknxworks.elementctrl.notify.Push.recheck(context)
+            }
         }
         owner.lifecycle.addObserver(obs)
         onDispose { owner.lifecycle.removeObserver(obs) }
     }
-    return unrestricted
+    return health
 }

@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.BatteryAlert
@@ -226,30 +228,75 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     })
                 },
             )
+            val health = com.vknxworks.elementctrl.ui.rememberPushHealth()
+            val pushOn = com.vknxworks.elementctrl.notify.Push.isEnabled(context)
             SettingRow(
                 Icons.Default.Bolt, "Delivery",
-                when (val st = pushStatus) {
-                    is com.vknxworks.elementctrl.notify.PushStatus.Active ->
-                        if (com.vknxworks.elementctrl.notify.Push.usesPublicGateway(st.gateway)) {
-                            "Instant via ${st.distributor}, through the public UnifiedPush gateway (it only sees room and message IDs, never content)"
-                        } else "Instant via ${st.distributor}"
-                    com.vknxworks.elementctrl.notify.PushStatus.Registering -> "Setting up push…"
-                    is com.vknxworks.elementctrl.notify.PushStatus.Failed -> "Push problem: ${st.message}"
-                    com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to set up instant push with ntfy"
+                when (pushStatus) {
+                    is com.vknxworks.elementctrl.notify.PushStatus.Active -> "Instant through ntfy, plus a background check every ~15 minutes"
+                    com.vknxworks.elementctrl.notify.PushStatus.Registering -> "Setting up push with ntfy…"
+                    com.vknxworks.elementctrl.notify.PushStatus.Unavailable -> "ntfy temporarily unavailable: its server can't be reached. The background check keeps running."
+                    com.vknxworks.elementctrl.notify.PushStatus.NoNtfy -> "Background check every ~15 minutes until ntfy is installed"
+                    is com.vknxworks.elementctrl.notify.PushStatus.Failed -> "Push problem, see below. The background check keeps running."
+                    com.vknxworks.elementctrl.notify.PushStatus.Off -> "Background check every ~15 minutes. Tap to turn on instant push through ntfy"
                 },
             ) { pushDialog = true }
-            val unrestricted = com.vknxworks.elementctrl.ui.rememberBatteryUnrestricted()
-            SettingRow(
-                if (unrestricted) Icons.Default.BatteryFull else Icons.Default.BatteryAlert,
-                "Run in the background",
-                if (unrestricted) "Allowed. Messages are fetched even while the phone sleeps."
-                else "Restricted by battery optimisation: notifications can be late or missing after the app hasn't been used for a while. Tap to allow.",
-                tint = if (unrestricted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
-            ) { com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(context) }
+            if (notifications && !health.ntfyInstalled) {
+                PushWarning(
+                    Icons.Default.NotificationsOff, "ntfy isn't installed",
+                    if (pushOn) {
+                        "Instant push comes through ntfy, and it isn't on this phone (any more). Until it's installed, ElementCtrl only checks for new messages every ~15 minutes."
+                    } else {
+                        "Instant push comes through ntfy, a free app that keeps one connection to your ntfy server. Without it, ElementCtrl checks for new messages every ~15 minutes."
+                    },
+                    listOf("Install ntfy" to { openUrl(context, com.vknxworks.elementctrl.notify.UnifiedPush.NTFY_DOWNLOAD) }),
+                )
+            }
+            (pushStatus as? com.vknxworks.elementctrl.notify.PushStatus.Failed)?.let { st ->
+                PushWarning(
+                    Icons.Default.ErrorOutline, "Instant push isn't working",
+                    st.message + " Messages still come in with the background check every ~15 minutes.",
+                    listOf("Try again" to { com.vknxworks.elementctrl.notify.Push.enable(context); Unit }),
+                )
+            }
+            val appHeldBack = !health.appUnrestricted || health.appBackgroundRestricted
+            if (notifications && appHeldBack) {
+                PushWarning(
+                    Icons.Default.BatteryAlert, "ElementCtrl is battery-restricted",
+                    if (health.appBackgroundRestricted) {
+                        "Its battery usage is set to Restricted, so Android holds back the job that fetches a pushed message and the background check until you open the app. Set battery usage to Unrestricted."
+                    } else {
+                        "Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so a pushed message can't be fetched and notifications come late or not at all. Let it run in the background."
+                    },
+                    listOf(
+                        "Allow" to { com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(context) },
+                        "App info" to { com.vknxworks.elementctrl.notify.Battery.openAppInfo(context) },
+                    ),
+                )
+            } else {
+                SettingRow(
+                    if (appHeldBack) Icons.Default.BatteryAlert else Icons.Default.BatteryFull,
+                    "Run in the background",
+                    if (appHeldBack) "Restricted by battery optimisation. Tap to allow." else "Allowed. Messages are fetched even while the phone sleeps.",
+                ) {
+                    if (appHeldBack) com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(context)
+                    else com.vknxworks.elementctrl.notify.Battery.openAppInfo(context)
+                }
+            }
+            if (notifications && pushOn && health.ntfyInstalled && !health.ntfyUnrestricted) {
+                PushWarning(
+                    Icons.Default.BatteryAlert, "ntfy is battery-restricted",
+                    "Android can cut ntfy's connection to your ntfy server while the phone sleeps, so pushes arrive late or not at all. In ntfy's App info, open Battery and choose Unrestricted (on ColorOS also turn on \"Allow background activity\"), or open ntfy and accept its battery prompt.",
+                    listOf(
+                        "ntfy's App info" to { com.vknxworks.elementctrl.notify.Battery.openNtfyAppInfo(context) },
+                        "Open ntfy" to { com.vknxworks.elementctrl.notify.Battery.openNtfy(context); Unit },
+                    ),
+                )
+            }
             if (com.vknxworks.elementctrl.notify.Battery.hasVendorLimits) {
                 SettingRow(
                     Icons.Default.PhoneAndroid, "OPPO / OnePlus / realme background limits",
-                    "Also open App info › Battery and turn on \"Allow background activity\" (and \"Auto launch\" if shown), or ColorOS may still stop the app.",
+                    "Also open App info › Battery and turn on \"Allow background activity\" (and \"Auto launch\" if shown), for ElementCtrl and for ntfy, or ColorOS may still stop them.",
                 ) { com.vknxworks.elementctrl.notify.Battery.openAppInfo(context) }
             }
             SettingRow(
@@ -438,7 +485,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
         )
     }
 
-    if (pushDialog) PushSetupDialog(session, onDismiss = { pushDialog = false })
+    if (pushDialog) PushSetupDialog(session, com.vknxworks.elementctrl.notify.UnifiedPush.isNtfyInstalled(context), onDismiss = { pushDialog = false })
 
     if (bubbleDialog) BubbleStylePicker(bubbleStyle, prefs::setBubbleStyle) { bubbleDialog = false }
 

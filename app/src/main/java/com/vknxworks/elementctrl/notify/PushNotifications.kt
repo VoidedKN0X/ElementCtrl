@@ -98,6 +98,8 @@ object PushNotifications {
         }
         // Updating a placeholder with the real text shouldn't ring a second time.
         post(context, roomId, roomName, item.roomInfo.isDm, !replaced && (item.isNoisy != false || item.hasMention == true), lines)
+        // The background check doesn't need to show this message again.
+        Notifier.markNotified(context, roomId, ts)
         return if (encrypted) Outcome.ENCRYPTED else Outcome.SHOWN
     }
 

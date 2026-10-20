@@ -1,24 +1,68 @@
 package com.vknxworks.elementctrl.notify
 
+import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.os.Binder
+import android.os.Build
+import android.os.IBinder
+import android.os.PowerManager
 import com.vknxworks.elementctrl.ElementCtrlApp
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import org.unifiedpush.android.connector.FailedReason
-import org.unifiedpush.android.connector.MessagingReceiver
-import org.unifiedpush.android.connector.data.PushEndpoint
-import org.unifiedpush.android.connector.data.PushMessage
 
-/** Receives push messages and endpoint changes from the UnifiedPush distributor (ntfy). */
-class PushReceiver : MessagingReceiver() {
+/**
+ * Receives what ntfy hands over: new endpoints, registration errors and push messages from your homeserver.
+ *
+ * It has to be exported for ntfy to reach it, so every broadcast must carry the secret token of our registration
+ * (and, from Android 14, come from ntfy) or it's ignored. A push only names a room and an event; the event itself is
+ * then fetched from the homeserver, so a forged push can't inject notification text.
+ */
+class PushReceiver : BroadcastReceiver() {
 
-    // The receiver has to be exported for distributors to reach it. The connector library only delivers messages
-    // that carry the registration token it stored, and we additionally check the instance and the IDs; the
-    // event itself is then fetched from the homeserver, so a forged push can't inject notification text.
-    override fun onMessage(context: Context, message: PushMessage, instance: String) {
-        if (instance != Push.INSTANCE || !Push.isEnabled(context)) return
+    override fun onReceive(context: Context, intent: Intent) {
+        val token = intent.getStringExtra(UnifiedPush.EXTRA_TOKEN) ?: return
+        if (token != UnifiedPush.token(context)) return
+        if (Build.VERSION.SDK_INT >= 34) {
+            val sender = sentFromPackage
+            if (sender != null && sender != UnifiedPush.NTFY) return
+        }
+        // Keep the CPU awake while the message is saved and the fetch job is handed to Android.
+        val wakeLock = context.getSystemService(PowerManager::class.java)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ElementCtrl:push")
+            ?.apply { setReferenceCounted(false); acquire(10_000L) }
+        try {
+            when (intent.action) {
+                UnifiedPush.ACTION_NEW_ENDPOINT -> {
+                    val endpoint = intent.getStringExtra(UnifiedPush.EXTRA_ENDPOINT) ?: return
+                    UnifiedPush.ack(context, token, intent.getStringExtra(UnifiedPush.EXTRA_ID))
+                    val pending = goAsync()
+                    ElementCtrlApp.graph.scope.launch {
+                        try { Push.onNewEndpoint(context, endpoint) } finally { pending.finish() }
+                    }
+                }
+                UnifiedPush.ACTION_REGISTRATION_FAILED -> Push.onRegistrationFailed(context, intent.getStringExtra(UnifiedPush.EXTRA_REASON))
+                UnifiedPush.ACTION_UNREGISTERED -> Push.onUnregistered(context)
+                UnifiedPush.ACTION_TEMP_UNAVAILABLE -> Push.onTempUnavailable()
+                UnifiedPush.ACTION_MESSAGE -> {
+                    val bytes = intent.getByteArrayExtra(UnifiedPush.EXTRA_BYTES_MESSAGE)
+                        ?: intent.getStringExtra(UnifiedPush.EXTRA_MESSAGE)?.toByteArray()
+                    if (bytes != null) onMessage(context, bytes)
+                    // Acknowledged only once the event is safely queued on disk, so ntfy can redeliver otherwise.
+                    UnifiedPush.ack(context, token, intent.getStringExtra(UnifiedPush.EXTRA_ID))
+                }
+            }
+        } finally {
+            if (wakeLock?.isHeld == true) runCatching { wakeLock.release() }
+        }
+    }
+
+    private fun onMessage(context: Context, bytes: ByteArray) {
+        if (!Push.isEnabled(context)) return
+        Push.onMessageReceived(context)
         // Homeservers send {"notification":{"event_id":…,"room_id":…,"counts":{"unread":…}}}.
-        val n = runCatching { JSONObject(String(message.content)).optJSONObject("notification") }.getOrNull() ?: return
+        val n = runCatching { JSONObject(String(bytes)).optJSONObject("notification") }.getOrNull() ?: return
         val roomId = n.optString("room_id").takeIf { it.startsWith("!") && it.length <= 255 }
         val eventId = n.optString("event_id").takeIf { it.startsWith("$") && it.length <= 255 }
         val unread = n.optJSONObject("counts")?.optInt("unread", -1) ?: -1
@@ -32,21 +76,13 @@ class PushReceiver : MessagingReceiver() {
             PushNotifications.clearAll(context)
         }
     }
+}
 
-    override fun onNewEndpoint(context: Context, endpoint: PushEndpoint, instance: String) {
-        if (instance != Push.INSTANCE) return
-        val pending = goAsync()
-        ElementCtrlApp.graph.scope.launch {
-            try { Push.onNewEndpoint(context, endpoint.url) } finally { pending.finish() }
-        }
-    }
-
-    override fun onRegistrationFailed(context: Context, reason: FailedReason, instance: String) {
-        Push.onRegistrationFailed(reason.toString())
-    }
-
-    override fun onUnregistered(context: Context, instance: String) {
-        if (instance != Push.INSTANCE) return
-        Push.onUnregistered(context)
-    }
+/**
+ * ntfy binds to this for a few seconds before it delivers a message. That lifts ElementCtrl to foreground
+ * importance, so the fetch can start straight away with network access even while the phone is in deep sleep.
+ */
+class RaiseToForegroundService : Service() {
+    private val binder = Binder()
+    override fun onBind(intent: Intent?): IBinder = binder
 }

@@ -218,20 +218,28 @@ fun HomeScreen(
 
             val ctx = androidx.compose.ui.platform.LocalContext.current
             val notificationsOn by com.vknxworks.elementctrl.ElementCtrlApp.graph.prefs.notifications.collectAsStateWithLifecycle()
-            val unrestricted = com.vknxworks.elementctrl.ui.rememberBatteryUnrestricted()
+            val health = com.vknxworks.elementctrl.ui.rememberPushHealth()
             val bannerTick by com.vknxworks.elementctrl.notify.Battery.bannerTick.collectAsStateWithLifecycle()
-            val showBattery = remember(notificationsOn, unrestricted, bannerTick) {
+            val showBattery = remember(notificationsOn, health, bannerTick) {
                 com.vknxworks.elementctrl.notify.Battery.shouldShowBanner(ctx, notificationsOn)
             }
+            val appHeldBack = !health.appUnrestricted || health.appBackgroundRestricted
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
                 if (showBattery) {
                     item("battery") {
                         Banner(
                             icon = Icons.Default.BatteryAlert,
                             title = "Notifications may be missed",
-                            body = "Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so messages can't be fetched. Let it run in the background.",
-                            action = "Allow",
-                            onClick = { com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(ctx) },
+                            body = if (appHeldBack) {
+                                "Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so messages can't be fetched. Let it run in the background."
+                            } else {
+                                "ntfy is battery-optimised, so Android can cut its connection while the phone sleeps and messages arrive late or not at all. Set ntfy's battery usage to Unrestricted."
+                            },
+                            action = if (appHeldBack) "Allow" else "Fix",
+                            onClick = {
+                                if (appHeldBack) com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(ctx)
+                                else com.vknxworks.elementctrl.notify.Battery.openNtfyAppInfo(ctx)
+                            },
                             onDismiss = { com.vknxworks.elementctrl.notify.Battery.dismissBanner(ctx) },
                         )
                     }
