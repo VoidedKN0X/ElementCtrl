@@ -2,7 +2,13 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
-## Unreleased
+## 1.3.1
+
+### New
+
+- **Profile pictures in notifications**: message notifications now show the sender's profile picture next to their message, and the chat's picture (the group's picture, or the other person's for a direct chat) as the notification's icon, instead of a letter. This also works when the app hasn't been opened for a long time: pictures come through the Matrix SDK's own encrypted media cache on the phone, so once a picture has been seen it doesn't need the network again. A picture that can't be loaded within a few seconds never holds up the notification; the letter is shown instead.
+- The 15-minute background check's notifications (used when push isn't set up) show the chat's picture too.
+- Pictures are only shown when message content is shown: with app lock on, or "Show message content in notifications" off, notifications stay as plain "New message" without any picture. They're cleared from memory on sign-out, and nothing new is written to storage.
 
 ### Changed
 

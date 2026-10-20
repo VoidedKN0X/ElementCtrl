@@ -123,6 +123,7 @@ object Notifier {
             if (!r.isInvite) builder.setNumber(r.unreadNotifications.toInt()).addAction(PushNotifications.markReadAction(context, r.roomId))
         } else if (r.isInvite) {
             builder.setContentText("${r.inviterName ?: "Someone"} invited you")
+            NotificationAvatars.cached(r.avatarUrl)?.let { builder.setLargeIcon(it) }
         } else {
             val line = listOfNotNull(r.lastSender?.takeIf { !r.isDm }, r.lastMessage).joinToString(": ")
             builder.setContentText(line)
@@ -130,6 +131,7 @@ object Notifier {
                 .setNumber(r.unreadNotifications.toInt())
                 .setPriority(if (r.unreadMentions > 0 || r.isDm) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
                 .addAction(PushNotifications.markReadAction(context, r.roomId))
+            NotificationAvatars.cached(r.avatarUrl)?.let { builder.setLargeIcon(it) }
         }
         runCatching { NotificationManagerCompat.from(context).notify(r.roomId.hashCode(), builder.build()) }
     }
@@ -150,6 +152,8 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             // Give the sliding sync loop time to bring the room list up to date.
             withTimeoutOrNull(20_000) { session.roomsLoaded.first { it } }
             delay(8_000)
+            // Chat pictures first (from the SDK's media cache when it has them), so the notifications show them.
+            session.rooms.value.filter { it.hasUnread || it.isInvite }.take(10).forEach { NotificationAvatars.load(session, it.avatarUrl) }
             Notifier.notifyRooms(applicationContext, session.rooms.value)
         }
         return Result.success()

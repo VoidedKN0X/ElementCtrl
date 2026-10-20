@@ -30,7 +30,17 @@ object OpenRoom {
 /** Turns pushed event IDs into chat-style notifications (one per room) with reply and mark-as-read. */
 object PushNotifications {
     const val KEY_REPLY = "reply_text"
-    private data class Line(val sender: String, val text: String, val ts: Long, val own: Boolean, val eventId: String? = null)
+    private data class Line(
+        val sender: String,
+        val text: String,
+        val ts: Long,
+        val own: Boolean,
+        val eventId: String? = null,
+        val senderId: String? = null,
+        val avatarUrl: String? = null,
+    )
+    /** Each chat's picture (room avatar, or the other person's for a DM), for the notification's large icon. */
+    private val roomAvatars = HashMap<String, String?>()
     private val history = HashMap<String, ArrayDeque<Line>>()
 
     /** ENCRYPTED: shown as "🔒 New encrypted message" because the key hasn't arrived yet; worth fetching again. */
@@ -60,6 +70,14 @@ object PushNotifications {
         }
         val roomName = item.roomInfo.displayName
         val senderName = item.senderInfo.displayName ?: "Someone"
+        val senderAvatar = item.senderInfo.avatarUrl
+        val senderId = (item.event as? NotificationEvent.Timeline)?.event?.senderId()
+        val roomAvatar = item.roomInfo.avatarUrl ?: senderAvatar.takeIf { item.roomInfo.isDm }
+        synchronized(history) { roomAvatars[roomId] = roomAvatar }
+        // Pictures load through the SDK's encrypted media cache (from the phone after the first time), and never
+        // hold up the notification for more than a few seconds.
+        NotificationAvatars.load(session, senderAvatar)
+        if (roomAvatar != senderAvatar) NotificationAvatars.load(session, roomAvatar)
 
         val text: String = when (val ev = item.event) {
             is NotificationEvent.Invite -> {
@@ -90,9 +108,9 @@ object PushNotifications {
                 val i = indexOfFirst { it.eventId == eventId }
                 if (i >= 0) {
                     if (this[i].text == text) return if (encrypted) Outcome.ENCRYPTED else Outcome.SKIPPED
-                    this[i] = Line(senderName, text, ts, false, eventId)
+                    this[i] = Line(senderName, text, ts, false, eventId, senderId, senderAvatar)
                     replaced = true
-                } else addLast(Line(senderName, text, ts, false, eventId))
+                } else addLast(Line(senderName, text, ts, false, eventId, senderId, senderAvatar))
                 while (size > 8) removeFirst()
             }.toList()
         }
@@ -173,8 +191,16 @@ object PushNotifications {
         val me = Person.Builder().setName("You").build()
         val style = NotificationCompat.MessagingStyle(me).setConversationTitle(if (isDm) null else roomName).setGroupConversation(!isDm)
         lines.forEach { l ->
-            style.addMessage(l.text, l.ts, if (l.own) null else Person.Builder().setName(if (isDm) roomName else l.sender).build())
+            style.addMessage(
+                l.text, l.ts,
+                if (l.own) null else Person.Builder()
+                    .setName(if (isDm) roomName else l.sender)
+                    .apply { l.senderId?.let { setKey(it) } }
+                    .apply { NotificationAvatars.icon(l.avatarUrl)?.let { setIcon(it) } }
+                    .build(),
+            )
         }
+        val largeIcon = NotificationAvatars.cached(synchronized(history) { roomAvatars[roomId] })
         val reply = NotificationCompat.Action.Builder(
             0, "Reply",
             PendingIntent.getBroadcast(
@@ -190,6 +216,7 @@ object PushNotifications {
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_stat_message)
             .setStyle(style)
+            .apply { largeIcon?.let { setLargeIcon(it) } }
             .setContentIntent(openIntent(context, roomId))
             .setAutoCancel(true)
             .setOnlyAlertOnce(!noisy)
@@ -238,7 +265,8 @@ object PushNotifications {
     fun forget(roomId: String) { synchronized(history) { history.remove(roomId) } }
 
     fun clearAll(context: Context) {
-        synchronized(history) { history.clear() }
+        synchronized(history) { history.clear(); roomAvatars.clear() }
+        NotificationAvatars.clear()
         NotificationManagerCompat.from(context).cancelAll()
     }
 }
