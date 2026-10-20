@@ -2,6 +2,12 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## Unreleased
+
+### Changed
+
+- **Removed the store listing files** (`fastlane/metadata/android/en-US`) that 1.3.1 added to the repo. Nothing changes in the app.
+
 ## 1.3.1
 
 ### New
@@ -9,10 +15,6 @@ To publish a new version: bump `versionCode` and `versionName` in `app/build.gra
 - **Profile pictures in notifications**: message notifications now show the sender's profile picture next to their message, and the chat's picture (the group's picture, or the other person's for a direct chat) as the notification's icon, instead of a letter. This also works when the app hasn't been opened for a long time: pictures come through the Matrix SDK's own encrypted media cache on the phone, so once a picture has been seen it doesn't need the network again. A picture that can't be loaded within a few seconds never holds up the notification; the letter is shown instead.
 - The 15-minute background check's notifications (used when push isn't set up) show the chat's picture too.
 - Pictures are only shown when message content is shown: with app lock on, or "Show message content in notifications" off, notifications stay as plain "New message" without any picture. They're cleared from memory on sign-out, and nothing new is written to storage.
-
-### Changed
-
-- **Store listing for IzzyOnDroid**: the app's name, short and full description, icon and feature graphic are now in the repo (`fastlane/metadata/android/en-US`), so app stores like IzzyOnDroid can show them. Screenshots are coming soon
 
 ## 1.3.0
 
