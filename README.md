@@ -2,7 +2,7 @@
 
 **A Matrix chat app for matrix.org and your own server.**
 
-[![Latest release](https://img.shields.io/github/v/release/VoidedKN0X/ElementCtrl?label=download)](https://github.com/VoidedKN0X/ElementCtrl/releases/latest) ![Android 13+](https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/VoidedKN0X)
+[![Latest release](https://img.shields.io/github/v/release/VoidedKN0X/ElementCtrl?label=download)](https://github.com/VoidedKN0X/ElementCtrl/releases/latest) ![Android 13+](https://img.shields.io/badge/Android-13%2B-3DDC84?logo=android&logoColor=white) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE) ![Telemetry-free](https://img.shields.io/badge/telemetry-none-brightgreen) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/VoidedKN0X)
 
 ElementCtrl is a Matrix chat client in the spirit of Element X. It works with matrix.org, other public servers and your own self-hosted Synapse, and is built on the same Matrix Rust SDK as Element X, so encryption and verification work the same way.
 
@@ -68,18 +68,13 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
-## Usage stats
+## Privacy
 
-ElementCtrl can share anonymous usage stats, **only if you say yes**. It asks once after you sign in, and you can change it any time in **Settings > Usage stats**.
+**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser) and, if you turn on push, your push app's server, such as your ntfy server.
 
-- **Shared:** which screens you open (the kind of screen, like "chat list", "room" or "settings", never which room or person), whether you send a text, voice message, picture or file (only the kind, never the message or the chat), whether you use search, the app version, Android version, phone model, language, phone or tablet, and whether notifications come through push, the background check or are off.
-- **Never shared:** your homeserver, your Matrix ID or anyone else's, room names or IDs, what you write, send or search for, how many messages you send in a chat, or any ID that stays the same between sessions.
-- **Where:** VKNXWorks' own self-hosted [Aptabase](https://aptabase.com) server. Nothing goes to Google or analytics companies. Like any website, the server sees your IP address; Aptabase uses it only to work out the country and doesn't store it. Your chats themselves still only go to your homeserver.
-- **Switching stats off** stops them straight away and throws away anything not yet sent.
-
-**Other connections.** Apart from your homeserver (and the stats above, only if you said yes), ElementCtrl only contacts one other server: when you turn on push, it asks your push app's server (for example your ntfy server) once whether it has its own Matrix gateway. Link previews are fetched by your homeserver, never by the phone, and pushes reach the phone through your push app (see *What a push contains* above).
-
-Builds from source don't include the stats key, so they can't send anything and the setting is hidden. The code is in [`Telemetry.kt`](app/src/main/java/com/vknxworks/elementctrl/telemetry/Telemetry.kt).
+- **Push:** when you turn it on, ElementCtrl asks your push app's server once whether it has its own Matrix gateway. Pushes then reach the phone through your push app (see *What a push contains* above).
+- **Link previews** are fetched by your homeserver, never by the phone.
+- **The Matrix SDK's crash reporting is switched off**, and release builds don't write the SDK's logs anywhere.
 
 ## Build from source
 

@@ -109,10 +109,6 @@ fun HomeScreen(
     var filter by rememberSaveable { mutableStateOf(RoomFilter.ALL) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
-    // Usage stats (if opted in): that the chat list search was opened. Never what's typed.
-    LaunchedEffect(searching) {
-        if (searching) com.vknxworks.elementctrl.ElementCtrlApp.graph.telemetry.track("search_used", mapOf("where" to "chat_list"))
-    }
     var menuFor by remember { mutableStateOf<RoomSummary?>(null) }
     var leaving by remember { mutableStateOf<RoomSummary?>(null) }
 

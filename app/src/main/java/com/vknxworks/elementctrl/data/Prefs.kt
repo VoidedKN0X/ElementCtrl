@@ -22,6 +22,13 @@ enum class BubbleStyle(val label: String, val description: String) {
 class Prefs(context: Context) {
     private val sp: SharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    init {
+        // ElementCtrl 1.2.15 removed the optional anonymous stats. Delete the two settings they used (their keys
+        // start with "usage_"), so nothing from them stays on the phone after the update.
+        val leftover = sp.all.keys.filter { it.startsWith("usage_") }
+        if (leftover.isNotEmpty()) sp.edit().apply { leftover.forEach { remove(it) } }.apply()
+    }
+
     private val _theme = MutableStateFlow(ThemeMode.entries.getOrElse(sp.getInt("theme", 0)) { ThemeMode.SYSTEM })
     val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
     fun setTheme(mode: ThemeMode) { sp.edit().putInt("theme", mode.ordinal).apply(); _theme.value = mode }
@@ -76,21 +83,6 @@ class Prefs(context: Context) {
     /** Show joins, leaves, name changes and other room events in the timeline. */
     val showStateEvents: StateFlow<Boolean> = _showHiddenEvents.asStateFlow()
     fun setShowStateEvents(on: Boolean) { sp.edit().putBoolean("show_state_events", on).apply(); _showHiddenEvents.value = on }
-
-    private val _usageStats = MutableStateFlow(sp.getBoolean("usage_stats", false))
-    /** Opt-in anonymous usage stats (off until the user says yes). */
-    val usageStats: StateFlow<Boolean> = _usageStats.asStateFlow()
-
-    private val _usageStatsAsked = MutableStateFlow(sp.getBoolean("usage_stats_asked", false))
-    /** Whether the one-time usage stats question has been answered. */
-    val usageStatsAsked: StateFlow<Boolean> = _usageStatsAsked.asStateFlow()
-
-    /** Answers the first-run question, or flips the switch in Settings (which counts as an answer too). */
-    fun answerUsageStats(on: Boolean) {
-        sp.edit().putBoolean("usage_stats", on).putBoolean("usage_stats_asked", true).apply()
-        _usageStatsAsked.value = true
-        _usageStats.value = on
-    }
 
     /** Custom servers signed in to before, newest first, offered again on the server picker. */
     var recentCustomServers: List<String>

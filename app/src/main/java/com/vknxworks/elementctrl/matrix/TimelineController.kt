@@ -8,7 +8,6 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
 import java.io.File
-import com.vknxworks.elementctrl.telemetry.Telemetry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -439,7 +438,6 @@ class TimelineController(
         val base = if (emote) messageEventContentFromMarkdownAsEmote(text) else messageEventContentFromMarkdown(text)
         val content = base.withMentions(Mentions(userIds = mentions.distinct(), room = text.contains("@room")))
         if (replyTo != null) t.sendReply(content, replyTo) else t.send(content)
-        trackSent("text")
     }
 
     fun edit(item: TimelineEntry.Message, text: String, mentions: List<String>) = launchAction { t ->
@@ -513,7 +511,6 @@ class TimelineController(
                 AudioInfo(duration = java.time.Duration.ofMillis(durationMs), size = file.length().toULong(), mimetype = "audio/ogg"),
                 waveform,
             ).join()
-            trackSent("voice")
         } finally {
             // The SDK has its own (encrypted) copy once the send is queued; don't leave the recording lying around.
             file.delete()
@@ -602,12 +599,7 @@ class TimelineController(
             else -> t.sendFile(params, FileInfo(mimetype = mime, size = file.length().toULong(), thumbnailInfo = null, thumbnailSource = null))
         }
         handle.join()
-        trackSent(Telemetry.attachmentKind(mime))
     }
-
-    /** Usage stats (if opted in): only the kind of message, never its room, text, file or size. */
-    private fun trackSent(kind: String) =
-        com.vknxworks.elementctrl.ElementCtrlApp.graph.telemetry.track("message_sent", mapOf("kind" to kind))
 
     private fun videoMeta(file: File): Triple<Int, Int, Long> = runCatching {
         MediaMetadataRetriever().use { r ->
