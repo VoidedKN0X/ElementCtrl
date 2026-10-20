@@ -1,0 +1,1 @@
+Matrix chat for matrix.org and self-hosted servers, with E2EE
