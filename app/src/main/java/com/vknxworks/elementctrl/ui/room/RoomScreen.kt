@@ -149,6 +149,10 @@ import com.vknxworks.elementctrl.ui.copyText
 import com.vknxworks.elementctrl.ui.shareText
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.Membership
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 private val QuickReactions = listOf("👍", "❤️", "😂", "😮", "😢", "🙏", "🎉", "👀")
 
@@ -181,9 +185,9 @@ fun RoomScreen(
     val room = vm.room
     val timeline = vm.timeline
     if (room == null || timeline == null) {
-        Scaffold(topBar = { TopAppBar(title = { Text("Room") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) }) { pad ->
+        Scaffold(topBar = { ScreenTopBar(stringResource(R.string.room_2), onBack = onBack) }) { pad ->
             Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-                Text("This room isn't available yet. It may still be syncing.", modifier = Modifier.padding(32.dp))
+                Text(stringResource(R.string.this_room_isn_t_available_yet_it_may), modifier = Modifier.padding(32.dp))
             }
         }
         return
@@ -243,7 +247,7 @@ fun RoomScreen(
     val linkPreviewsE2ee by ElementCtrlApp.graph.prefs.linkPreviewsEncrypted.collectAsStateWithLifecycle()
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) recording = recorder.start()
-        else scope.launch { snackbar.showSnackbar("Allow the microphone to record voice messages") }
+        else scope.launch { snackbar.showSnackbar(Strings.str(R.string.allow_the_microphone_to_record_voice)) }
     }
 
     LaunchedEffect(timelineError) { timelineError?.let { snackbar.showSnackbar(it); timeline.clearError() } }
@@ -364,7 +368,7 @@ fun RoomScreen(
         if (index >= 0) {
             scope.launch { listState.animateScrollToItem(index); highlighted = eventId; kotlinx.coroutines.delay(1500); highlighted = null }
         } else {
-            scope.launch { snackbar.showSnackbar("That message isn't loaded. Scroll up to find it.") }
+            scope.launch { snackbar.showSnackbar(Strings.str(R.string.that_message_isn_t_loaded_scroll_up)) }
         }
     }
 
@@ -426,7 +430,7 @@ fun RoomScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -436,16 +440,16 @@ fun RoomScreen(
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
-                                if (threadRootId != null) "Thread" else header?.name ?: "",
+                                if (threadRootId != null) stringResource(R.string.thread) else header?.name ?: "",
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             val subtitle = when {
-                                typing.isNotEmpty() -> typing.joinToString(limit = 2, truncated = "others") + if (typing.size == 1) " is typing…" else " are typing…"
+                                typing.isNotEmpty() -> typing.joinToString(limit = 2, truncated = Strings.str(R.string.typing_others)).let { if (typing.size == 1) Strings.str(R.string.typing_one, it) else Strings.str(R.string.typing_many, it) }
                                 threadRootId != null -> header?.name
-                                isDm -> if (header?.isEncrypted == true) "Encrypted chat" else null
-                                else -> header?.joinedMembers?.let { "$it members" }
+                                isDm -> if (header?.isEncrypted == true) Strings.str(R.string.encrypted_chat) else null
+                                else -> header?.joinedMembers?.let { Strings.plural(R.plurals.members_count, it.toInt(), it) }
                             }
                             subtitle?.let {
                                 Text(
@@ -463,8 +467,8 @@ fun RoomScreen(
                     if (threadRootId == null && membership == org.matrix.rustcomponents.sdk.Membership.JOINED) {
                         com.vknxworks.elementctrl.call.CallButtons(isDm) { audio -> startCall(roomId, audio) }
                     }
-                    IconButton(onClick = onSearch) { Icon(Icons.Default.Search, "Search messages") }
-                    if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Default.Info, "Room info") }
+                    IconButton(onClick = onSearch) { Icon(Icons.Default.Search, stringResource(R.string.search_messages)) }
+                    if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Default.Info, stringResource(R.string.room_info)) }
                 },
             )
         },
@@ -524,8 +528,8 @@ fun RoomScreen(
                     modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.TopCenter),
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("This room has been upgraded.", Modifier.weight(1f))
-                        TextButton(onClick = { onOpenRoom(successor) }) { Text("Go to new room") }
+                        Text(stringResource(R.string.this_room_has_been_upgraded), Modifier.weight(1f))
+                        TextButton(onClick = { onOpenRoom(successor) }) { Text(stringResource(R.string.go_to_new_room)) }
                     }
                 }
             }
@@ -535,8 +539,8 @@ fun RoomScreen(
                     modifier = Modifier.align(Alignment.TopCenter).padding(8.dp),
                 ) {
                     Row(Modifier.padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Viewing earlier messages", style = MaterialTheme.typography.bodyMedium)
-                        TextButton(onClick = onJumpToLatest) { Text("Jump to latest") }
+                        Text(stringResource(R.string.viewing_earlier_messages), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = onJumpToLatest) { Text(stringResource(R.string.jump_to_latest)) }
                     }
                 }
             }
@@ -553,7 +557,7 @@ fun RoomScreen(
                             unseenBelow = 0
                             scope.launch { listState.animateScrollToItem(0) }
                         }
-                    }) { Icon(Icons.Default.KeyboardArrowDown, "Jump to latest") }
+                    }) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.jump_to_latest)) }
                 }
             }
             // The composer island floats above the messages, the navigation bar and the keyboard.
@@ -570,9 +574,9 @@ fun RoomScreen(
                 when {
                     membership == Membership.INVITED -> InviteBar(header?.inviterName, haze, onAccept = { room.join() }, onDecline = { room.leave(onBack) })
                     membership == Membership.LEFT || membership == Membership.BANNED -> {
-                        IslandNote(if (membership == Membership.BANNED) "You were banned from this room." else "You left this room.", haze)
+                        IslandNote(if (membership == Membership.BANNED) stringResource(R.string.you_were_banned_from_this_room) else stringResource(R.string.you_left_this_room), haze)
                     }
-                    !permissions.canSend -> IslandNote("You don't have permission to post here.", haze)
+                    !permissions.canSend -> IslandNote(stringResource(R.string.you_don_t_have_permission_to_post), haze)
                     else -> Composer(
                         haze = haze,
                         focusRequester = composerFocus,
@@ -612,14 +616,14 @@ fun RoomScreen(
                         onMic = {
                             if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                 recording = recorder.start()
-                                if (!recording) scope.launch { snackbar.showSnackbar("Couldn't start the microphone") }
+                                if (!recording) scope.launch { snackbar.showSnackbar(Strings.str(R.string.couldn_t_start_the_microphone)) }
                             } else { com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); micPermission.launch(android.Manifest.permission.RECORD_AUDIO) }
                         },
                         onCancelRecording = { recorder.cancel(); recording = false },
                         onSendRecording = {
                             recording = false
                             val clip = recorder.stop()
-                            if (clip == null) scope.launch { snackbar.showSnackbar("Too short — hold on a little longer") }
+                            if (clip == null) scope.launch { snackbar.showSnackbar(Strings.str(R.string.too_short_hold_on_a_little_longer)) }
                             else {
                                 timeline.sendVoice(clip.file, clip.durationMs, clip.waveform, (mode as? ComposerMode.Reply)?.item?.eventId)
                                 mode = ComposerMode.Normal
@@ -655,23 +659,23 @@ fun RoomScreen(
                         Box(
                             Modifier.size(48.dp).clip(CircleShape).clickable { emojiPickerFor = item; sheetFor = null },
                             contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Default.AddReaction, "More reactions") }
+                        ) { Icon(Icons.Default.AddReaction, stringResource(R.string.more_reactions)) }
                     }
                 }
                 HorizontalDivider()
             }
             if (item.status == SendStatus.FAILED) {
-                SettingRow(Icons.Default.Refresh, "Retry sending") { timeline.retry(item); sheetFor = null }
-                SettingRow(Icons.Default.Close, "Cancel sending") { timeline.cancelSend(item); sheetFor = null }
+                SettingRow(Icons.Default.Refresh, stringResource(R.string.retry_sending)) { timeline.retry(item); sheetFor = null }
+                SettingRow(Icons.Default.Close, stringResource(R.string.cancel_sending)) { timeline.cancelSend(item); sheetFor = null }
             }
             if (item.canReply && item.eventId != null) {
-                SettingRow(Icons.AutoMirrored.Filled.Reply, "Reply") { mode = ComposerMode.Reply(item); sheetFor = null }
+                SettingRow(Icons.AutoMirrored.Filled.Reply, stringResource(R.string.reply)) { mode = ComposerMode.Reply(item); sheetFor = null }
                 if (threadRootId == null) {
-                    SettingRow(Icons.Default.Forum, "Reply in thread") { onOpenThread(item.eventId); sheetFor = null }
+                    SettingRow(Icons.Default.Forum, stringResource(R.string.reply_in_thread)) { onOpenThread(item.eventId); sheetFor = null }
                 }
             }
             if (item.isOwn && item.isEditable && item.content is UiContent.Text) {
-                SettingRow(Icons.Default.Edit, "Edit") {
+                SettingRow(Icons.Default.Edit, stringResource(R.string.edit)) {
                     val body = (item.content as UiContent.Text).body
                     composer = TextFieldValue(body, TextRange(body.length))
                     mode = ComposerMode.Edit(item)
@@ -680,10 +684,10 @@ fun RoomScreen(
             }
             if (item.isOwn && item.isEditable && (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File)) {
                 var editingCaption by remember { mutableStateOf(false) }
-                SettingRow(Icons.Default.Edit, "Edit caption") { editingCaption = true }
+                SettingRow(Icons.Default.Edit, stringResource(R.string.edit_caption)) { editingCaption = true }
                 if (editingCaption) {
                     TextInputDialog(
-                        "Caption",
+                        stringResource(R.string.caption),
                         initial = when (val c = item.content) { is UiContent.Image -> c.caption; is UiContent.Video -> c.caption; is UiContent.File -> c.caption; else -> null }.orEmpty(),
                         onDismiss = { editingCaption = false },
                         onConfirm = { timeline.editCaption(item, it); sheetFor = null },
@@ -697,40 +701,40 @@ fun RoomScreen(
                 else -> null
             }
             copyable?.takeIf { it.isNotBlank() }?.let { text ->
-                SettingRow(Icons.Default.ContentCopy, "Copy text") { copyText(context, "Message", text); sheetFor = null }
+                SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_text)) { copyText(context, Strings.str(R.string.message), text); sheetFor = null }
             }
             if (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File || item.content is UiContent.Audio) {
-                SettingRow(Icons.Default.Download, "Save to Downloads") {
+                SettingRow(Icons.Default.Download, stringResource(R.string.save_to_downloads)) {
                     sheetFor = null
                     scope.launch { saveMedia(context, session, item, snackbar) }
                 }
-                SettingRow(Icons.Default.Share, "Share") {
+                SettingRow(Icons.Default.Share, stringResource(R.string.share)) {
                     sheetFor = null
                     scope.launch { shareMedia(context, session, item, snackbar) }
                 }
             }
             if (item.eventId != null) {
-                SettingRow(Icons.Default.Link, "Copy link") {
+                SettingRow(Icons.Default.Link, stringResource(R.string.copy_link)) {
                     sheetFor = null
-                    scope.launch { room.eventPermalink(item.eventId)?.let { copyText(context, "Link", it); snackbar.showSnackbar("Link copied") } }
+                    scope.launch { room.eventPermalink(item.eventId)?.let { copyText(context, Strings.str(R.string.link), it); snackbar.showSnackbar(Strings.str(R.string.link_copied)) } }
                 }
                 if (permissions.canPin) {
                     val pinned = header?.pinnedEventIds?.contains(item.eventId) == true
-                    SettingRow(Icons.Default.PushPin, if (pinned) "Unpin" else "Pin") { timeline.pin(item.eventId, !pinned); sheetFor = null }
+                    SettingRow(Icons.Default.PushPin, if (pinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) { timeline.pin(item.eventId, !pinned); sheetFor = null }
                 }
                 if (item.content is UiContent.Poll && item.isOwn && !(item.content as UiContent.Poll).ended) {
-                    SettingRow(Icons.Default.Stop, "End poll") { timeline.endPoll(item.eventId); sheetFor = null }
+                    SettingRow(Icons.Default.Stop, stringResource(R.string.end_poll)) { timeline.endPoll(item.eventId); sheetFor = null }
                 }
-                SettingRow(Icons.Default.Code, "View source") {
+                SettingRow(Icons.Default.Code, stringResource(R.string.view_source)) {
                     sheetFor = null
-                    scope.launch { source = timeline.source(item.eventId) ?: "Source isn't available for this event." }
+                    scope.launch { source = timeline.source(item.eventId) ?: Strings.str(R.string.source_isn_t_available_for_this) }
                 }
                 if (!item.isOwn) {
-                    SettingRow(Icons.Default.Flag, "Report") { reporting = item; sheetFor = null }
+                    SettingRow(Icons.Default.Flag, stringResource(R.string.report)) { reporting = item; sheetFor = null }
                 }
             }
             if (item.content !is UiContent.Redacted && item.eventId != null && (item.isOwn || permissions.canRedactOthers)) {
-                SettingRow(Icons.Default.Delete, "Remove", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+                SettingRow(Icons.Default.Delete, stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                     deleting = item; sheetFor = null
                 }
             }
@@ -741,7 +745,7 @@ fun RoomScreen(
     receiptsFor?.let { item ->
         ModalBottomSheet(onDismissRequest = { receiptsFor = null }) {
             Text(
-                "Seen by",
+                stringResource(R.string.read_receipts),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
             )
@@ -777,9 +781,9 @@ fun RoomScreen(
 
     deleting?.let { item ->
         ConfirmDialog(
-            "Remove message?",
-            "It will be removed for everyone in the room. This can't be undone.",
-            "Remove",
+            stringResource(R.string.remove_message),
+            stringResource(R.string.it_will_be_removed_for_everyone_in),
+            stringResource(R.string.remove),
             destructive = true,
             onDismiss = { deleting = null },
             onConfirm = { timeline.redact(item) },
@@ -788,18 +792,18 @@ fun RoomScreen(
 
     reporting?.let { item ->
         TextInputDialog(
-            "Report message",
-            label = "Reason (optional)",
-            confirm = "Report",
+            stringResource(R.string.report_message),
+            label = stringResource(R.string.reason_optional),
+            confirm = stringResource(R.string.report),
             onDismiss = { reporting = null },
-            onConfirm = { reason -> item.eventId?.let { room.report(it, reason.ifBlank { null }) }; scope.launch { snackbar.showSnackbar("Reported to your server's admins") } },
+            onConfirm = { reason -> item.eventId?.let { room.report(it, reason.ifBlank { null }) }; scope.launch { snackbar.showSnackbar(Strings.str(R.string.reported_to_your_server_s_admins)) } },
         )
     }
 
     source?.let { json ->
         AlertDialog(
             onDismissRequest = { source = null },
-            title = { Text("Event source") },
+            title = { Text(stringResource(R.string.event_source)) },
             text = {
                 Text(
                     json,
@@ -808,16 +812,16 @@ fun RoomScreen(
                     modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
                 )
             },
-            confirmButton = { TextButton(onClick = { copyText(context, "Event source", json); source = null }) { Text("Copy") } },
-            dismissButton = { TextButton(onClick = { source = null }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { copyText(context, Strings.str(R.string.event_source), json); source = null }) { Text(stringResource(R.string.copy)) } },
+            dismissButton = { TextButton(onClick = { source = null }) { Text(stringResource(R.string.lock_close)) } },
         )
     }
 
     suspiciousLink?.let { (url, shown) ->
         com.vknxworks.elementctrl.ui.ConfirmDialog(
-            title = "Open this link?",
-            text = "The link says \"$shown\" but really goes to:\n\n$url",
-            confirm = "Open",
+            title = stringResource(R.string.open_this_link),
+            text = stringResource(R.string.the_link_says_but_really_goes_to_n_n, shown, url),
+            confirm = stringResource(R.string.open),
             destructive = true,
             onDismiss = { suspiciousLink = null },
             onConfirm = { com.vknxworks.elementctrl.ui.openUrl(context, url) },
@@ -828,16 +832,16 @@ fun RoomScreen(
         var caption by remember(uri) { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { pendingAttachment = null },
-            title = { Text("Send attachment") },
+            title = { Text(stringResource(R.string.send_attachment)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     val mime = context.contentResolver.getType(uri).orEmpty()
                     if (mime.startsWith("image/")) {
                         coil3.compose.AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(12.dp)))
                     } else {
-                        Text(uri.lastPathSegment ?: "File", maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(uri.lastPathSegment ?: stringResource(R.string.file_2), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
-                    OutlinedTextField(caption, { caption = it }, label = { Text("Caption (optional)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(caption, { caption = it }, label = { Text(stringResource(R.string.caption_optional)) }, modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
@@ -846,9 +850,9 @@ fun RoomScreen(
                     timeline.sendAttachment(context, uri, caption, replyTo)
                     mode = ComposerMode.Normal
                     pendingAttachment = null
-                }) { Text("Send") }
+                }) { Text(stringResource(R.string.send)) }
             },
-            dismissButton = { TextButton(onClick = { pendingAttachment = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pendingAttachment = null }) { Text(stringResource(R.string.lock_cancel)) } },
         )
     }
 
@@ -860,13 +864,13 @@ fun RoomScreen(
 @Composable
 private fun RoomStart(name: String?, isDm: Boolean, encrypted: Boolean) {
     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(if (isDm) "This is the beginning of your chat" else "This is the beginning of ${name ?: "this room"}", style = MaterialTheme.typography.titleSmall)
+        Text(if (isDm) stringResource(R.string.this_is_the_beginning_of_your_chat) else stringResource(R.string.this_is_the_beginning_of, name ?: "this room"), style = MaterialTheme.typography.titleSmall)
         if (encrypted) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Lock, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(4.dp))
-                Text("Messages are end-to-end encrypted.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.messages_are_end_to_end_encrypted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -887,10 +891,10 @@ private fun InviteBar(inviter: String?, haze: HazeState, onAccept: () -> Unit, o
         Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("${inviter ?: "Someone"} invited you to join.", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.invited_you_to_join, inviter ?: stringResource(R.string.invite_someone)), style = MaterialTheme.typography.bodyMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text("Decline") }
-            Button(onClick = onAccept, modifier = Modifier.weight(1f)) { Text("Accept") }
+            OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_decline)) }
+            Button(onClick = onAccept, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_accept)) }
         }
     }
 }
@@ -958,10 +962,10 @@ private fun Composer(
                             Icon(if (mode is ComposerMode.Reply) Icons.AutoMirrored.Filled.Reply else Icons.Default.Edit, null, tint = cs.primary, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(if (mode is ComposerMode.Reply) "Replying to ${item.senderName}" else "Editing", style = MaterialTheme.typography.labelMedium, color = cs.primary)
+                                Text(if (mode is ComposerMode.Reply) stringResource(R.string.replying_to, item.senderName) else stringResource(R.string.editing), style = MaterialTheme.typography.labelMedium, color = cs.primary)
                                 Text(previewOf(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
-                            IconButton(onClick = onCancelMode) { Icon(Icons.Default.Close, "Cancel") }
+                            IconButton(onClick = onCancelMode) { Icon(Icons.Default.Close, stringResource(R.string.lock_cancel)) }
                         }
                     }
                     ComposerMode.Normal -> Unit
@@ -981,11 +985,11 @@ private fun Composer(
             verticalAlignment = Alignment.Bottom,
         ) {
             Box(Modifier.height(56.dp).padding(start = 2.dp), contentAlignment = Alignment.Center) {
-                IconButton(onClick = onAttach) { Icon(Icons.Default.Add, "Attach", tint = cs.onSurfaceVariant) }
+                IconButton(onClick = onAttach) { Icon(Icons.Default.Add, stringResource(R.string.attach), tint = cs.onSurfaceVariant) }
                 DropdownMenu(expanded = attachMenu, onDismissRequest = onDismissAttach) {
-                    DropdownMenuItem(text = { Text("Photo or video") }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
-                    DropdownMenuItem(text = { Text("File") }, leadingIcon = { Icon(Icons.Default.AttachFile, null) }, onClick = onPickFile)
-                    DropdownMenuItem(text = { Text("Poll") }, leadingIcon = { Icon(Icons.Default.BarChart, null) }, onClick = onPoll)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.photo_or_video)) }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.file_2)) }, leadingIcon = { Icon(Icons.Default.AttachFile, null) }, onClick = onPickFile)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.poll)) }, leadingIcon = { Icon(Icons.Default.BarChart, null) }, onClick = onPoll)
                 }
             }
             TextField(
@@ -996,7 +1000,7 @@ private fun Composer(
                         onSend()
                     } else onValueChange(v)
                 },
-                placeholder = { Text("Message") },
+                placeholder = { Text(stringResource(R.string.message)) },
                 maxLines = 6,
                 colors = TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
@@ -1021,7 +1025,7 @@ private fun Composer(
                 ) {
                     Icon(
                         if (voiceMode) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
-                        if (voiceMode) "Record voice message" else "Send",
+                        if (voiceMode) stringResource(R.string.record_voice_message) else stringResource(R.string.send),
                         tint = cs.onPrimary,
                         modifier = Modifier.size(20.dp),
                     )
@@ -1040,7 +1044,7 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-            IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, "Discard recording", tint = cs.error) }
+            IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, stringResource(R.string.discard_recording), tint = cs.error) }
         }
         Box(Modifier.size(10.dp).clip(CircleShape).background(cs.error))
         Spacer(Modifier.width(8.dp))
@@ -1057,19 +1061,19 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
             Box(
                 Modifier.size(44.dp).clip(CircleShape).background(cs.primary).clickable(onClick = onSend),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.AutoMirrored.Filled.Send, "Send voice message", tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send_voice_message), tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
         }
     }
 }
 
 private fun previewOf(item: TimelineEntry.Message): String = when (val c = item.content) {
     is UiContent.Text -> c.body
-    is UiContent.Image -> "🖼 " + (c.caption ?: "Image")
-    is UiContent.Video -> "🎬 " + (c.caption ?: "Video")
-    is UiContent.Audio -> "🎵 Audio"
+    is UiContent.Image -> "🖼 " + (c.caption ?: Strings.str(R.string.image))
+    is UiContent.Video -> "🎬 " + (c.caption ?: Strings.str(R.string.video))
+    is UiContent.Audio -> Strings.str(R.string.audio)
     is UiContent.File -> "📎 " + c.filename
     is UiContent.Poll -> "📊 " + c.question
-    is UiContent.Location -> "📍 Location"
+    is UiContent.Location -> Strings.str(R.string.location)
     else -> ""
 }
 
@@ -1080,25 +1084,25 @@ private fun PollDialog(onDismiss: () -> Unit, onCreate: (String, List<String>, B
     var disclosed by remember { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create poll") },
+        title = { Text(stringResource(R.string.create_poll)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(question, { question = it }, label = { Text("Question") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(question, { question = it }, label = { Text(stringResource(R.string.question)) }, modifier = Modifier.fillMaxWidth())
                 answers.forEachIndexed { i, a ->
-                    OutlinedTextField(a, { answers[i] = it }, label = { Text("Option ${i + 1}") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(a, { answers[i] = it }, label = { Text(stringResource(R.string.option, i + 1)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
-                if (answers.size < 20) TextButton(onClick = { answers.add("") }) { Text("Add option") }
+                if (answers.size < 20) TextButton(onClick = { answers.add("") }) { Text(stringResource(R.string.add_option)) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = disclosed, onCheckedChange = { disclosed = it })
-                    Text("Show results while voting")
+                    Text(stringResource(R.string.show_results_while_voting))
                 }
             }
         },
         confirmButton = {
             val valid = question.isNotBlank() && answers.count { it.isNotBlank() } >= 2
-            TextButton(enabled = valid, onClick = { onCreate(question.trim(), answers.filter { it.isNotBlank() }.map { it.trim() }, disclosed) }) { Text("Create") }
+            TextButton(enabled = valid, onClick = { onCreate(question.trim(), answers.filter { it.isNotBlank() }.map { it.trim() }, disclosed) }) { Text(stringResource(R.string.create)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.lock_cancel)) } },
     )
 }
 
@@ -1146,21 +1150,21 @@ internal fun openMedia(
             // The URI comes from someone else's event: only ever open it as a map location.
             val geo = runCatching { Uri.parse(c.geoUri.trim()) }.getOrNull()?.takeIf { it.scheme.equals("geo", ignoreCase = true) }
             if (geo == null) {
-                scope.launch { snackbar.showSnackbar("This location can't be opened") }
+                scope.launch { snackbar.showSnackbar(Strings.str(R.string.this_location_can_t_be_opened)) }
             } else runCatching {
                 com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(Intent(Intent.ACTION_VIEW, geo).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.onFailure { scope.launch { snackbar.showSnackbar("No maps app to open this location") } }
+            }.onFailure { scope.launch { snackbar.showSnackbar(Strings.str(R.string.no_maps_app_to_open_this_location)) } }
         }
         else -> {
             val info = mediaInfo(c) ?: return
             scope.launch {
-                snackbar.showSnackbar("Downloading ${info.second}…", duration = androidx.compose.material3.SnackbarDuration.Short)
+                snackbar.showSnackbar(Strings.str(R.string.downloading, info.second), duration = androidx.compose.material3.SnackbarDuration.Short)
             }
             scope.launch {
                 runCatching {
                     val file = MediaFiles.download(context, session, info.first, info.second, info.third)
                     MediaFiles.open(context, file, info.third)
-                }.onFailure { snackbar.showSnackbar("Couldn't open: ${it.userMessage()}") }
+                }.onFailure { snackbar.showSnackbar(Strings.str(R.string.couldn_t_open, it.userMessage())) }
             }
         }
     }
@@ -1179,8 +1183,8 @@ private suspend fun saveMedia(context: android.content.Context, session: MatrixS
     runCatching {
         val file = MediaFiles.download(context, session, info.first, info.second, info.third)
         MediaFiles.saveToDownloads(context, file, info.second, info.third)
-    }.onSuccess { ok -> snackbar.showSnackbar(if (ok) "Saved to Downloads/ElementCtrl" else "Couldn't save the file") }
-        .onFailure { snackbar.showSnackbar("Couldn't save: ${it.userMessage()}") }
+    }.onSuccess { ok -> snackbar.showSnackbar(if (ok) Strings.str(R.string.saved_to_downloads_elementctrl) else Strings.str(R.string.couldn_t_save_the_file)) }
+        .onFailure { snackbar.showSnackbar(Strings.str(R.string.couldn_t_save_2, it.userMessage())) }
 }
 
 private suspend fun shareMedia(context: android.content.Context, session: MatrixSession, item: TimelineEntry.Message, snackbar: SnackbarHostState) {
@@ -1188,7 +1192,7 @@ private suspend fun shareMedia(context: android.content.Context, session: Matrix
     runCatching {
         val file = MediaFiles.download(context, session, info.first, info.second, info.third)
         MediaFiles.share(context, file, info.third)
-    }.onFailure { snackbar.showSnackbar("Couldn't share: ${it.userMessage()}") }
+    }.onFailure { snackbar.showSnackbar(Strings.str(R.string.couldn_t_share, it.userMessage())) }
 }
 
 /** A picture to show full screen. */

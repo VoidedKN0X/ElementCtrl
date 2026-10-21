@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import com.vknxworks.elementctrl.Strings
 
 sealed interface AppState {
     data object Loading : AppState
@@ -82,7 +83,7 @@ class AppGraph(val context: Context) {
             } else if (stored == null) {
                 _state.value = AppState.SignedOut()
             } else if (restore(stored) == null) {
-                _state.value = AppState.SignedOut("Couldn't open your saved session. Please sign in again.")
+                _state.value = AppState.SignedOut(Strings.str(R.string.couldn_t_open_your_saved_session))
             }
         }
     }
@@ -165,7 +166,7 @@ class AppGraph(val context: Context) {
             if (_state.value != AppState.Locked) return@launch
             val stored = withContext(Dispatchers.IO) { store.load() }
             if (stored == null || restore(stored) == null) {
-                _state.value = AppState.SignedOut("Couldn't open your saved session. Please sign in again.")
+                _state.value = AppState.SignedOut(Strings.str(R.string.couldn_t_open_your_saved_session))
             }
         }
     }
@@ -206,7 +207,7 @@ class AppGraph(val context: Context) {
             }
             scope.launch {
                 s.authError.collect { soft ->
-                    if (!soft) forgetSession("You were signed out. This session was removed or your password changed.")
+                    if (!soft) forgetSession(Strings.str(R.string.you_were_signed_out_this_session_was))
                 }
             }
         }

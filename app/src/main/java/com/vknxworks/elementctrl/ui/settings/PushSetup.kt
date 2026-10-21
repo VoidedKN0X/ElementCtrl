@@ -33,6 +33,8 @@ import com.vknxworks.elementctrl.notify.Push
 import com.vknxworks.elementctrl.notify.UnifiedPush
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.R
 
 /** Choose instant push through ntfy or only the periodic background check. */
 @Composable
@@ -43,20 +45,17 @@ fun PushSetupDialog(session: MatrixSession, ntfyInstalled: Boolean, onDismiss: (
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Notification delivery") },
+        title = { Text(stringResource(R.string.notification_delivery)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    "Instant push comes through ntfy, which keeps one connection to your ntfy server (ntfy.sh or your own) for all " +
-                        "your apps. Your homeserver sends only the message ID, through that ntfy server's own Matrix gateway; " +
-                        "ElementCtrl then fetches and decrypts the message itself. The background check every ~15 minutes keeps " +
-                        "running either way, so nothing is missed if a push doesn't arrive.",
+                    stringResource(R.string.push_explainer),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Option(
-                    "Instant push with ntfy",
-                    if (ntfyInstalled) "Plus the background check" else "ntfy isn't installed on this phone",
+                    stringResource(R.string.instant_push_with_ntfy),
+                    if (ntfyInstalled) stringResource(R.string.plus_the_background_check) else stringResource(R.string.ntfy_isn_t_installed_on_this_phone),
                     selected = pushOn,
                     enabled = ntfyInstalled,
                 ) {
@@ -69,7 +68,7 @@ fun PushSetupDialog(session: MatrixSession, ntfyInstalled: Boolean, onDismiss: (
                     Notifier.schedule(context, ElementCtrlApp.graph.prefs.notifications.value)
                     onDismiss()
                 }
-                Option("Background check only", "Every ~15 minutes, no extra app needed", selected = !pushOn) {
+                Option(stringResource(R.string.background_check_only), stringResource(R.string.every_15_minutes_no_extra_app_needed), selected = !pushOn) {
                     scope.launch {
                         Push.disable(context, session)
                         Notifier.schedule(context, ElementCtrlApp.graph.prefs.notifications.value)
@@ -78,15 +77,15 @@ fun PushSetupDialog(session: MatrixSession, ntfyInstalled: Boolean, onDismiss: (
                 }
                 if (!ntfyInstalled) {
                     Text(
-                        "Install ntfy, then come back here and turn on instant push. It works with ntfy.sh or your own ntfy server.",
+                        stringResource(R.string.install_ntfy_then_come_back_here_and),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp),
                     )
-                    OutlinedButton(onClick = { openUrl(context, UnifiedPush.NTFY_DOWNLOAD) }) { Text("Install ntfy") }
+                    OutlinedButton(onClick = { openUrl(context, UnifiedPush.NTFY_DOWNLOAD) }) { Text(stringResource(R.string.warn_install_ntfy)) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.lock_close)) } },
     )
 }
 

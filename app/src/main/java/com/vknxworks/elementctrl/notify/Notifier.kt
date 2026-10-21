@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.matrix.rustcomponents.sdk.ReceiptType
+import com.vknxworks.elementctrl.Strings
 
 /**
  * The background check: while the app is closed, a job syncs every ~15 minutes (Android's minimum) and notifies
@@ -42,8 +43,8 @@ object Notifier {
 
     fun createChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_MESSAGES, "Messages", NotificationManager.IMPORTANCE_HIGH))
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_INVITES, "Invites", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_MESSAGES, Strings.str(R.string.messages), NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_INVITES, Strings.str(R.string.invites), NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     fun schedule(context: Context, enabled: Boolean) {
@@ -114,15 +115,15 @@ object Notifier {
         builder.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 PushNotifications.redacted(context, if (r.isInvite) CHANNEL_INVITES else CHANNEL_MESSAGES)
-                    .setContentText(if (r.isInvite) "New invite" else "New message")
+                    .setContentText(if (r.isInvite) Strings.str(R.string.new_invite) else Strings.str(R.string.new_message))
                     .build()
             )
         if (!ElementCtrlApp.graph.lock.showNotificationContent) {
             // Content hidden (default with app lock): no room name, sender or text.
-            builder.setContentTitle("ElementCtrl").setContentText(if (r.isInvite) "New invite" else "New message")
+            builder.setContentTitle(Strings.str(R.string.app_name)).setContentText(if (r.isInvite) Strings.str(R.string.new_invite) else Strings.str(R.string.new_message))
             if (!r.isInvite) builder.setNumber(r.unreadNotifications.toInt()).addAction(PushNotifications.markReadAction(context, r.roomId))
         } else if (r.isInvite) {
-            builder.setContentText("${r.inviterName ?: "Someone"} invited you")
+            builder.setContentText(Strings.str(R.string.invite_from, r.inviterName ?: Strings.str(R.string.invite_someone)))
             NotificationAvatars.cached(r.avatarUrl)?.let { builder.setLargeIcon(it) }
         } else {
             val line = listOfNotNull(r.lastSender?.takeIf { !r.isDm }, r.lastMessage).joinToString(": ")

@@ -7,6 +7,8 @@ import org.matrix.rustcomponents.sdk.OAuthConfiguration
 import org.matrix.rustcomponents.sdk.OAuthPrompt
 import org.matrix.rustcomponents.sdk.SsoHandler
 import uniffi.matrix_sdk.OAuthAuthorizationData
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** What a homeserver lets you do on the sign-in screen. */
 data class ServerDetails(
@@ -67,14 +69,14 @@ class AuthService(private val graph: AppGraph) {
     }
 
     suspend fun loginWithPassword(username: String, password: String): MatrixSession = withContext(Dispatchers.IO) {
-        val c = client ?: error("Choose a server first")
+        val c = client ?: error(Strings.str(R.string.choose_a_server_first))
         c.login(username.trim(), password, graph.factory.deviceName, null)
         finish(c)
     }
 
     /** The browser URL for OAuth sign-in (or account creation when [register] is true). */
     suspend fun oauthUrl(register: Boolean): String = withContext(Dispatchers.IO) {
-        val c = client ?: error("Choose a server first")
+        val c = client ?: error(Strings.str(R.string.choose_a_server_first))
         oauth?.let { runCatching { c.abortOauthAuth(it) } }
         val data = c.urlForOauth(
             oauthConfiguration = oauthConfig,
@@ -88,7 +90,7 @@ class AuthService(private val graph: AppGraph) {
     }
 
     suspend fun ssoUrl(): String = withContext(Dispatchers.IO) {
-        val c = client ?: error("Choose a server first")
+        val c = client ?: error(Strings.str(R.string.choose_a_server_first))
         val handler = c.startSsoLogin(ssoRedirect, null)
         sso = handler
         handler.url()
@@ -98,7 +100,7 @@ class AuthService(private val graph: AppGraph) {
 
     /** Completes sign-in with the URL the browser redirected back to. */
     suspend fun completeFromRedirect(url: String): MatrixSession = withContext(Dispatchers.IO) {
-        val c = client ?: error("Sign-in expired, start again")
+        val c = client ?: error(Strings.str(R.string.sign_in_expired_start_again))
         val handler = sso
         if (isSsoCallback(url) && handler != null) {
             handler.finish(url)
@@ -111,14 +113,14 @@ class AuthService(private val graph: AppGraph) {
     }
 
     private suspend fun finish(c: Client): MatrixSession {
-        val p = paths ?: error("No session folder")
+        val p = paths ?: error(Strings.str(R.string.no_session_folder))
         val stored = graph.factory.toStored(c.session(), p)
         graph.store.save(stored)
         // The login client and the real one share the same databases, so the first must be closed before the second opens.
         c.close()
         client = null
         paths = null
-        return graph.restore(stored) ?: error("Signed in, but the session couldn't be opened")
+        return graph.restore(stored) ?: error(Strings.str(R.string.signed_in_but_the_session_couldn_t))
     }
 
     /** Throws away a half-finished sign-in and its empty databases. */

@@ -54,6 +54,8 @@ import com.vknxworks.elementctrl.ui.Avatar
 import com.vknxworks.elementctrl.ui.EmptyState
 import com.vknxworks.elementctrl.ui.shortTime
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.R
 
 /** Search the messages of one chat, including encrypted ones, and jump to a result. */
 @Composable
@@ -79,14 +81,14 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
     Scaffold(
         topBar = {
             TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
                 title = {
                     TextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Search ${roomName ?: "this chat"}") },
+                        placeholder = { Text(stringResource(R.string.search, roomName ?: "this chat")) },
                         singleLine = true,
-                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, "Clear") } },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, stringResource(R.string.clear)) } },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
@@ -102,10 +104,10 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
         Box(Modifier.fillMaxSize().padding(pad).imePadding()) {
             when {
                 query.isBlank() -> EmptyState(
-                    Icons.Default.Search, "Search messages",
-                    "Searches messages stored on this phone, including encrypted chats. Older history is added in the background while you search.",
+                    Icons.Default.Search, stringResource(R.string.search_messages),
+                    stringResource(R.string.searches_messages_stored_on_this),
                 )
-                results.isEmpty() && !loading -> EmptyState(Icons.Default.Search, "No results", "Older messages may still be indexing. Try again in a moment.")
+                results.isEmpty() && !loading -> EmptyState(Icons.Default.Search, stringResource(R.string.no_results), stringResource(R.string.older_messages_may_still_be_indexing))
             }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 items(results, key = { it.eventId }) { hit ->

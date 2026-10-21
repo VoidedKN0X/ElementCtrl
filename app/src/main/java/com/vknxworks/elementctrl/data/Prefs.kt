@@ -5,18 +5,20 @@ import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Stored by position: new choices go at the end. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK, BLACK }
 
 /** How messages are drawn in a chat. */
 enum class BubbleStyle(val label: String, val description: String) {
-    MODERN("Modern", "Rounded bubbles with a small tail"),
-    ROUND("Round", "Fully rounded bubbles"),
-    SHARP("Sharp", "Square corners, compact"),
-    OUTLINED("Outlined", "Bubbles with an outline instead of a fill"),
-    VIVID("Vivid", "Your messages in a strong accent colour"),
-    FLAT("No bubbles", "Everything on the left with names, like Element Web"),
+    MODERN(Strings.str(R.string.modern), Strings.str(R.string.rounded_bubbles_with_a_small_tail)),
+    ROUND(Strings.str(R.string.round), Strings.str(R.string.fully_rounded_bubbles)),
+    SHARP(Strings.str(R.string.sharp), Strings.str(R.string.square_corners_compact)),
+    OUTLINED(Strings.str(R.string.outlined), Strings.str(R.string.bubbles_with_an_outline_instead_of_a)),
+    VIVID(Strings.str(R.string.vivid), Strings.str(R.string.your_messages_in_a_strong_accent)),
+    FLAT(Strings.str(R.string.no_bubbles), Strings.str(R.string.everything_on_the_left_with_names)),
 }
 
 /** App-level settings that are not tied to the Matrix account. */

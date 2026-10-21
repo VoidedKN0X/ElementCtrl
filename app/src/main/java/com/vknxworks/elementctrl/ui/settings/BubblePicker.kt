@@ -33,13 +33,16 @@ import com.vknxworks.elementctrl.matrix.UiContent
 import com.vknxworks.elementctrl.ui.room.LocalBubbleStyle
 import com.vknxworks.elementctrl.ui.room.MessageActions
 import com.vknxworks.elementctrl.ui.room.MessageRow
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Lets the user pick a chat bubble design, previewing each one with sample messages. */
 @Composable
 fun BubbleStylePicker(current: BubbleStyle, onPick: (BubbleStyle) -> Unit, onDismiss: () -> Unit) {
     val now = remember { System.currentTimeMillis() }
-    val theirs = remember { sample("a", "@ana:example.org", "Ana", "Are we still on for tonight? 🍕", false, now - 120_000, emptyList()) }
-    val mine = remember { sample("b", "@me:example.org", "Me", "Yes! See you at 8", true, now - 60_000, listOf(ReactionUi("👍", 1, false, listOf("@ana:example.org")))) }
+    val theirs = remember { sample("a", "@ana:example.org", Strings.str(R.string.sample_name), Strings.str(R.string.sample_message_theirs), false, now - 120_000, emptyList()) }
+    val mine = remember { sample("b", "@me:example.org", Strings.str(R.string.sample_me), Strings.str(R.string.sample_message_mine), true, now - 60_000, listOf(ReactionUi("👍", 1, false, listOf("@ana:example.org")))) }
     val noop = remember {
         MessageActions(
             onLongPress = {}, onReact = { _, _ -> }, onOpenMedia = {}, onOpenUser = {}, onOpenThread = {},
@@ -47,7 +50,7 @@ fun BubbleStylePicker(current: BubbleStyle, onPick: (BubbleStyle) -> Unit, onDis
         )
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text("Chat bubbles", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+        Text(stringResource(R.string.bubbles), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(BubbleStyle.entries) { style ->
                 val selected = style == current

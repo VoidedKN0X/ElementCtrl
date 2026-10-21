@@ -51,6 +51,9 @@ import com.vknxworks.elementctrl.matrix.mxcAvatar
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Round avatar from an mxc:// URL, or coloured initials when there's no picture. */
 @Composable
@@ -105,8 +108,8 @@ fun shortTime(ts: Long): String {
 fun timeOfDay(ts: Long): String = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(ts))
 
 fun dayLabel(ts: Long): String = when {
-    DateUtils.isToday(ts) -> "Today"
-    DateUtils.isToday(ts + DateUtils.DAY_IN_MILLIS) -> "Yesterday"
+    DateUtils.isToday(ts) -> Strings.str(R.string.today)
+    DateUtils.isToday(ts + DateUtils.DAY_IN_MILLIS) -> Strings.str(R.string.yesterday)
     else -> DateFormat.getDateInstance(DateFormat.FULL).format(Date(ts))
 }
 
@@ -255,7 +258,7 @@ fun ConfirmDialog(
                 Text(confirm, color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.lock_cancel)) } },
     )
 }
 
@@ -264,7 +267,7 @@ fun TextInputDialog(
     title: String,
     initial: String = "",
     label: String = "",
-    confirm: String = "Save",
+    confirm: String = stringResource(R.string.save),
     singleLine: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
@@ -283,7 +286,7 @@ fun TextInputDialog(
             )
         },
         confirmButton = { TextButton(onClick = { onDismiss(); onConfirm(value) }) { Text(confirm) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.lock_cancel)) } },
     )
 }
 
@@ -324,7 +327,7 @@ fun NotEncryptedBadge(modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.errorContainer,
     ) {
         Text(
-            "Not encrypted (HTTP)",
+            stringResource(R.string.not_encrypted_http),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),

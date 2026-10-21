@@ -87,6 +87,10 @@ import com.vknxworks.elementctrl.ui.shareText
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.UserProfile
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 @Composable
 fun RoomDetailsScreen(
@@ -120,9 +124,9 @@ fun RoomDetailsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = { Text(if (h?.isDm == true) "Chat info" else "Room info") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            ScreenTopBar(
+                title = if (h?.isDm == true) stringResource(R.string.chat_info) else stringResource(R.string.room_info),
+                onBack = onBack,
             )
         },
     ) { pad ->
@@ -143,98 +147,98 @@ fun RoomDetailsScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (permissions.canInvite && !h.isDm) OutlinedButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, null); Spacer(Modifier.width(6.dp)); Text("Invite") }
+                    if (permissions.canInvite && !h.isDm) OutlinedButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.invite)) }
                     OutlinedButton(onClick = { scope.launch { room.permalink()?.let { shareText(context, it) } } }) {
-                        Icon(Icons.Default.Share, null); Spacer(Modifier.width(6.dp)); Text("Share")
+                        Icon(Icons.Default.Share, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.share))
                     }
                 }
             }
             HorizontalDivider()
 
             if (h.isDm && h.dmUserId != null) {
-                SettingRow(Icons.Default.Person, "View profile", h.dmUserId) { onOpenUser(h.dmUserId) }
+                SettingRow(Icons.Default.Person, stringResource(R.string.view_profile), h.dmUserId) { onOpenUser(h.dmUserId) }
             }
             SettingRow(
-                Icons.Default.Notifications, "Notifications",
+                Icons.Default.Notifications, stringResource(R.string.group_notifications),
                 when (h.notificationMode) {
-                    null -> "Default"
-                    RoomNotificationMode.ALL_MESSAGES -> "All messages"
-                    RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY -> "Mentions and keywords"
-                    RoomNotificationMode.MUTE -> "Off"
+                    null -> Strings.str(R.string.default_text)
+                    RoomNotificationMode.ALL_MESSAGES -> Strings.str(R.string.mode_all)
+                    RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY -> Strings.str(R.string.mode_mentions)
+                    RoomNotificationMode.MUTE -> Strings.str(R.string.mode_off)
                 },
             ) { notifDialog = true }
-            SettingRow(Icons.Default.PhotoLibrary, "Media and files", "Photos, videos, files and voice messages shared here", onClick = onMedia)
-            SettingRow(Icons.Default.Favorite, "Favourite", trailing = { Switch(h.isFavourite, { room.setFavourite(it) }) }) { room.setFavourite(!h.isFavourite) }
-            SettingRow(Icons.Default.SouthEast, "Low priority", trailing = { Switch(h.isLowPriority, { room.setLowPriority(it) }) }) { room.setLowPriority(!h.isLowPriority) }
+            SettingRow(Icons.Default.PhotoLibrary, stringResource(R.string.media_and_files), stringResource(R.string.photos_videos_files_and_voice), onClick = onMedia)
+            SettingRow(Icons.Default.Favorite, stringResource(R.string.room_favourite), trailing = { Switch(h.isFavourite, { room.setFavourite(it) }) }) { room.setFavourite(!h.isFavourite) }
+            SettingRow(Icons.Default.SouthEast, stringResource(R.string.room_low_priority), trailing = { Switch(h.isLowPriority, { room.setLowPriority(it) }) }) { room.setLowPriority(!h.isLowPriority) }
             if (!h.isDm) {
-                SettingRow(Icons.Default.Group, "People", "${h.joinedMembers} joined" + if (h.invitedMembers > 0) ", ${h.invitedMembers} invited" else "", onClick = onMembers)
+                SettingRow(Icons.Default.Group, stringResource(R.string.filter_people), if (h.invitedMembers > 0) stringResource(R.string.members_joined_invited, h.joinedMembers, h.invitedMembers) else stringResource(R.string.members_joined, h.joinedMembers), onClick = onMembers)
             }
             if (h.pinnedEventIds.isNotEmpty()) {
-                SettingRow(Icons.Default.PushPin, "Pinned messages", "${h.pinnedEventIds.size} pinned")
+                SettingRow(Icons.Default.PushPin, stringResource(R.string.pinned_messages), stringResource(R.string.pinned, h.pinnedEventIds.size))
             }
 
-            SectionHeader("Security")
+            SectionHeader(stringResource(R.string.security))
             if (h.isEncrypted) {
-                SettingRow(Icons.Default.Lock, "Encrypted", "Messages here are end-to-end encrypted. Only the people in the chat can read them.")
+                SettingRow(Icons.Default.Lock, stringResource(R.string.room_encrypted), stringResource(R.string.messages_here_are_end_to_end_2))
             } else {
                 SettingRow(
-                    Icons.Default.LockOpen, "Not encrypted",
-                    if (h.isPublic) "Public rooms aren't encrypted." else "Turn on encryption so only members can read new messages. This can't be turned off.",
+                    Icons.Default.LockOpen, stringResource(R.string.not_encrypted_2),
+                    if (h.isPublic) stringResource(R.string.public_rooms_aren_t_encrypted) else stringResource(R.string.turn_on_encryption_so_only_members),
                     onClick = if (!h.isPublic) ({ confirmEncrypt = true }) else null,
                 )
             }
 
             if (!h.isDm) {
-                SectionHeader("Settings")
-                if (permissions.canEditName) SettingRow(Icons.Default.Edit, "Room name", h.name) { editName = true }
-                if (permissions.canEditTopic) SettingRow(Icons.Default.Edit, "Topic", h.topic ?: "Add a topic") { editTopic = true }
-                if (permissions.canEditAvatar) SettingRow(Icons.Default.Image, "Room picture", "Change the room's picture") {
+                SectionHeader(stringResource(R.string.settings))
+                if (permissions.canEditName) SettingRow(Icons.Default.Edit, stringResource(R.string.room_name), h.name) { editName = true }
+                if (permissions.canEditTopic) SettingRow(Icons.Default.Edit, stringResource(R.string.topic), h.topic ?: stringResource(R.string.add_a_topic)) { editTopic = true }
+                if (permissions.canEditAvatar) SettingRow(Icons.Default.Image, stringResource(R.string.room_picture), stringResource(R.string.change_the_room_s_picture)) {
                     com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }
-                SettingRow(Icons.Default.Search, "Who can join", h.joinRule)
-                SettingRow(Icons.Default.History, "Who can read history", h.historyVisibility)
-                h.alias?.let { SettingRow(Icons.Default.Tag, "Address", it) { copyText(context, "Address", it) } }
+                SettingRow(Icons.Default.Search, stringResource(R.string.who_can_join), h.joinRule)
+                SettingRow(Icons.Default.History, stringResource(R.string.who_can_read_history), h.historyVisibility)
+                h.alias?.let { SettingRow(Icons.Default.Tag, stringResource(R.string.address), it) { copyText(context, Strings.str(R.string.address), it) } }
             }
-            SettingRow(Icons.Default.ContentCopy, "Copy room ID", h.id) { copyText(context, "Room ID", h.id); scope.launch { snackbar.showSnackbar("Room ID copied") } }
-            SettingRow(Icons.Default.Link, "Copy link") { scope.launch { room.permalink()?.let { copyText(context, "Link", it); snackbar.showSnackbar("Link copied") } } }
+            SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_room_id), h.id) { copyText(context, Strings.str(R.string.room_id), h.id); scope.launch { snackbar.showSnackbar(Strings.str(R.string.room_id_copied)) } }
+            SettingRow(Icons.Default.Link, stringResource(R.string.copy_link)) { scope.launch { room.permalink()?.let { copyText(context, Strings.str(R.string.link), it); snackbar.showSnackbar(Strings.str(R.string.link_copied)) } } }
 
             HorizontalDivider(Modifier.padding(top = 12.dp))
             SettingRow(
-                Icons.AutoMirrored.Filled.ExitToApp, if (h.isDm) "Leave chat" else "Leave room",
+                Icons.AutoMirrored.Filled.ExitToApp, if (h.isDm) stringResource(R.string.leave_chat) else stringResource(R.string.leave_room),
                 tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
             ) { confirmLeave = true }
             Spacer(Modifier.height(32.dp))
         }
     }
 
-    if (editName) TextInputDialog("Room name", initial = h?.name.orEmpty(), onDismiss = { editName = false }) { room.setName(it.trim()) }
-    if (editTopic) TextInputDialog("Topic", initial = h?.topic.orEmpty(), singleLine = false, onDismiss = { editTopic = false }) { room.setTopic(it.trim()) }
-    if (inviting) InviteDialog(session, onDismiss = { inviting = false }) { room.invite(it); scope.launch { snackbar.showSnackbar("Invited $it") } }
+    if (editName) TextInputDialog(stringResource(R.string.room_name), initial = h?.name.orEmpty(), onDismiss = { editName = false }) { room.setName(it.trim()) }
+    if (editTopic) TextInputDialog(stringResource(R.string.topic), initial = h?.topic.orEmpty(), singleLine = false, onDismiss = { editTopic = false }) { room.setTopic(it.trim()) }
+    if (inviting) InviteDialog(session, onDismiss = { inviting = false }) { room.invite(it); scope.launch { snackbar.showSnackbar(Strings.str(R.string.invited_3, it)) } }
     if (confirmEncrypt) ConfirmDialog(
-        "Turn on encryption?",
-        "Once on, encryption can't be turned off. Bots and bridges that don't support encryption may stop working.",
-        "Turn on",
+        stringResource(R.string.turn_on_encryption),
+        stringResource(R.string.once_on_encryption_can_t_be_turned),
+        stringResource(R.string.turn_on),
         onDismiss = { confirmEncrypt = false },
         onConfirm = { room.enableEncryption() },
     )
     if (confirmLeave) ConfirmDialog(
-        "Leave?",
-        if (h?.isPublic == true) "You can rejoin later." else "If this room is private you'll need a new invite to come back.",
-        "Leave",
+        stringResource(R.string.leave),
+        if (h?.isPublic == true) stringResource(R.string.you_can_rejoin_later) else stringResource(R.string.if_this_room_is_private_you_ll_need),
+        stringResource(R.string.room_leave),
         destructive = true,
         onDismiss = { confirmLeave = false },
         onConfirm = { room.leave(onLeft) },
     )
     if (notifDialog) {
         val options = listOf(
-            null to "Default (match my settings)",
-            RoomNotificationMode.ALL_MESSAGES to "All messages",
-            RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY to "Mentions and keywords only",
-            RoomNotificationMode.MUTE to "Off",
+            null to Strings.str(R.string.default_match_my_settings),
+            RoomNotificationMode.ALL_MESSAGES to Strings.str(R.string.mode_all),
+            RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY to Strings.str(R.string.mentions_and_keywords_only),
+            RoomNotificationMode.MUTE to Strings.str(R.string.mode_off),
         )
         AlertDialog(
             onDismissRequest = { notifDialog = false },
-            title = { Text("Notifications") },
+            title = { Text(stringResource(R.string.group_notifications)) },
             text = {
                 Column {
                     options.forEach { (mode, label) ->
@@ -249,7 +253,7 @@ fun RoomDetailsScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { notifDialog = false }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { notifDialog = false }) { Text(stringResource(R.string.lock_close)) } },
         )
     }
 }
@@ -268,10 +272,10 @@ fun InviteDialog(session: MatrixSession, onDismiss: () -> Unit, onPick: (String)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Invite people") },
+        title = { Text(stringResource(R.string.invite_people)) },
         text = {
             Column {
-                OutlinedTextField(query, { query = it }, label = { Text("Name or @user:server") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.name_or_user_server)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 LazyColumn(Modifier.height(260.dp)) {
                     items(results, key = { it.userId }) { p ->
@@ -291,9 +295,9 @@ fun InviteDialog(session: MatrixSession, onDismiss: () -> Unit, onPick: (String)
             }
         },
         confirmButton = {
-            TextButton(enabled = query.startsWith("@") && query.contains(":"), onClick = { onDismiss(); onPick(query.trim()) }) { Text("Invite") }
+            TextButton(enabled = query.startsWith("@") && query.contains(":"), onClick = { onDismiss(); onPick(query.trim()) }) { Text(stringResource(R.string.invite)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.lock_cancel)) } },
     )
 }
 
@@ -313,10 +317,10 @@ fun MembersScreen(session: MatrixSession, roomId: String, onBack: () -> Unit, on
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("People") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-                actions = { if (permissions.canInvite) IconButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, "Invite") } },
+            ScreenTopBar(
+                title = stringResource(R.string.filter_people),
+                onBack = onBack,
+                actions = { if (permissions.canInvite) IconButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, stringResource(R.string.invite)) } },
             )
         }
     ) { pad ->
@@ -324,13 +328,13 @@ fun MembersScreen(session: MatrixSession, roomId: String, onBack: () -> Unit, on
             item {
                 OutlinedTextField(
                     query, { query = it },
-                    placeholder = { Text("Search people") },
+                    placeholder = { Text(stringResource(R.string.search_people)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            listOf("join" to "Joined", "invite" to "Invited", "knock" to "Asking to join", "ban" to "Banned").forEach { (key, label) ->
+            listOf("join" to Strings.str(R.string.joined_2), "invite" to Strings.str(R.string.invited_4), "knock" to Strings.str(R.string.asking_to_join), "ban" to Strings.str(R.string.banned)).forEach { (key, label) ->
                 val list = groups[key].orEmpty()
                 if (list.isNotEmpty()) {
                     item(key) { SectionHeader("$label · ${list.size}") }
@@ -385,7 +389,7 @@ fun UserScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { TopAppBar(title = { Text("Profile") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) },
+        topBar = { ScreenTopBar(stringResource(R.string.profile), onBack = onBack) },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState())) {
             val name = profile?.displayName ?: userId
@@ -399,7 +403,7 @@ fun UserScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.VerifiedUser, null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(4.dp))
-                        Text("Verified", color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.verified), color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -412,21 +416,21 @@ fun UserScreen(
                                 .onFailure { snackbar.showSnackbar(it.userMessage()) }
                             busy = false
                         }
-                    }) { Text("Send message") }
+                    }) { Text(stringResource(R.string.send_message)) }
                 }
             }
             HorizontalDivider()
             if (userId != session.userId && verified != true) {
-                SettingRow(Icons.Default.VerifiedUser, "Verify ${profile?.displayName ?: "user"}", "Compare emojis to make sure you're talking to the right person.") { onVerify(userId) }
+                SettingRow(Icons.Default.VerifiedUser, stringResource(R.string.verify_2, profile?.displayName ?: "user"), stringResource(R.string.compare_emojis_to_make_sure_you_re)) { onVerify(userId) }
             }
-            SettingRow(Icons.Default.ContentCopy, "Copy Matrix ID", userId) { copyText(context, "Matrix ID", userId) }
-            SettingRow(Icons.Default.Share, "Share profile link") {
+            SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_matrix_id), userId) { copyText(context, Strings.str(R.string.matrix_id), userId) }
+            SettingRow(Icons.Default.Share, stringResource(R.string.share_profile_link)) {
                 shareText(context, "https://matrix.to/#/$userId")
             }
             if (userId != session.userId) {
                 SettingRow(
-                    Icons.Default.Block, if (ignored) "Unignore" else "Ignore",
-                    if (ignored) "You'll see their messages again." else "Hide their messages and invites everywhere.",
+                    Icons.Default.Block, if (ignored) stringResource(R.string.unignore) else stringResource(R.string.ignore),
+                    if (ignored) stringResource(R.string.you_ll_see_their_messages_again) else stringResource(R.string.hide_their_messages_and_invites),
                     tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
                 ) {
                     scope.launch {
@@ -437,17 +441,17 @@ fun UserScreen(
                 }
             }
             if (permissions != null && userId != session.userId && (permissions.canKick || permissions.canBan)) {
-                SectionHeader("In this room")
-                if (permissions.canKick) SettingRow(Icons.Default.PersonRemove, "Remove from room", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "kick" }
-                if (permissions.canBan) SettingRow(Icons.Default.Block, "Ban from room", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "ban" }
+                SectionHeader(stringResource(R.string.in_this_room))
+                if (permissions.canKick) SettingRow(Icons.Default.PersonRemove, stringResource(R.string.remove_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "kick" }
+                if (permissions.canBan) SettingRow(Icons.Default.Block, stringResource(R.string.ban_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "ban" }
             }
         }
     }
     moderate?.let { action ->
         TextInputDialog(
-            if (action == "kick") "Remove from room" else "Ban from room",
-            label = "Reason (optional)",
-            confirm = if (action == "kick") "Remove" else "Ban",
+            if (action == "kick") stringResource(R.string.remove_from_room) else stringResource(R.string.ban_from_room),
+            label = stringResource(R.string.reason_optional),
+            confirm = if (action == "kick") stringResource(R.string.remove) else stringResource(R.string.ban),
             onDismiss = { moderate = null },
         ) { reason ->
             val r = roomVm?.room ?: return@TextInputDialog
@@ -458,9 +462,9 @@ fun UserScreen(
 
 @Composable
 private fun UnavailableRoom(onBack: () -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Room") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) }) { pad ->
+    Scaffold(topBar = { ScreenTopBar(stringResource(R.string.room_2), onBack = onBack) }) { pad ->
         Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
-            Text("This room isn't available yet.", modifier = Modifier.padding(32.dp))
+            Text(stringResource(R.string.this_room_isn_t_available_yet), modifier = Modifier.padding(32.dp))
         }
     }
 }

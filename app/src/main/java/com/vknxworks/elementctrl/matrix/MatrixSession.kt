@@ -43,6 +43,8 @@ import org.matrix.rustcomponents.sdk.UserProfile
 import org.matrix.rustcomponents.sdk.VerificationState
 import org.matrix.rustcomponents.sdk.VerificationStateListener
 import uniffi.matrix_sdk_common.BackgroundTaskFailureReason
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 private const val TAG = "MatrixSession"
 
@@ -470,7 +472,7 @@ private class NetworkWatch(context: android.content.Context, private val onChang
     private fun update(value: Boolean) {
         if (online != value) {
             online = value
-            ConnectionLog.log("network ${if (value) "up" else "down"}")
+            ConnectionLog.log(Strings.str(R.string.network, if (value) "up" else "down"))
             onChange()
         }
     }

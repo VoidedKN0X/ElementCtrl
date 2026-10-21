@@ -6,6 +6,8 @@ import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Plain client-server API calls for the few endpoints the SDK doesn't wrap (devices, room state for sticker packs). */
 object MatrixHttp {
@@ -19,7 +21,7 @@ object MatrixHttp {
         while (true) {
             val n = input.read(buf)
             if (n < 0) break
-            if (out.size() + n > limit) error("The server's response was too large")
+            if (out.size() + n > limit) error(Strings.str(R.string.the_server_s_response_was_too_large))
             out.write(buf, 0, n)
         }
         return out.toString("UTF-8")
@@ -57,7 +59,7 @@ object MatrixHttp {
             val code = conn.responseCode
             val text = (if (code in 200..299) conn.inputStream else conn.errorStream)?.use { readCapped(it) }.orEmpty()
             val json = runCatching { JSONObject(text.ifBlank { "{}" }) }.getOrDefault(JSONObject())
-            if (code !in 200..299 && !returnErrors) error(json.optString("error").ifBlank { "HTTP $code" })
+            if (code !in 200..299 && !returnErrors) error(json.optString("error").ifBlank { Strings.str(R.string.http, code) })
             code to json
         } finally {
             conn.disconnect()

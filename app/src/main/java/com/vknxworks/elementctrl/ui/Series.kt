@@ -57,6 +57,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.matrix.mxcAvatar
+import coil3.compose.AsyncImage
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -116,7 +123,31 @@ fun ProfileButton(session: MatrixSession, onClick: () -> Unit) {
     val profile by session.profile.collectAsStateWithLifecycle()
     val label = stringResource(R.string.you_title)
     IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = label }) {
-        Avatar(profile.displayName ?: session.userId, profile.avatarUrl, session.userId, size = 34.dp)
+        ProfileAvatar(profile.displayName ?: session.userId, profile.avatarUrl, 34.dp)
+    }
+}
+
+/**
+ * Your own picture, as in every Ctrl app: your Matrix avatar when there is one, otherwise your initial on a
+ * tinted circle in the app's colour (other people keep their coloured initials in chats).
+ */
+@Composable
+fun ProfileAvatar(
+    name: String,
+    url: String?,
+    size: Dp,
+    initialStyle: TextStyle = MaterialTheme.typography.titleMedium,
+) {
+    val px = with(LocalDensity.current) { size.roundToPx() }
+    val model = remember(url, px) { mxcAvatar(url, (px * 2).coerceAtMost(512)) }
+    Box(
+        Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(initials(name), style = initialStyle, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+        if (model != null) {
+            AsyncImage(model = model, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 

@@ -78,6 +78,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** A media-only timeline of one room, kept while the gallery is open. */
 class MediaGalleryViewModel(val session: MatrixSession, roomId: String) : ViewModel() {
@@ -140,19 +144,19 @@ fun MediaGalleryScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text("Media and files") },
-                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                ScreenTopBar(
+                    title = stringResource(R.string.media_and_files),
+                    onBack = onBack,
                 )
                 PrimaryTabRow(selectedTabIndex = tab) {
-                    Tab(tab == 0, { tab = 0 }, text = { Text("Media") })
-                    Tab(tab == 1, { tab = 1 }, text = { Text("Files") })
+                    Tab(tab == 0, { tab = 0 }, text = { Text(stringResource(R.string.media)) })
+                    Tab(tab == 1, { tab = 1 }, text = { Text(stringResource(R.string.files)) })
                 }
             }
         },
     ) { pad ->
         if (timeline == null) {
-            EmptyState(Icons.Default.PhotoLibrary, "Not available yet", "This chat may still be syncing.", Modifier.fillMaxSize().padding(pad))
+            EmptyState(Icons.Default.PhotoLibrary, stringResource(R.string.not_available_yet), stringResource(R.string.this_chat_may_still_be_syncing), Modifier.fillMaxSize().padding(pad))
             return@Scaffold
         }
         val entries by timeline.entries.collectAsStateWithLifecycle()
@@ -176,8 +180,8 @@ fun MediaGalleryScreen(
             when {
                 shown.isEmpty() && atStart -> EmptyState(
                     if (tab == 0) Icons.Default.Image else Icons.Default.FolderOpen,
-                    if (tab == 0) "No photos or videos yet" else "No files yet",
-                    if (tab == 0) "Photos and videos shared in this chat show up here." else "Files, audio and voice messages shared in this chat show up here.",
+                    if (tab == 0) stringResource(R.string.no_photos_or_videos_yet) else stringResource(R.string.no_files_yet),
+                    if (tab == 0) stringResource(R.string.photos_and_videos_shared_in_this) else stringResource(R.string.files_audio_and_voice_messages),
                 )
                 shown.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 tab == 0 -> MediaGrid(media, rememberLazyGridState(), loadingMore = !atStart, onEnd = { timeline.paginateBack() }, onOpen = open)
@@ -222,7 +226,7 @@ private fun MediaTile(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) 
         if (source != null) {
             AsyncImage(
                 model = remember(source) { MxcImage(sourceJson = source, size = 320) },
-                contentDescription = (m.content as? UiContent.Image)?.caption ?: "Photo from ${m.senderName}",
+                contentDescription = (m.content as? UiContent.Image)?.caption ?: stringResource(R.string.photo_from, m.senderName),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -232,7 +236,7 @@ private fun MediaTile(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) 
                 Modifier.align(Alignment.BottomStart).padding(5.dp).background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(10.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Default.PlayArrow, "Video", Modifier.size(14.dp), tint = Color.White)
+                Icon(Icons.Default.PlayArrow, stringResource(R.string.video), Modifier.size(14.dp), tint = Color.White)
                 if (duration != null && duration > 0) {
                     Spacer(Modifier.width(2.dp))
                     Text(formatDuration(duration), style = MaterialTheme.typography.labelSmall, color = Color.White)
@@ -263,11 +267,11 @@ private fun FileRow(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) ->
     val (icon, title, detail) = when (val c = m.content) {
         is UiContent.Audio -> Triple(
             if (c.isVoice) Icons.Default.Mic else Icons.Default.AudioFile,
-            if (c.isVoice) "Voice message" else c.filename,
+            if (c.isVoice) Strings.str(R.string.voice_message_2) else c.filename,
             formatDuration(c.durationMs),
         )
         is UiContent.File -> Triple(Icons.AutoMirrored.Filled.InsertDriveFile, c.filename, if (c.size > 0) formatSize(c.size) else null)
-        else -> Triple(Icons.AutoMirrored.Filled.InsertDriveFile, "File", null)
+        else -> Triple(Icons.AutoMirrored.Filled.InsertDriveFile, Strings.str(R.string.file_2), null)
     }
     Row(
         Modifier.fillMaxWidth().clickable { onOpen(m) }.padding(horizontal = 16.dp, vertical = 10.dp),

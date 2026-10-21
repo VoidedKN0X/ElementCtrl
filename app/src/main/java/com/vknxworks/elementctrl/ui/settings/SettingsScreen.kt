@@ -86,6 +86,7 @@ import com.vknxworks.elementctrl.ui.rememberPushHealth
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.sdkGitSha
+import com.vknxworks.elementctrl.Strings
 
 /**
  * App settings in the Ctrl series order: Appearance, Notifications, Privacy and security, then ElementCtrl's own
@@ -464,7 +465,7 @@ fun SettingsScreen(
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { copyText(context, "Connection log", text); connectionLog = null }) { Text(stringResource(R.string.copy)) } },
+            confirmButton = { TextButton(onClick = { copyText(context, Strings.str(R.string.connection_log), text); connectionLog = null }) { Text(stringResource(R.string.copy)) } },
             dismissButton = { TextButton(onClick = { connectionLog = null }) { Text(stringResource(R.string.close)) } },
         )
     }

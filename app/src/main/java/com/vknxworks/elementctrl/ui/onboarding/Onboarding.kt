@@ -83,6 +83,10 @@ import com.vknxworks.elementctrl.ui.SecureScreen
 import com.vknxworks.elementctrl.ui.isCleartext
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** First start: pick a homeserver, then sign in to it. */
 @Composable
@@ -142,11 +146,9 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
 
     insecure?.let { target ->
         ConfirmDialog(
-            title = "Not encrypted",
-            text = "$target uses plain http. Your password, access token and messages would travel over the network " +
-                "unencrypted, so anyone on the same network could read them or take over your account. Only continue " +
-                "for a server on a network you trust.",
-            confirm = "Connect anyway",
+            title = stringResource(R.string.not_encrypted_2),
+            text = stringResource(R.string.http_warning_body, target),
+            confirm = stringResource(R.string.connect_anyway),
             destructive = true,
             onDismiss = { insecure = null },
             onConfirm = { discover(target, httpConfirmed = true) },
@@ -154,10 +156,9 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
     }
     insecureDetails?.let { details ->
         ConfirmDialog(
-            title = "Not encrypted",
-            text = "${details.address} points to ${details.url}, which uses plain http. Your password, access token and " +
-                "messages would travel over the network unencrypted. Only continue for a server on a network you trust.",
-            confirm = "Connect anyway",
+            title = stringResource(R.string.not_encrypted_2),
+            text = stringResource(R.string.http_warning_wellknown, details.address, details.url),
+            confirm = stringResource(R.string.connect_anyway),
             destructive = true,
             // ConfirmDialog calls onDismiss before onConfirm, so only clear the dialog here.
             onDismiss = { insecureDetails = null },
@@ -183,10 +184,10 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                         Text("[ ]", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(16.dp))
-                    Text("Welcome to ElementCtrl", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.welcome_to_elementctrl), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Secure, decentralised chat on Matrix. Choose the server your account is on, or where you want to create one.",
+                        stringResource(R.string.secure_decentralised_chat_on_matrix),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -200,18 +201,18 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                     }
                 }
             }
-            item { Text("Popular servers", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
+            item { Text(stringResource(R.string.popular_servers), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
             items(Servers.standard, key = { it.address }) { option ->
                 ServerCard(option, Icons.Default.Public, busy == option.address, enabled = busy == null) { connect(option.address) }
             }
             if (recent.isNotEmpty()) {
-                item { Text("Your servers", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+                item { Text(stringResource(R.string.your_servers), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
                 items(recent, key = { "recent:$it" }) { address ->
-                    ServerCard(ServerOption(address, address, "Signed in here before"), Icons.Default.History, busy == address, enabled = busy == null) { connect(address) }
+                    ServerCard(ServerOption(address, address, Strings.str(R.string.signed_in_here_before)), Icons.Default.History, busy == address, enabled = busy == null) { connect(address) }
                 }
             }
             item {
-                Text("Self-hosted or other server", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+                Text(stringResource(R.string.self_hosted_or_other_server), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
             }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
@@ -219,13 +220,13 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(12.dp))
-                            Text("Your own Synapse, Conduit or Dendrite server", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.your_own_synapse_conduit_or_dendrite), style = MaterialTheme.typography.bodyMedium)
                         }
                         OutlinedTextField(
                             value = custom,
                             onValueChange = { custom = it },
-                            label = { Text("Server address") },
-                            placeholder = { Text("example.com or https://matrix.example.com") },
+                            label = { Text(stringResource(R.string.server_address)) },
+                            placeholder = { Text(stringResource(R.string.example_com_or_https_matrix_example)) },
                             singleLine = true,
                             leadingIcon = { Icon(Icons.Default.Language, null) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
@@ -234,7 +235,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Text(
-                            "Your server needs Simplified Sliding Sync (built into Synapse 1.114+). Plain http works for local addresses, after a warning.",
+                            stringResource(R.string.your_server_needs_simplified_sliding),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -246,7 +247,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                             if (busy != null && busy == Servers.normalise(custom)) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                             } else {
-                                Text("Continue")
+                                Text(stringResource(R.string.continue_text))
                             }
                         }
                     }
@@ -330,9 +331,9 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Sign in") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            ScreenTopBar(
+                title = stringResource(R.string.sign_in),
+                onBack = onBack,
             )
         }
     ) { pad ->
@@ -349,7 +350,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                         Text(server.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         if (isCleartext(server.url)) NotEncryptedBadge(Modifier.padding(top = 4.dp))
                     }
-                    TextButton(onClick = onBack) { Text("Change") }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.change)) }
                 }
             }
 
@@ -361,7 +362,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
 
             if (waitingForBrowser) {
                 Text(
-                    "Finish signing in in the browser. You'll come back here automatically.",
+                    stringResource(R.string.finish_signing_in_in_the_browser_you),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -369,18 +370,18 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
 
             if (server.supportsOAuth) {
                 Text(
-                    "This server signs you in through its own secure page.",
+                    stringResource(R.string.this_server_signs_you_in_through_its),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(onClick = { browser { graph.auth.oauthUrl(register = false) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Icon(Icons.Default.Lock, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Continue to sign in")
+                    Text(stringResource(R.string.continue_to_sign_in))
                 }
                 if (server.canRegister) {
                     OutlinedButton(onClick = { browser { graph.auth.oauthUrl(register = true) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                        Text("Create an account")
+                        Text(stringResource(R.string.create_an_account))
                     }
                 }
             }
@@ -389,8 +390,8 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Username or Matrix ID") },
-                    placeholder = { Text("alice or @alice:${server.address}") },
+                    label = { Text(stringResource(R.string.username_or_matrix_id)) },
+                    placeholder = { Text(stringResource(R.string.alice_or_alice, server.address)) },
                     leadingIcon = { Icon(Icons.Default.Person, null) },
                     singleLine = true,
                     enabled = !busy,
@@ -400,11 +401,11 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(stringResource(R.string.password)) },
                     leadingIcon = { Icon(Icons.Default.Key, null) },
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (showPassword) "Hide" else "Show")
+                            Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (showPassword) stringResource(R.string.hide) else stringResource(R.string.show))
                         }
                     },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -416,10 +417,10 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                 )
                 Button(onClick = { passwordLogin() }, enabled = !busy && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Sign in")
+                    else Text(stringResource(R.string.sign_in))
                 }
                 Text(
-                    "To create an account on this server, use its website or ask its admin. Registration in-app needs a server with the Matrix Authentication Service.",
+                    stringResource(R.string.to_create_an_account_on_this_server),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -428,12 +429,12 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
             if (server.supportsSso && !server.supportsOAuth) {
                 if (server.supportsPassword) HorizontalDivider()
                 OutlinedButton(onClick = { browser { graph.auth.ssoUrl() } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Text("Continue with single sign-on")
+                    Text(stringResource(R.string.continue_with_single_sign_on))
                 }
             }
 
             if (!server.supportsOAuth && !server.supportsPassword && !server.supportsSso) {
-                Text("This server doesn't offer a sign-in method ElementCtrl supports.", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.this_server_doesn_t_offer_a_sign_in), color = MaterialTheme.colorScheme.error)
             }
 
             if (busy && (server.supportsOAuth || waitingForBrowser)) {

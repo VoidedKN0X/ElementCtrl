@@ -8,6 +8,8 @@ import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.TimelineItemContent
 import uniffi.matrix_sdk_base.EncryptionState
 import uniffi.matrix_sdk_ui.LatestEventValueLocalState
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Everything the room list needs to draw one row. */
 data class RoomSummary(
@@ -64,8 +66,8 @@ suspend fun Room.toSummary(): RoomSummary {
         return when (content) {
             is TimelineItemContent.MsgLike -> text
             // State events read as sentences ("Ana joined"), so fill in who did it.
-            is TimelineItemContent.State -> stateText(if (own) "You" else senderName, content.content)
-            is TimelineItemContent.ProfileChange -> profileChangeText(if (own) "You" else senderName, content.displayName, content.prevDisplayName, content.avatarUrl, content.prevAvatarUrl)
+            is TimelineItemContent.State -> stateText(if (own) Strings.str(R.string.you_title) else senderName, content.content)
+            is TimelineItemContent.ProfileChange -> profileChangeText(if (own) Strings.str(R.string.you_title) else senderName, content.displayName, content.prevDisplayName, content.avatarUrl, content.prevAvatarUrl)
             else -> text
         }
     }
@@ -74,13 +76,13 @@ suspend fun Room.toSummary(): RoomSummary {
         is LatestEventValue.Remote -> {
             val name = latest.profile.nameOr(latest.sender)
             lastMessage = describe(latest.content, name, latest.isOwn)
-            lastSender = if (latest.content is TimelineItemContent.MsgLike) (if (latest.isOwn) "You" else name) else null
+            lastSender = if (latest.content is TimelineItemContent.MsgLike) (if (latest.isOwn) Strings.str(R.string.you_title) else name) else null
             lastOwn = latest.isOwn
             lastTs = latest.timestamp.toLong()
         }
         is LatestEventValue.Local -> {
-            lastMessage = describe(latest.content, "You", true)
-            lastSender = "You"
+            lastMessage = describe(latest.content, Strings.str(R.string.you_title), true)
+            lastSender = Strings.str(R.string.you_title)
             lastOwn = true
             lastTs = latest.timestamp.toLong()
             sending = latest.state == LatestEventValueLocalState.IS_SENDING

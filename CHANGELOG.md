@@ -2,6 +2,20 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.2
+
+The last screens now look like the rest of ElementCtrl and the other Ctrl apps, and all text is ready for translations.
+
+### Changed
+
+- **Devices, Security & recovery and the other inner screens use the series top bar**: Devices, Security & recovery, Verify this device / Verify user, Recovery key, Sign in, New chat, Create room, Room info / Chat info, People, a person's Profile, Media and files, and the "Room isn't available yet" screen now have the same plain top bar (back arrow and title on the app background) as You and Settings. Before, they used a different, older bar.
+- **Your profile picture looks the same as in the other Ctrl apps**: at the top right of every tab and at the top of the You page it's your Matrix avatar when you have one, otherwise the first letter of your name on a softly tinted circle in the app's colour (before, your initial in white on a randomly coloured circle). Other people keep their coloured initials in chats.
+- **All text is now in one place, ready for translations.** About 500 pieces of text that were written straight into the code, including the whole chat screen (composer, message menu, polls, voice messages, typing and read indicators, attachments, link warnings), room info and members, devices, security and recovery, verification, sign-in, push setup, notifications and error messages, now come from the app's text resources. The wording stays the same.
+
+### Fixed
+
+- **Counts read correctly in the singular and plural**: "1 member", "1 vote", "Final results · 1 vote", "1 new message" in notifications, "Signed out 1 device" and "Sign out 1 device?" instead of "1 members", "1 votes" and so on.
+
 ## 1.6.1
 
 The call screen is now built from source, without Google's code. Calls work exactly as before.

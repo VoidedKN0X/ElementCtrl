@@ -69,6 +69,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.RecoveryState
 import org.matrix.rustcomponents.sdk.VerificationState
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** "Skip for now" lasts until the app process ends, so the next start asks again. */
 private object GateMemory {
@@ -123,7 +127,7 @@ private fun Checking() {
     ) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text("Setting up encryption…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.setting_up_encryption), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -176,19 +180,19 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
                 Modifier.size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.Default.VerifiedUser, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
-            Text("Confirm it's you", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.banner_verify_title), style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Verify this device to read your encrypted messages and so others can trust it. Choose how:",
+                stringResource(R.string.verify_this_device_to_read_your),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
             MethodCard(
                 icon = Icons.Default.Devices,
-                title = "Use another device",
+                title = stringResource(R.string.use_another_device),
                 body = when (hasOtherDevices) {
-                    false -> "No other signed-in device found. Sign in on Element or ElementCtrl elsewhere first, or use your recovery key."
-                    else -> "Approve from Element or ElementCtrl on a phone or computer where you're already signed in, then compare emojis."
+                    false -> Strings.str(R.string.no_other_signed_in_device_found_sign)
+                    else -> Strings.str(R.string.approve_from_element_or_elementctrl)
                 },
                 enabled = hasOtherDevices != false,
                 loading = hasOtherDevices == null,
@@ -196,18 +200,18 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
             )
             MethodCard(
                 icon = Icons.Default.Key,
-                title = "Use your recovery key",
-                body = if (keyAvailable) "The recovery key (security key) you saved when you set up key storage or backup."
-                else "Key storage isn't set up on this account, so there's no recovery key yet.",
+                title = stringResource(R.string.use_your_recovery_key),
+                body = if (keyAvailable) stringResource(R.string.the_recovery_key_security_key_you)
+                else stringResource(R.string.key_storage_isn_t_set_up_on_this),
                 enabled = keyAvailable,
                 loading = false,
                 onClick = onKey,
             )
             Spacer(Modifier.height(4.dp))
-            TextButton(onClick = onCantConfirm) { Text("Can't confirm?") }
-            TextButton(onClick = onSkip) { Text("Skip for now", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            TextButton(onClick = onCantConfirm) { Text(stringResource(R.string.can_t_confirm)) }
+            TextButton(onClick = onSkip) { Text(stringResource(R.string.skip_for_now), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Text(
-                "If you skip, encrypted messages won't decrypt on this device. You'll be asked again next time you open the app.",
+                stringResource(R.string.if_you_skip_encrypted_messages_won_t),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -274,7 +278,7 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 .onFailure {
                     // Never echo the key back, even if an SDK error message happened to contain it.
                     val reason = it.userMessage().replace(entered, "…")
-                    error = "That key didn't work. Check it and try again. ($reason)"
+                    error = Strings.str(R.string.that_key_didn_t_work_check_it_and, reason)
                 }
             busy = false
         }
@@ -282,9 +286,9 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Recovery key") },
-                navigationIcon = { IconButton(onClick = onBack, enabled = !busy) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            ScreenTopBar(
+                title = stringResource(R.string.recovery_key),
+                onBack = { if (!busy) onBack() },
             )
         },
     ) { pad ->
@@ -293,13 +297,13 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Enter the recovery key you saved when you set up key storage. It looks like groups of four letters and numbers. A recovery passphrase works too.",
+                stringResource(R.string.enter_the_recovery_key_you_saved),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = key,
                 onValueChange = { key = it; error = null },
-                label = { Text("Recovery key or passphrase") },
+                label = { Text(stringResource(R.string.recovery_key_or_passphrase)) },
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
                 // Password type: keyboards don't suggest, learn or remember what's typed here.
                 keyboardOptions = KeyboardOptions(
@@ -311,7 +315,7 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 supportingText = error?.let { { Text(it) } },
                 trailingIcon = {
                     IconButton(onClick = { clipboard.getText()?.text?.let { key = it.trim(); error = null } }) {
-                        Icon(Icons.Default.ContentPaste, "Paste")
+                        Icon(Icons.Default.ContentPaste, stringResource(R.string.paste))
                     }
                 },
                 minLines = 2,
@@ -320,7 +324,7 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
             )
             Button(onClick = { submit() }, enabled = key.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                else Text("Verify")
+                else Text(stringResource(R.string.banner_verify))
             }
         }
     }
@@ -335,10 +339,10 @@ private fun VerifiedDone(onContinue: () -> Unit) {
     ) {
         Icon(Icons.Default.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
-        Text("Device verified", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.device_verified), style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(8.dp))
-        Text("Your encrypted messages will start decrypting here.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.your_encrypted_messages_will_start), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Continue") }
+        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(stringResource(R.string.continue_text)) }
     }
 }

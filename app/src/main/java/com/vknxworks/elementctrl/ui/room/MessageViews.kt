@@ -99,6 +99,9 @@ import com.vknxworks.elementctrl.ui.formatDuration
 import com.vknxworks.elementctrl.ui.formatSize
 import com.vknxworks.elementctrl.ui.senderColor
 import com.vknxworks.elementctrl.ui.timeOfDay
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Callbacks a message row can trigger. */
 class MessageActions(
@@ -279,7 +282,7 @@ fun MessageRow(
                 if (showSender && withName) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (flat) 0.dp else 12.dp, bottom = 2.dp)) {
                         Text(
-                            if (flat && item.isOwn) "You" else item.senderName,
+                            if (flat && item.isOwn) stringResource(R.string.you_title) else item.senderName,
                             style = MaterialTheme.typography.labelLarge,
                             color = senderColor(item.sender),
                             modifier = Modifier.clickable { actions.onOpenUser(item.sender) },
@@ -346,16 +349,16 @@ fun MessageRow(
                                 Spacer(Modifier.width(4.dp))
                             }
                             if (item.edited) {
-                                Text(if (flat) "(edited)" else "edited · ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                                Text(if (flat) stringResource(R.string.edited_2) else stringResource(R.string.edited_dot) + " ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
                             }
                             if (!flat) Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
                             if (item.isOwn) {
                                 Spacer(Modifier.width(4.dp))
                                 when (item.status) {
-                                    SendStatus.SENDING -> Icon(Icons.Default.AccessTime, "Sending", Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
-                                    SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, "Not sent, tap to retry", Modifier.size(14.dp), tint = cs.error)
+                                    SendStatus.SENDING -> Icon(Icons.Default.AccessTime, stringResource(R.string.sending), Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
+                                    SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, stringResource(R.string.not_sent_tap_to_retry), Modifier.size(14.dp), tint = cs.error)
                                     SendStatus.SENT -> if (!flat || item.readBy.isNotEmpty()) Icon(
-                                        Icons.Default.Done, if (item.readBy.isNotEmpty()) "Read" else "Sent", Modifier.size(12.dp),
+                                        Icons.Default.Done, if (item.readBy.isNotEmpty()) stringResource(R.string.read) else stringResource(R.string.sent), Modifier.size(12.dp),
                                         tint = if (item.readBy.isNotEmpty()) (if (style == BubbleStyle.VIVID && own) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
                                     )
                                 }
@@ -383,7 +386,7 @@ fun MessageRow(
                 }
                 }
                 if (item.status == SendStatus.FAILED) {
-                    Text("Not sent. Tap to retry, hold for options.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(4.dp))
+                    Text(stringResource(R.string.not_sent_tap_to_retry_hold_for), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(4.dp))
                 }
                 if (item.reactions.isNotEmpty()) {
                     ReactionsRow(item.reactions, own) { actions.onReact(item, it) }
@@ -500,7 +503,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
                     c.thumbnailJson?.let {
                         AsyncImage(model = remember(it) { MxcImage(sourceJson = it) }, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSizeSafe())
                     }
-                    Icon(Icons.Default.PlayCircle, "Play", Modifier.size(56.dp), tint = Color.White)
+                    Icon(Icons.Default.PlayCircle, stringResource(R.string.play), Modifier.size(56.dp), tint = Color.White)
                     if (c.durationMs > 0) {
                         Text(
                             formatDuration(c.durationMs),
@@ -521,18 +524,18 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
             onBubble = onBubble,
             caption = c.caption,
         )
-        is UiContent.Location -> AttachmentRow(Icons.Default.Place, "Location", c.geoUri.removePrefix("geo:").substringBefore(';'), onBubble, null)
+        is UiContent.Location -> AttachmentRow(Icons.Default.Place, stringResource(R.string.location_3), c.geoUri.removePrefix("geo:").substringBefore(';'), onBubble, null)
         is UiContent.Poll -> PollView(c, onBubble) { answer -> actions.onVote(item, answer) }
         is UiContent.Redacted -> Row(pad, verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Block, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
             Spacer(Modifier.width(6.dp))
-            Text("Message deleted", style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
+            Text(stringResource(R.string.message_deleted), style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
         }
         is UiContent.Encrypted -> {
             // Pick the wording from the live state, so it changes as soon as this device is verified.
             val (text, action) = when {
-                actions.deviceUnverified -> "Verify this device to read this message." to "Verify"
-                actions.recoveryIncomplete || c.historical -> "Enter your recovery key to read older messages." to "Enter key"
+                actions.deviceUnverified -> Strings.str(R.string.verify_this_device_to_read_this) to Strings.str(R.string.banner_verify)
+                actions.recoveryIncomplete || c.historical -> Strings.str(R.string.enter_your_recovery_key_to_read) to Strings.str(R.string.enter_key)
                 else -> c.reason to null
             }
             Column(pad) {
@@ -597,10 +600,10 @@ private fun PollView(poll: UiContent.Poll, onBubble: Color, onVote: (String) -> 
         }
         Text(
             when {
-                poll.ended -> "Final results · ${poll.totalVotes} votes"
-                !poll.disclosed -> "Results will show when the poll ends"
-                voted -> "${poll.totalVotes} votes"
-                else -> "Tap an answer to vote"
+                poll.ended -> Strings.plural(R.plurals.poll_final_votes, poll.totalVotes, poll.totalVotes)
+                !poll.disclosed -> Strings.str(R.string.results_will_show_when_the_poll_ends)
+                voted -> Strings.plural(R.plurals.poll_votes, poll.totalVotes, poll.totalVotes)
+                else -> Strings.str(R.string.tap_an_answer_to_vote)
             },
             style = MaterialTheme.typography.labelSmall,
             color = onBubble.copy(alpha = 0.7f),
@@ -621,7 +624,7 @@ fun ReplyQuote(senderName: String?, text: String?, onBubble: Color, modifier: Mo
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.AutoMirrored.Filled.Reply, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(4.dp))
-                Text(senderName ?: "Loading…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                Text(senderName ?: stringResource(R.string.loading), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
             }
             Text(text ?: "", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = onBubble.copy(alpha = 0.8f))
         }
@@ -671,7 +674,7 @@ fun DayDivider(ts: Long) {
 fun ReadMarkerLine() {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.primary))
-        Text("  New  ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        Text("  " + stringResource(R.string.new_marker) + "  ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.primary))
     }
 }
@@ -762,7 +765,7 @@ private fun AudioRow(key: String, c: UiContent.Audio, onBubble: Color, onToggle:
                 if (mine && player.loading) {
                     androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = onBubble)
                 } else {
-                    Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) "Pause" else "Play", tint = onBubble)
+                    Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) stringResource(R.string.pause) else stringResource(R.string.play), tint = onBubble)
                 }
             }
             Spacer(Modifier.width(8.dp))

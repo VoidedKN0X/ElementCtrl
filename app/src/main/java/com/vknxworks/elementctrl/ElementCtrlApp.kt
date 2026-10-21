@@ -27,6 +27,7 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
         // The restart helper process only relaunches the app; nothing else may start there.
         if (AppRestart.isRestartProcess()) return
         instance = this
+        Strings.init(this)
         com.vknxworks.elementctrl.matrix.ConnectionLog.init(this)
         // Native SDK first: it needs the Context for TLS checks, then logging/runtime setup.
         runCatching { org.matrix.rustsdk.Android.init(this) }

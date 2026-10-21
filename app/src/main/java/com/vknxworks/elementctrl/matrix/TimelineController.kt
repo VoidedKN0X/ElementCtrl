@@ -58,6 +58,8 @@ import uniffi.matrix_sdk.PaginationStatus
 import uniffi.matrix_sdk_crypto.UtdCause
 import uniffi.matrix_sdk_ui.TimelineEventShieldStateCode
 import uniffi.matrix_sdk_ui.TimelineReadReceiptTracking
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 private const val TAG = "Timeline"
 
@@ -247,14 +249,14 @@ class TimelineController(
                     }
                     is MsgLikeKind.Redacted -> UiContent.Redacted
                     is MsgLikeKind.UnableToDecrypt -> utdContent(kind.msg)
-                    is MsgLikeKind.LiveLocation -> UiContent.Location("Live location", kind.content.locations.lastOrNull()?.geoUri ?: "")
-                    is MsgLikeKind.Other -> UiContent.Unsupported("Unsupported event")
+                    is MsgLikeKind.LiveLocation -> UiContent.Location(Strings.str(R.string.live_location_2), kind.content.locations.lastOrNull()?.geoUri ?: "")
+                    is MsgLikeKind.Other -> UiContent.Unsupported(Strings.str(R.string.unsupported_event))
                 }
             }
             is TimelineItemContent.RoomMembership -> UiContent.Event(
                 membershipText(c.userDisplayName ?: c.userId.localpart(), c.change).let { base ->
                     if (c.change == org.matrix.rustcomponents.sdk.MembershipChange.KICKED || c.change == org.matrix.rustcomponents.sdk.MembershipChange.BANNED) {
-                        "$base by $senderName" + (c.reason?.let { ": $it" } ?: "")
+                        Strings.str(R.string.by, base, senderName) + (c.reason?.let { ": $it" } ?: "")
                     } else base
                 }
             )
@@ -262,9 +264,9 @@ class TimelineController(
                 profileChangeText(senderName, c.displayName, c.prevDisplayName, c.avatarUrl, c.prevAvatarUrl)
             )
             is TimelineItemContent.State -> UiContent.Event(stateText(senderName, c.content))
-            is TimelineItemContent.CallInvite, is TimelineItemContent.RtcNotification -> UiContent.Event("📞 $senderName started a call")
-            is TimelineItemContent.FailedToParseMessageLike -> UiContent.Unsupported("Couldn't read this message (${c.eventType})")
-            is TimelineItemContent.FailedToParseState -> UiContent.Event("Couldn't read a room event (${c.eventType})")
+            is TimelineItemContent.CallInvite, is TimelineItemContent.RtcNotification -> UiContent.Event(Strings.str(R.string.started_a_call, senderName))
+            is TimelineItemContent.FailedToParseMessageLike -> UiContent.Unsupported(Strings.str(R.string.couldn_t_read_this_message, c.eventType))
+            is TimelineItemContent.FailedToParseState -> UiContent.Event(Strings.str(R.string.couldn_t_read_a_room_event, c.eventType))
         }
 
         val status = when (val s = e.localSendState) {
@@ -357,7 +359,7 @@ class TimelineController(
             caption = type.content.caption,
         )
         is MessageType.Location -> UiContent.Location(type.content.body, type.content.geoUri)
-        is MessageType.Gallery -> UiContent.Text(type.content.body.ifBlank { "Gallery" }, type.content.formatted.html())
+        is MessageType.Gallery -> UiContent.Text(type.content.body.ifBlank { Strings.str(R.string.gallery) }, type.content.formatted.html())
         is MessageType.Other -> UiContent.Text(body, null)
     }
 
@@ -373,25 +375,25 @@ class TimelineController(
 
     private fun utdReason(cause: UtdCause?): String {
         return when (cause) {
-            UtdCause.SENT_BEFORE_WE_JOINED -> "You don't have access to this message: it was sent before you joined."
-            UtdCause.VERIFICATION_VIOLATION -> "Not shown: the sender's verified identity changed."
-            UtdCause.UNSIGNED_DEVICE, UtdCause.UNKNOWN_DEVICE -> "Not shown: sent from an unverified device."
-            UtdCause.HISTORICAL_MESSAGE_AND_BACKUP_IS_DISABLED -> "Older message: turn on key storage in Settings › Security to read history."
-            UtdCause.HISTORICAL_MESSAGE_AND_DEVICE_IS_UNVERIFIED -> "Older message: verify this device to read history."
-            UtdCause.WITHHELD_FOR_UNVERIFIED_OR_INSECURE_DEVICE -> "The sender doesn't share keys with unverified devices."
-            UtdCause.WITHHELD_BY_SENDER -> "The sender didn't share the key for this message."
-            else -> "Waiting for this message. It may take a moment to decrypt."
+            UtdCause.SENT_BEFORE_WE_JOINED -> Strings.str(R.string.you_don_t_have_access_to_this)
+            UtdCause.VERIFICATION_VIOLATION -> Strings.str(R.string.not_shown_the_sender_s_verified)
+            UtdCause.UNSIGNED_DEVICE, UtdCause.UNKNOWN_DEVICE -> Strings.str(R.string.not_shown_sent_from_an_unverified)
+            UtdCause.HISTORICAL_MESSAGE_AND_BACKUP_IS_DISABLED -> Strings.str(R.string.older_message_turn_on_key_storage_in)
+            UtdCause.HISTORICAL_MESSAGE_AND_DEVICE_IS_UNVERIFIED -> Strings.str(R.string.older_message_verify_this_device_to)
+            UtdCause.WITHHELD_FOR_UNVERIFIED_OR_INSECURE_DEVICE -> Strings.str(R.string.the_sender_doesn_t_share_keys_with)
+            UtdCause.WITHHELD_BY_SENDER -> Strings.str(R.string.the_sender_didn_t_share_the_key_for)
+            else -> Strings.str(R.string.waiting_for_this_message_it_may_take)
         }
     }
 
     private fun shieldText(code: TimelineEventShieldStateCode) = when (code) {
-        TimelineEventShieldStateCode.AUTHENTICITY_NOT_GUARANTEED -> "The authenticity of this encrypted message can't be guaranteed on this device."
-        TimelineEventShieldStateCode.UNKNOWN_DEVICE -> "Sent from an unknown or deleted device."
-        TimelineEventShieldStateCode.UNSIGNED_DEVICE -> "Sent from a device its owner hasn't verified."
-        TimelineEventShieldStateCode.UNVERIFIED_IDENTITY -> "Sent by an unverified user."
-        TimelineEventShieldStateCode.VERIFICATION_VIOLATION -> "The sender's verified identity has changed."
-        TimelineEventShieldStateCode.MISMATCHED_SENDER -> "The sender of this event doesn't match the device that sent it."
-        TimelineEventShieldStateCode.SENT_IN_CLEAR -> "Not encrypted."
+        TimelineEventShieldStateCode.AUTHENTICITY_NOT_GUARANTEED -> Strings.str(R.string.the_authenticity_of_this_encrypted)
+        TimelineEventShieldStateCode.UNKNOWN_DEVICE -> Strings.str(R.string.sent_from_an_unknown_or_deleted)
+        TimelineEventShieldStateCode.UNSIGNED_DEVICE -> Strings.str(R.string.sent_from_a_device_its_owner_hasn_t)
+        TimelineEventShieldStateCode.UNVERIFIED_IDENTITY -> Strings.str(R.string.sent_by_an_unverified_user)
+        TimelineEventShieldStateCode.VERIFICATION_VIOLATION -> Strings.str(R.string.the_sender_s_verified_identity_has)
+        TimelineEventShieldStateCode.MISMATCHED_SENDER -> Strings.str(R.string.the_sender_of_this_event_doesn_t)
+        TimelineEventShieldStateCode.SENT_IN_CLEAR -> Strings.str(R.string.not_encrypted)
     }
 
     // endregion
@@ -472,7 +474,7 @@ class TimelineController(
 
     fun vote(pollEventId: String, answerId: String) = launchAction { it.sendPollResponse(pollEventId, listOf(answerId)) }
 
-    fun endPoll(pollEventId: String) = launchAction { it.endPoll(pollEventId, "The poll has ended") }
+    fun endPoll(pollEventId: String) = launchAction { it.endPoll(pollEventId, Strings.str(R.string.the_poll_has_ended)) }
 
     fun createPoll(question: String, answers: List<String>, disclosed: Boolean) = launchAction {
         it.createPoll(question, answers, 1u, if (disclosed) PollKind.DISCLOSED else PollKind.UNDISCLOSED)
@@ -493,7 +495,7 @@ class TimelineController(
 
     fun sendLocation(lat: Double, lon: Double) = launchAction {
         val geo = "geo:$lat,$lon"
-        it.sendLocation("Location: $lat, $lon", geo, null, 15u, null, null)
+        it.sendLocation(Strings.str(R.string.location_2, lat, lon), geo, null, 15u, null, null)
     }
 
     /** Sends a recorded voice message (shown with a waveform in Element and other clients). */
@@ -525,7 +527,7 @@ class TimelineController(
     /** Copies a picked file into the cache and sends it as an image, video, audio clip or file. */
     fun sendAttachment(context: Context, uri: Uri, caption: String?, replyTo: String?) = launchAction { t ->
         // Shared/picked files must come from another app, never from our own private storage.
-        if (!com.vknxworks.elementctrl.ui.isForeignContentUri(context, uri)) error("This file can't be sent")
+        if (!com.vknxworks.elementctrl.ui.isForeignContentUri(context, uri)) error(Strings.str(R.string.this_file_can_t_be_sent))
         val resolver = context.contentResolver
         val mime = resolver.getType(uri) ?: "application/octet-stream"
         val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -535,9 +537,9 @@ class TimelineController(
         // The display name comes from another app: keep it to a plain file name inside the upload folder.
         val safeName = name.substringAfterLast('/').replace(Regex("[^A-Za-z0-9._ -]"), "_").trim().takeIf { it.isNotEmpty() && it != "." && it != ".." } ?: "upload"
         val file = File(dir, "${System.currentTimeMillis()}_$safeName")
-        if (!file.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
+        if (!file.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error(Strings.str(R.string.bad_file_name))
         try {
-            resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error("Couldn't read the file")
+            resolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } } ?: error(Strings.str(R.string.couldn_t_read_the_file))
             sendPrepared(t, file, mime, caption, replyTo)
         } finally {
             // Plain copy of what was sent: removed once the SDK has queued the upload.

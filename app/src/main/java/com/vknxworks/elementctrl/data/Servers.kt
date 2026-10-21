@@ -1,5 +1,8 @@
 package com.vknxworks.elementctrl.data
 
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+
 /** A homeserver offered on the first-start picker. */
 data class ServerOption(
     val name: String,
@@ -10,8 +13,8 @@ data class ServerOption(
 object Servers {
     /** Well-known public homeservers. Any of them, or your own, works; the sign-in method is discovered from the server. */
     val standard = listOf(
-        ServerOption("matrix.org", "matrix.org", "The largest public server, run by the Matrix.org Foundation. Free and open to everyone."),
-        ServerOption("Mozilla", "mozilla.org", "Mozilla's community server. Sign in with a Mozilla account or GitHub."),
+        ServerOption("matrix.org", "matrix.org", Strings.str(R.string.the_largest_public_server_run_by_the)),
+        ServerOption(Strings.str(R.string.mozilla), "mozilla.org", Strings.str(R.string.mozilla_s_community_server_sign_in)),
     )
 
     /**

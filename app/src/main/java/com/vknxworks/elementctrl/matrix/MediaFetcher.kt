@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.Buffer
 import org.matrix.rustcomponents.sdk.MediaSource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /**
  * A picture stored on a Matrix server. Either a plain mxc:// URL (avatars) or the full JSON of an event's
@@ -39,7 +41,7 @@ class MediaFetcher(private val data: MxcImage, private val options: Options, pri
         val source = when {
             data.sourceJson != null -> MediaSource.fromJson(data.sourceJson)
             data.url != null -> MediaSource.fromUrl(data.url)
-            else -> error("No media source")
+            else -> error(Strings.str(R.string.no_media_source))
         }
         val bytes = source.use { src ->
             val encrypted = data.sourceJson?.contains("\"file\"") == true
@@ -87,7 +89,7 @@ object MediaFiles {
                 .takeIf { it.isNotEmpty() && it != "." && it != ".." } ?: "file"
             // Named by a hash of the whole source (not a 32-bit hashCode), so different files can't collide.
             val target = File(dir, "${sha256Hex(sourceJson).take(32)}_$safeName")
-            if (!target.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error("Bad file name")
+            if (!target.canonicalPath.startsWith(dir.canonicalPath + File.separator)) error(Strings.str(R.string.bad_file_name))
             // Decrypted copies older than a day go now too, not only at start-up (the app can run for days).
             purgeOldThrottled(context)
             if (target.exists() && target.length() > 0) return@withContext target.also { it.setLastModified(System.currentTimeMillis()) }
@@ -95,7 +97,7 @@ object MediaFiles {
                 val bytes = session.client.getMediaContent(src)
                 val tmp = File(dir, target.name + ".part")
                 tmp.writeBytes(bytes)
-                if (!tmp.renameTo(target)) { tmp.delete(); error("Couldn't store the file") }
+                if (!tmp.renameTo(target)) { tmp.delete(); error(Strings.str(R.string.couldn_t_store_the_file)) }
             }
             target
         }
@@ -136,7 +138,7 @@ object MediaFiles {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
         val intent = Intent(Intent.ACTION_SEND).setType(mime.ifBlank { "*/*" }).putExtra(Intent.EXTRA_STREAM, uri)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(Intent.createChooser(intent, "Share").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(Intent.createChooser(intent, Strings.str(R.string.share)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     /** Copies a downloaded file into the public Downloads folder. */

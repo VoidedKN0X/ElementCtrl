@@ -58,6 +58,7 @@ import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
 import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.Avatar
+import com.vknxworks.elementctrl.ui.ProfileAvatar
 import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.Group
 import com.vknxworks.elementctrl.ui.GroupRow
@@ -70,6 +71,7 @@ import com.vknxworks.elementctrl.ui.isCleartext
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.RecoveryState
+import com.vknxworks.elementctrl.Strings
 
 private const val SPONSOR_URL = "https://github.com/sponsors/VoidedKN0X"
 private const val REPO_URL = "https://github.com/VoidedKN0X/ElementCtrl"
@@ -129,7 +131,7 @@ fun YouScreen(
             ) {
                 val pictureLabel = stringResource(R.string.you_change_picture)
                 Box(Modifier.clickable(onClickLabel = pictureLabel) { changePicture() }) {
-                    Avatar(name, profile.avatarUrl, session.userId, size = 96.dp)
+                    ProfileAvatar(name, profile.avatarUrl, 96.dp, MaterialTheme.typography.headlineLarge)
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primary,
@@ -200,7 +202,7 @@ fun YouScreen(
                     session.homeserver,
                     icon = Icons.Filled.Dns,
                     onClick = {
-                        copyText(context, "Homeserver", session.homeserver)
+                        copyText(context, Strings.str(R.string.account_homeserver), session.homeserver)
                         scope.launch { snackbar.showSnackbar(copied) }
                     },
                     trailing = { if (isCleartext(session.homeserver)) NotEncryptedBadge() },

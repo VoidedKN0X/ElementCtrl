@@ -12,6 +12,8 @@ import org.matrix.rustcomponents.sdk.SessionVerificationController
 import org.matrix.rustcomponents.sdk.SessionVerificationControllerDelegate
 import org.matrix.rustcomponents.sdk.SessionVerificationData
 import org.matrix.rustcomponents.sdk.SessionVerificationRequestDetails
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 data class SasEmoji(val symbol: String, val description: String)
 
@@ -36,7 +38,7 @@ sealed interface VerifyStep {
     data object Confirming : VerifyStep
     data object Done : VerifyStep
     data object Cancelled : VerifyStep
-    data class Failed(val message: String = "Verification didn't complete.") : VerifyStep
+    data class Failed(val message: String = Strings.str(R.string.verification_didn_t_complete)) : VerifyStep
 }
 
 /** Emoji (SAS) verification of this session against another one, or of another user. */

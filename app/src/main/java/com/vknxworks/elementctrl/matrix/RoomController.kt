@@ -26,6 +26,8 @@ import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.TypingNotificationsListener
 import uniffi.matrix_sdk_base.EncryptionState
 import uniffi.ruma_events.StateEventType
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** The parts of a room's state the room and details screens show. */
 data class RoomHeader(
@@ -68,9 +70,9 @@ data class MemberInfo(
 ) {
     val name get() = displayName?.takeIf { it.isNotBlank() } ?: userId.localpart()
     val role get() = when {
-        powerLevel >= 150 -> "Owner"
-        powerLevel >= 100 -> "Admin"
-        powerLevel >= 50 -> "Moderator"
+        powerLevel >= 150 -> Strings.str(R.string.owner)
+        powerLevel >= 100 -> Strings.str(R.string.admin)
+        powerLevel >= 50 -> Strings.str(R.string.moderator)
         else -> null
     }
 }
@@ -167,18 +169,18 @@ class RoomController(val session: MatrixSession, val room: Room) {
             invitedMembers = info.invitedMembersCount.toLong(),
             pinnedEventIds = info.pinnedEventIds,
             historyVisibility = when (info.historyVisibility) {
-                is RoomHistoryVisibility.WorldReadable -> "Anyone"
-                is RoomHistoryVisibility.Shared -> "Members (since they could read)"
-                is RoomHistoryVisibility.Invited -> "Members since they were invited"
-                is RoomHistoryVisibility.Joined -> "Members since they joined"
-                is RoomHistoryVisibility.Custom -> "Custom"
+                is RoomHistoryVisibility.WorldReadable -> Strings.str(R.string.anyone)
+                is RoomHistoryVisibility.Shared -> Strings.str(R.string.members_since_they_could_read)
+                is RoomHistoryVisibility.Invited -> Strings.str(R.string.members_since_they_were_invited)
+                is RoomHistoryVisibility.Joined -> Strings.str(R.string.members_since_they_joined)
+                is RoomHistoryVisibility.Custom -> Strings.str(R.string.custom)
             },
             joinRule = when (info.joinRule) {
-                is JoinRule.Public -> "Anyone can join"
-                is JoinRule.Invite -> "Invite only"
-                is JoinRule.Knock -> "Ask to join"
-                is JoinRule.Restricted, is JoinRule.KnockRestricted -> "Space members"
-                else -> "Private"
+                is JoinRule.Public -> Strings.str(R.string.anyone_can_join)
+                is JoinRule.Invite -> Strings.str(R.string.invite_only)
+                is JoinRule.Knock -> Strings.str(R.string.ask_to_join)
+                is JoinRule.Restricted, is JoinRule.KnockRestricted -> Strings.str(R.string.space_members)
+                else -> Strings.str(R.string.private_text)
             },
             notificationMode = notif,
             dmUserId = if (isDm) info.heroes.firstOrNull()?.userId else null,
@@ -286,7 +288,7 @@ class RoomController(val session: MatrixSession, val room: Room) {
 
     fun setAvatar(context: Context, uri: Uri) = act {
         val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Couldn't read the picture")
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error(Strings.str(R.string.couldn_t_read_the_picture))
         room.uploadAvatar(mime, bytes, null)
     }
 

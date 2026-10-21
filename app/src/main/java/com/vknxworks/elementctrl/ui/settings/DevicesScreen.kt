@@ -50,6 +50,11 @@ import com.vknxworks.elementctrl.ui.TextInputDialog
 import com.vknxworks.elementctrl.ui.openUrl
 import com.vknxworks.elementctrl.ui.shortTime
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** Every session signed in to your account: rename them or sign them out. */
 @Composable
@@ -70,7 +75,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         scope.launch {
             runCatching { service.list() }
                 .onSuccess { devices = it }
-                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't load devices" }) }
+                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { Strings.str(R.string.couldn_t_load_devices) }) }
             loading = false
         }
     }
@@ -81,12 +86,12 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
             runCatching { service.delete(ids, password, authSession) }
                 .onSuccess { r ->
                     when (r) {
-                        DeleteResult.Done -> { snackbar.showSnackbar(if (ids.size == 1) "Signed out" else "Signed out ${ids.size} devices"); reload() }
+                        DeleteResult.Done -> { snackbar.showSnackbar(if (ids.size == 1) Strings.str(R.string.signed_out) else Strings.plural(R.plurals.signed_out_devices, ids.size, ids.size)); reload() }
                         is DeleteResult.NeedsPassword -> passwordFor = ids to r.session
                         is DeleteResult.OpenWebPage -> openUrl(context, r.url)
                     }
                 }
-                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't sign out" }) }
+                .onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { Strings.str(R.string.couldn_t_sign_out) }) }
         }
     }
 
@@ -94,10 +99,10 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = { Text("Devices") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-                actions = { IconButton(onClick = { reload() }) { Icon(Icons.Default.Refresh, "Refresh") } },
+            ScreenTopBar(
+                title = stringResource(R.string.account_devices),
+                onBack = onBack,
+                actions = { IconButton(onClick = { reload() }) { Icon(Icons.Default.Refresh, stringResource(R.string.refresh)) } },
             )
         },
     ) { pad ->
@@ -105,23 +110,23 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
             LazyColumn {
                 devices.firstOrNull { it.isCurrent }?.let { me ->
-                    item { SectionHeader("This device") }
+                    item { SectionHeader(stringResource(R.string.this_device)) }
                     item { DeviceRow(me) { selected = me } }
                 }
                 if (others.isNotEmpty()) {
-                    item { SectionHeader("Other devices · ${others.size}") }
+                    item { SectionHeader(stringResource(R.string.other_devices, others.size)) }
                     items(others, key = { it.deviceId }) { d -> DeviceRow(d) { selected = d } }
                     item {
                         HorizontalDivider(Modifier.padding(top = 8.dp))
                         SettingRow(
-                            Icons.AutoMirrored.Filled.Logout, "Sign out all other devices",
+                            Icons.AutoMirrored.Filled.Logout, stringResource(R.string.sign_out_all_other_devices),
                             tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
                         ) { confirmOut = others.map { it.deviceId } }
                     }
                 }
                 item {
-                    SettingRow(Icons.AutoMirrored.Filled.OpenInNew, "Manage on your account page", "For accounts using an OAuth sign-in server") {
-                        scope.launch { service.webPage(null)?.let { openUrl(context, it.url) } ?: snackbar.showSnackbar("Your server has no account page") }
+                    SettingRow(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.manage_on_your_account_page), stringResource(R.string.for_accounts_using_an_oauth_sign_in)) {
+                        scope.launch { service.webPage(null)?.let { openUrl(context, it.url) } ?: snackbar.showSnackbar(Strings.str(R.string.your_server_has_no_account_page)) }
                     }
                 }
             }
@@ -132,13 +137,13 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         ModalBottomSheet(onDismissRequest = { selected = null }) {
             Text(d.displayName ?: d.deviceId, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp))
             Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text("Session ID: ${d.deviceId}", style = MaterialTheme.typography.bodyMedium)
-                d.lastSeenTs?.let { Text("Last active: ${shortTime(it)}", style = MaterialTheme.typography.bodyMedium) }
-                d.lastSeenIp?.let { Text("IP address: $it", style = MaterialTheme.typography.bodyMedium) }
+                Text(stringResource(R.string.session_id, d.deviceId), style = MaterialTheme.typography.bodyMedium)
+                d.lastSeenTs?.let { Text(stringResource(R.string.last_active, shortTime(it)), style = MaterialTheme.typography.bodyMedium) }
+                d.lastSeenIp?.let { Text(stringResource(R.string.ip_address, it), style = MaterialTheme.typography.bodyMedium) }
             }
-            SettingRow(Icons.Default.Edit, "Rename") { renaming = d; selected = null }
+            SettingRow(Icons.Default.Edit, stringResource(R.string.rename)) { renaming = d; selected = null }
             if (!d.isCurrent) {
-                SettingRow(Icons.AutoMirrored.Filled.Logout, "Sign out", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+                SettingRow(Icons.AutoMirrored.Filled.Logout, stringResource(R.string.sign_out), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                     confirmOut = listOf(d.deviceId); selected = null
                 }
             }
@@ -147,18 +152,18 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
     }
 
     renaming?.let { d ->
-        TextInputDialog("Rename device", initial = d.displayName.orEmpty(), onDismiss = { renaming = null }) { name ->
+        TextInputDialog(stringResource(R.string.rename_device), initial = d.displayName.orEmpty(), onDismiss = { renaming = null }) { name ->
             scope.launch {
-                runCatching { service.rename(d.deviceId, name.trim()) }.onSuccess { reload() }.onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { "Couldn't rename" }) }
+                runCatching { service.rename(d.deviceId, name.trim()) }.onSuccess { reload() }.onFailure { snackbar.showSnackbar(it.userMessage().ifBlank { Strings.str(R.string.couldn_t_rename) }) }
             }
         }
     }
 
     confirmOut?.let { ids ->
         ConfirmDialog(
-            if (ids.size == 1) "Sign out this device?" else "Sign out ${ids.size} devices?",
-            "They'll need to sign in again. Make sure recovery is set up so you don't lose access to encrypted messages.",
-            "Sign out",
+            if (ids.size == 1) stringResource(R.string.sign_out_this_device) else pluralStringResource(R.plurals.sign_out_devices, ids.size, ids.size),
+            stringResource(R.string.they_ll_need_to_sign_in_again_make),
+            stringResource(R.string.sign_out),
             destructive = true,
             onDismiss = { confirmOut = null },
             onConfirm = { signOut(ids) },
@@ -169,10 +174,10 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { passwordFor = null },
-            title = { Text("Confirm with your password") },
+            title = { Text(stringResource(R.string.confirm_with_your_password)) },
             text = {
                 OutlinedTextField(
-                    password, { password = it }, label = { Text("Password") }, singleLine = true,
+                    password, { password = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     // Password type: keyboards don't suggest, learn or remember what's typed here.
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -181,8 +186,8 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
                     ),
                 )
             },
-            confirmButton = { TextButton(enabled = password.isNotEmpty(), onClick = { passwordFor = null; signOut(ids, password, authSession) }) { Text("Sign out") } },
-            dismissButton = { TextButton(onClick = { passwordFor = null }) { Text("Cancel") } },
+            confirmButton = { TextButton(enabled = password.isNotEmpty(), onClick = { passwordFor = null; signOut(ids, password, authSession) }) { Text(stringResource(R.string.sign_out)) } },
+            dismissButton = { TextButton(onClick = { passwordFor = null }) { Text(stringResource(R.string.lock_cancel)) } },
         )
     }
 }
@@ -192,7 +197,7 @@ private fun DeviceRow(d: DeviceInfo, onClick: () -> Unit) {
     SettingRow(
         Icons.Default.PhoneAndroid,
         d.displayName ?: d.deviceId,
-        listOfNotNull(d.deviceId, d.lastSeenTs?.let { "active ${shortTime(it)}" }).joinToString(" · "),
+        listOfNotNull(d.deviceId, d.lastSeenTs?.let { Strings.str(R.string.active, shortTime(it)) }).joinToString(" · "),
         tint = if (d.isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         onClick = onClick,
     )

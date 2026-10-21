@@ -21,6 +21,7 @@ import org.matrix.rustcomponents.sdk.NotificationEvent
 import org.matrix.rustcomponents.sdk.ReceiptType
 import org.matrix.rustcomponents.sdk.TimelineEventContent
 import org.matrix.rustcomponents.sdk.messageEventContentFromMarkdown
+import com.vknxworks.elementctrl.Strings
 
 /** The room the user is looking at right now, so a push for it doesn't also ring. */
 object OpenRoom {
@@ -85,7 +86,7 @@ object PushNotifications {
             else -> return Outcome.SKIPPED
         }
         val roomName = item.roomInfo.displayName
-        val senderName = item.senderInfo.displayName ?: "Someone"
+        val senderName = item.senderInfo.displayName ?: Strings.str(R.string.invite_someone)
         val senderAvatar = item.senderInfo.avatarUrl
         val senderId = (item.event as? NotificationEvent.Timeline)?.event?.senderId()
         val roomAvatar = item.roomInfo.avatarUrl ?: senderAvatar.takeIf { item.roomInfo.isDm }
@@ -104,11 +105,11 @@ object PushNotifications {
                 is TimelineEventContent.MessageLike -> when (val m = c.content) {
                     is MessageLikeEventContent.RoomMessage -> m.messageType.previewText("")
                     is MessageLikeEventContent.Poll -> "📊 ${m.question}"
-                    is MessageLikeEventContent.Sticker -> "Sticker"
-                    is MessageLikeEventContent.ReactionContent -> "Reacted to your message"
-                    is MessageLikeEventContent.CallInvite -> "📞 Incoming call"
-                    is MessageLikeEventContent.RtcNotification -> callText ?: "📞 Incoming call"
-                    is MessageLikeEventContent.RoomEncrypted -> "🔒 New encrypted message"
+                    is MessageLikeEventContent.Sticker -> Strings.str(R.string.sticker_2)
+                    is MessageLikeEventContent.ReactionContent -> Strings.str(R.string.reacted_to_your_message)
+                    is MessageLikeEventContent.CallInvite -> Strings.str(R.string.incoming_call)
+                    is MessageLikeEventContent.RtcNotification -> callText ?: Strings.str(R.string.incoming_call)
+                    is MessageLikeEventContent.RoomEncrypted -> Strings.str(R.string.new_encrypted_message)
                     else -> return Outcome.SKIPPED
                 }
                 is TimelineEventContent.State -> return Outcome.SKIPPED
@@ -154,7 +155,7 @@ object PushNotifications {
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(redacted(context, Notifier.CHANNEL_MESSAGES).build())
             .addAction(markReadAction(context, roomId))
-        if (room != null && ElementCtrlApp.graph.lock.showNotificationContent) builder.setContentTitle(room.name).setContentText("New message")
+        if (room != null && ElementCtrlApp.graph.lock.showNotificationContent) builder.setContentTitle(room.name).setContentText(Strings.str(R.string.new_message))
         runCatching { nm.notify(roomId.hashCode(), builder.build()) }
         Battery.noteMissedFetch(context)
     }
@@ -169,8 +170,8 @@ object PushNotifications {
     fun redacted(context: Context, channel: String, count: Int = 1): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_message)
-            .setContentTitle("ElementCtrl")
-            .setContentText(if (count > 1) "$count new messages" else "New message")
+            .setContentTitle(Strings.str(R.string.app_name))
+            .setContentText(if (count > 1) Strings.plural(R.plurals.new_messages, count, count) else Strings.str(R.string.new_message))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
 
     /**
@@ -178,7 +179,7 @@ object PushNotifications {
      * from your account, so on the lock screen the phone has to be unlocked first.
      */
     fun markReadAction(context: Context, roomId: String): NotificationCompat.Action = NotificationCompat.Action.Builder(
-        0, "Mark as read",
+        0, Strings.str(R.string.room_mark_read),
         PendingIntent.getBroadcast(
             context, roomId.hashCode() + 2,
             Intent(context, NotificationActionReceiver::class.java).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
@@ -205,7 +206,7 @@ object PushNotifications {
             runCatching { NotificationManagerCompat.from(context).notify(roomId.hashCode(), n) }
             return
         }
-        val me = Person.Builder().setName("You").build()
+        val me = Person.Builder().setName(Strings.str(R.string.you_title)).build()
         val style = NotificationCompat.MessagingStyle(me).setConversationTitle(if (isDm) null else roomName).setGroupConversation(!isDm)
         lines.forEach { l ->
             style.addMessage(
@@ -219,13 +220,13 @@ object PushNotifications {
         }
         val largeIcon = NotificationAvatars.cached(synchronized(history) { roomAvatars[roomId] })
         val reply = NotificationCompat.Action.Builder(
-            0, "Reply",
+            0, Strings.str(R.string.reply),
             PendingIntent.getBroadcast(
                 context, roomId.hashCode() + 1,
                 Intent(context, NotificationActionReceiver::class.java).setAction(NotificationActionReceiver.ACTION_REPLY).putExtra(Notifier.EXTRA_ROOM_ID, roomId),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             ),
-        ).addRemoteInput(RemoteInput.Builder(KEY_REPLY).setLabel("Message").build()).setAllowGeneratedReplies(true)
+        ).addRemoteInput(RemoteInput.Builder(KEY_REPLY).setLabel(Strings.str(R.string.message)).build()).setAllowGeneratedReplies(true)
             // Sending a message as you from the lock screen needs the phone unlocked first.
             .setAuthenticationRequired(true)
             .build()
@@ -252,16 +253,16 @@ object PushNotifications {
         val hide = !ElementCtrlApp.graph.lock.showNotificationContent
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_INVITES)
             .setSmallIcon(R.drawable.ic_stat_message)
-            .setContentTitle(if (hide) "ElementCtrl" else roomName)
-            .setContentText(if (hide) "New invite" else if (isDm) "$inviter wants to chat" else "$inviter invited you")
+            .setContentTitle(if (hide) Strings.str(R.string.app_name) else roomName)
+            .setContentText(if (hide) Strings.str(R.string.new_invite) else if (isDm) Strings.str(R.string.wants_to_chat, inviter) else Strings.str(R.string.invite_from, inviter))
             .setContentIntent(openIntent(context, roomId))
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 NotificationCompat.Builder(context, Notifier.CHANNEL_INVITES)
                     .setSmallIcon(R.drawable.ic_stat_message)
-                    .setContentTitle("ElementCtrl")
-                    .setContentText("New invite")
+                    .setContentTitle(Strings.str(R.string.app_name))
+                    .setContentText(Strings.str(R.string.new_invite))
                     .build()
             )
             .build()
@@ -271,10 +272,10 @@ object PushNotifications {
     /** Adds what we replied to the notification so the conversation stays readable. */
     fun appendOwnReply(context: Context, roomId: String, text: String) {
         val lines = synchronized(history) {
-            history.getOrPut(roomId) { ArrayDeque() }.apply { addLast(Line("You", text, System.currentTimeMillis(), true)) }.toList()
+            history.getOrPut(roomId) { ArrayDeque() }.apply { addLast(Line(Strings.str(R.string.you_title), text, System.currentTimeMillis(), true)) }.toList()
         }
         val session = ElementCtrlApp.graph.session
-        val name = session?.rooms?.value?.firstOrNull { it.roomId == roomId }?.name ?: "Chat"
+        val name = session?.rooms?.value?.firstOrNull { it.roomId == roomId }?.name ?: Strings.str(R.string.chat)
         val dm = session?.rooms?.value?.firstOrNull { it.roomId == roomId }?.isDm == true
         post(context, roomId, name, dm, false, lines)
     }

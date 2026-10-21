@@ -24,6 +24,8 @@ import org.matrix.rustcomponents.sdk.RoomPreset
 import org.matrix.rustcomponents.sdk.RoomVisibility
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.UserProfile
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Account-level actions: profile, people search, creating and joining rooms, and encryption recovery. */
 class AccountService(private val session: MatrixSession) {
@@ -33,7 +35,7 @@ class AccountService(private val session: MatrixSession) {
 
     suspend fun setAvatar(context: Context, uri: Uri) = io {
         val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Couldn't read the picture")
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error(Strings.str(R.string.couldn_t_read_the_picture))
         client.uploadAvatar(mime, bytes)
     }
 
@@ -109,12 +111,12 @@ class AccountService(private val session: MatrixSession) {
                 override fun onUpdate(status: EnableRecoveryProgress) {
                     onProgress(
                         when (status) {
-                            is EnableRecoveryProgress.Starting -> "Starting…"
-                            is EnableRecoveryProgress.CreatingBackup -> "Creating key backup…"
-                            is EnableRecoveryProgress.CreatingRecoveryKey -> "Creating recovery key…"
-                            is EnableRecoveryProgress.BackingUp -> "Backing up keys ${status.backedUpCount}/${status.totalCount}…"
-                            is EnableRecoveryProgress.RoomKeyUploadError -> "Some keys couldn't be uploaded yet"
-                            is EnableRecoveryProgress.Done -> "Done"
+                            is EnableRecoveryProgress.Starting -> Strings.str(R.string.starting)
+                            is EnableRecoveryProgress.CreatingBackup -> Strings.str(R.string.creating_key_backup)
+                            is EnableRecoveryProgress.CreatingRecoveryKey -> Strings.str(R.string.creating_recovery_key)
+                            is EnableRecoveryProgress.BackingUp -> Strings.str(R.string.backing_up_keys, status.backedUpCount, status.totalCount)
+                            is EnableRecoveryProgress.RoomKeyUploadError -> Strings.str(R.string.some_keys_couldn_t_be_uploaded_yet)
+                            is EnableRecoveryProgress.Done -> Strings.str(R.string.lock_done)
                         }
                     )
                 }

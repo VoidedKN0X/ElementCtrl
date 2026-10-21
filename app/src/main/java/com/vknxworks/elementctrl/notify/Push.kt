@@ -20,6 +20,8 @@ import org.matrix.rustcomponents.sdk.HttpPusherData
 import org.matrix.rustcomponents.sdk.PushFormat
 import org.matrix.rustcomponents.sdk.PusherIdentifiers
 import org.matrix.rustcomponents.sdk.PusherKind
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 sealed interface PushStatus {
     data object Off : PushStatus
@@ -76,7 +78,7 @@ object Push {
         ElementCtrlApp.graph.scope.launch {
             delay(30_000)
             if (_status.value == PushStatus.Registering) {
-                _status.value = PushStatus.Failed("ntfy didn't answer. Open ntfy once so it can start, then try again.")
+                _status.value = PushStatus.Failed(Strings.str(R.string.ntfy_didn_t_answer_open_ntfy_once_so))
             }
         }
     }
@@ -145,7 +147,7 @@ object Push {
     suspend fun onNewEndpoint(context: Context, endpoint: String) {
         if (!isEnabled(context)) return
         val session = waitForSession() ?: run {
-            _status.value = PushStatus.Failed("Not signed in")
+            _status.value = PushStatus.Failed(Strings.str(R.string.not_signed_in))
             return
         }
         val old = storedEndpoint(context)
@@ -185,7 +187,7 @@ object Push {
             PusherCheckWorker.schedule(context)
         }.onFailure {
             Log.w(TAG, "setPusher failed: ${it.javaClass.simpleName}")
-            _status.value = PushStatus.Failed(it.userMessage().ifBlank { "The homeserver refused the pusher" })
+            _status.value = PushStatus.Failed(it.userMessage().ifBlank { Strings.str(R.string.the_homeserver_refused_the_pusher) })
         }
     }
 
@@ -194,10 +196,10 @@ object Push {
         UnifiedPush.dropToken(context)
         _status.value = PushStatus.Failed(
             when (reason) {
-                "NETWORK" -> "ntfy couldn't reach its server. ElementCtrl tries again the next time it starts."
-                "ACTION_REQUIRED" -> "ntfy needs your attention. Open ntfy, then turn instant push on again."
-                "VAPID_REQUIRED" -> "Your ntfy server requires a VAPID key, which Matrix push doesn't use. Use a ntfy server without that requirement."
-                else -> "ntfy couldn't register ElementCtrl${reason?.let { " ($it)" } ?: ""}."
+                "NETWORK" -> Strings.str(R.string.ntfy_couldn_t_reach_its_server)
+                "ACTION_REQUIRED" -> Strings.str(R.string.ntfy_needs_your_attention_open_ntfy)
+                "VAPID_REQUIRED" -> Strings.str(R.string.your_ntfy_server_requires_a_vapid)
+                else -> Strings.str(R.string.ntfy_couldn_t_register_elementctrl, reason?.let { " ($it)" } ?: "")
             },
         )
     }
@@ -205,7 +207,7 @@ object Push {
     fun onUnregistered(context: Context) {
         UnifiedPush.dropToken(context)
         prefs(context).edit().remove("endpoint").apply()
-        _status.value = PushStatus.Failed("ntfy removed ElementCtrl's subscription. Tap to set up instant push again.")
+        _status.value = PushStatus.Failed(Strings.str(R.string.ntfy_removed_elementctrl_s))
     }
 
     fun onTempUnavailable() {
@@ -227,7 +229,7 @@ object Push {
     /** ntfy servers run a Matrix push gateway on the same host as the endpoint. Only that one is ever used. */
     private suspend fun discoverGateway(endpoint: String): Gateway = withContext(Dispatchers.IO) {
         val url = runCatching { URL(endpoint) }.getOrNull()
-            ?: return@withContext Gateway.Problem("ntfy gave an endpoint that isn't a valid address.")
+            ?: return@withContext Gateway.Problem(Strings.str(R.string.ntfy_gave_an_endpoint_that_isn_t_a))
         val port = if (url.port != -1) ":${url.port}" else ""
         val server = "${url.protocol}://${url.host}$port"
         val candidate = "$server$GATEWAY_PATH"
@@ -249,11 +251,10 @@ object Push {
         }.fold(
             onSuccess = {
                 it ?: Gateway.Problem(
-                    "Your ntfy server ($server) has no Matrix push gateway at $GATEWAY_PATH, so your homeserver can't push " +
-                        "through it. The gateway is built into ntfy: update the server (and make sure base-url is set to its public address), then try again.",
+                    Strings.str(R.string.ntfy_no_gateway, server, GATEWAY_PATH),
                 )
             },
-            onFailure = { Gateway.Problem("Couldn't reach your ntfy server ($server) to find its Matrix push gateway. ElementCtrl tries again the next time it starts.") },
+            onFailure = { Gateway.Problem(Strings.str(R.string.couldn_t_reach_your_ntfy_server_to, server)) },
         )
     }
 

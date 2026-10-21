@@ -42,6 +42,9 @@ import com.vknxworks.elementctrl.matrix.MediaFiles
 import com.vknxworks.elementctrl.matrix.MxcImage
 import com.vknxworks.elementctrl.ui.CenteredLoading
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 /** Full-screen picture with pinch-to-zoom, double-tap zoom, save and share. */
 @Composable
@@ -80,16 +83,16 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
         if (chrome) {
             TopAppBar(
                 title = { Text(request.filename, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
                 actions = {
                     IconButton(onClick = {
                         scope.launch {
                             runCatching {
                                 val f = MediaFiles.download(context, session, request.sourceJson, request.filename, request.mime)
                                 MediaFiles.saveToDownloads(context, f, request.filename, request.mime)
-                            }.onSuccess { snackbar.showSnackbar(if (it) "Saved to Downloads/ElementCtrl" else "Couldn't save") }
+                            }.onSuccess { snackbar.showSnackbar(if (it) Strings.str(R.string.saved_to_downloads_elementctrl) else Strings.str(R.string.couldn_t_save)) }
                         }
-                    }) { Icon(Icons.Default.Download, "Save") }
+                    }) { Icon(Icons.Default.Download, stringResource(R.string.save)) }
                     IconButton(onClick = {
                         scope.launch {
                             runCatching {
@@ -97,7 +100,7 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
                                 MediaFiles.share(context, f, request.mime)
                             }
                         }
-                    }) { Icon(Icons.Default.Share, "Share") }
+                    }) { Icon(Icons.Default.Share, stringResource(R.string.share)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black.copy(alpha = 0.5f),

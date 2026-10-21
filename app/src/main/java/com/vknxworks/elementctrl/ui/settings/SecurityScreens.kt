@@ -79,6 +79,10 @@ import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.BackupState
 import org.matrix.rustcomponents.sdk.RecoveryState
 import org.matrix.rustcomponents.sdk.VerificationState
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** Device verification, recovery key and key backup. */
 @Composable
@@ -111,7 +115,7 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { TopAppBar(title = { Text("Security & recovery") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) },
+        topBar = { ScreenTopBar(stringResource(R.string.security_recovery), onBack = onBack) },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState())) {
             val verified = verification == VerificationState.VERIFIED
@@ -127,15 +131,15 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                     Column {
                         Text(
                             when (verification) {
-                                VerificationState.VERIFIED -> "This device is verified"
-                                VerificationState.UNVERIFIED -> "This device isn't verified"
-                                VerificationState.UNKNOWN -> "Checking this device…"
+                                VerificationState.VERIFIED -> Strings.str(R.string.this_device_is_verified)
+                                VerificationState.UNVERIFIED -> Strings.str(R.string.this_device_isn_t_verified)
+                                VerificationState.UNKNOWN -> Strings.str(R.string.checking_this_device)
                             },
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            if (verified) "It can read your encrypted messages and others can trust it."
-                            else "Verify it to read your encrypted history and so others can trust messages from it.",
+                            if (verified) stringResource(R.string.it_can_read_your_encrypted_messages)
+                            else stringResource(R.string.verify_it_to_read_your_encrypted),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -143,37 +147,37 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
             }
 
             if (verification == VerificationState.UNVERIFIED) {
-                SectionHeader("Verify this device")
-                SettingRow(Icons.Default.Devices, "Use another device", "Compare emojis with a signed-in Element app") { onVerifyDevice() }
-                SettingRow(Icons.Default.Key, "Enter recovery key", "The key you saved when you set up recovery") { enterKey = true }
+                SectionHeader(stringResource(R.string.verify_this_device))
+                SettingRow(Icons.Default.Devices, stringResource(R.string.use_another_device), stringResource(R.string.compare_emojis_with_a_signed_in)) { onVerifyDevice() }
+                SettingRow(Icons.Default.Key, stringResource(R.string.enter_recovery_key), stringResource(R.string.the_key_you_saved_when_you_set_up)) { enterKey = true }
                 SettingRow(
-                    Icons.Default.LockReset, "Can't confirm? Reset your identity",
-                    "Last resort: starts fresh. You'll lose access to old encrypted messages and contacts will need to verify you again.",
+                    Icons.Default.LockReset, stringResource(R.string.can_t_confirm_reset_your_identity),
+                    stringResource(R.string.last_resort_starts_fresh_you_ll_lose),
                     tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
                 ) { confirmReset = true }
             }
 
-            SectionHeader("Recovery")
+            SectionHeader(stringResource(R.string.recovery))
             SettingRow(
                 if (recovery == RecoveryState.ENABLED) Icons.Default.CloudDone else Icons.Default.CloudOff,
-                "Key storage",
+                stringResource(R.string.key_storage),
                 when (recovery) {
-                    RecoveryState.ENABLED -> "On. Your message keys are backed up and protected by your recovery key."
-                    RecoveryState.INCOMPLETE -> "Set up, but this device doesn't have the key yet. Enter your recovery key."
-                    RecoveryState.DISABLED -> "Off. Set up recovery so you don't lose messages if you lose your devices."
-                    RecoveryState.UNKNOWN -> "Checking…"
-                } + backupNote(backup),
+                    RecoveryState.ENABLED -> Strings.str(R.string.on_your_message_keys_are_backed_up)
+                    RecoveryState.INCOMPLETE -> Strings.str(R.string.set_up_but_this_device_doesn_t_have)
+                    RecoveryState.DISABLED -> Strings.str(R.string.off_set_up_recovery_so_you_don_t)
+                    RecoveryState.UNKNOWN -> Strings.str(R.string.calls_server_checking)
+                }.let { text -> backupNote(backup)?.let { note -> stringResource(R.string.recovery_state_with_note, text, note) } ?: text },
             )
             when (recovery) {
-                RecoveryState.DISABLED -> SettingRow(Icons.Default.Key, "Set up recovery", "Creates a recovery key and backs up your keys") {
+                RecoveryState.DISABLED -> SettingRow(Icons.Default.Key, stringResource(R.string.banner_recovery_title), stringResource(R.string.creates_a_recovery_key_and_backs_up)) {
                     act("enable") { newKey = account.enableRecovery(null) { } }
                 }
-                RecoveryState.INCOMPLETE -> SettingRow(Icons.Default.Key, "Enter recovery key") { enterKey = true }
+                RecoveryState.INCOMPLETE -> SettingRow(Icons.Default.Key, stringResource(R.string.enter_recovery_key)) { enterKey = true }
                 RecoveryState.ENABLED -> {
-                    SettingRow(Icons.Default.Password, "Change recovery key", "Get a new key; the old one stops working") {
+                    SettingRow(Icons.Default.Password, stringResource(R.string.change_recovery_key), stringResource(R.string.get_a_new_key_the_old_one_stops)) {
                         act("change") { newKey = account.resetRecoveryKey() }
                     }
-                    SettingRow(Icons.Default.CloudOff, "Turn off key storage", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+                    SettingRow(Icons.Default.CloudOff, stringResource(R.string.turn_off_key_storage), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                         confirmDisable = true
                     }
                 }
@@ -183,15 +187,15 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text("Working…")
+                    Text(stringResource(R.string.working))
                 }
             }
 
-            SectionHeader("This device")
-            SettingRow(null, "Session ID", session.deviceId) { copyText(context, "Session ID", session.deviceId) }
+            SectionHeader(stringResource(R.string.this_device))
+            SettingRow(null, stringResource(R.string.session_id_2), session.deviceId) { copyText(context, Strings.str(R.string.session_id_2), session.deviceId) }
             var keys by remember { mutableStateOf<String?>(null) }
             androidx.compose.runtime.LaunchedEffect(Unit) { keys = runCatching { session.client.encryption().ed25519Key() }.getOrNull() }
-            keys?.let { SettingRow(null, "Session key", it.chunked(4).joinToString(" ")) { copyText(context, "Session key", it) } }
+            keys?.let { SettingRow(null, stringResource(R.string.session_key), it.chunked(4).joinToString(" ")) { copyText(context, Strings.str(R.string.session_key), it) } }
             Spacer(Modifier.height(32.dp))
         }
     }
@@ -199,10 +203,10 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
     newKey?.let { key ->
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Save your recovery key") },
+            title = { Text(stringResource(R.string.save_your_recovery_key)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Store it somewhere safe, like a password manager. You'll need it to read your encrypted messages on a new device.")
+                    Text(stringResource(R.string.store_it_somewhere_safe_like_a))
                     SelectionContainer {
                         Text(
                             key,
@@ -213,8 +217,8 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { newKey = null }) { Text("I've saved it") } },
-            dismissButton = { TextButton(onClick = { copyText(context, "Recovery key", key, sensitive = true) }) { Text("Copy") } },
+            confirmButton = { TextButton(onClick = { newKey = null }) { Text(stringResource(R.string.i_ve_saved_it)) } },
+            dismissButton = { TextButton(onClick = { copyText(context, Strings.str(R.string.recovery_key), key, sensitive = true) }) { Text(stringResource(R.string.copy)) } },
             properties = SecureDialog,
         )
     }
@@ -223,11 +227,11 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
         var key by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { enterKey = false },
-            title = { Text("Enter recovery key") },
+            title = { Text(stringResource(R.string.enter_recovery_key)) },
             text = {
                 OutlinedTextField(
                     key, { key = it },
-                    label = { Text("Recovery key or passphrase") },
+                    label = { Text(stringResource(R.string.recovery_key_or_passphrase)) },
                     // Password type: keyboards don't suggest, learn or remember what's typed here.
                     keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
@@ -240,36 +244,36 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                     busy = "recover"
                     scope.launch {
                         runCatching { account.recover(entered) }
-                            .onSuccess { snackbar.showSnackbar("Recovered. Your messages will decrypt shortly.") }
+                            .onSuccess { snackbar.showSnackbar(Strings.str(R.string.recovered_your_messages_will_decrypt)) }
                             .onFailure { snackbar.showSnackbar(it.userMessage().replace(entered, "…")) }
                         busy = null
                     }
-                }) { Text("Confirm") }
+                }) { Text(stringResource(R.string.confirm)) }
             },
-            dismissButton = { TextButton(onClick = { enterKey = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { enterKey = false }) { Text(stringResource(R.string.lock_cancel)) } },
             properties = SecureDialog,
         )
     }
 
     if (confirmDisable) ConfirmDialog(
-        "Turn off key storage?",
-        "Your keys will be deleted from the server. You may lose access to encrypted messages if you sign out everywhere.",
-        "Turn off",
+        stringResource(R.string.turn_off_key_storage_2),
+        stringResource(R.string.your_keys_will_be_deleted_from_the),
+        stringResource(R.string.turn_off),
         destructive = true,
         onDismiss = { confirmDisable = false },
         onConfirm = { act("disable") { account.disableRecovery() } },
     )
 
     if (confirmReset) ConfirmDialog(
-        "Reset your identity?",
-        "Only do this if you have no other signed-in device and no recovery key. Old encrypted messages may become unreadable and people will need to verify you again.",
-        "Continue",
+        stringResource(R.string.reset_your_identity),
+        stringResource(R.string.only_do_this_if_you_have_no_other),
+        stringResource(R.string.continue_text),
         destructive = true,
         onDismiss = { confirmReset = false },
         onConfirm = {
             act("reset") {
                 val r = account.beginIdentityReset()
-                if (r == null) snackbar.showSnackbar("Your identity was reset.") else {
+                if (r == null) snackbar.showSnackbar(Strings.str(R.string.your_identity_was_reset)) else {
                     r.approvalUrl?.let { openUrl(context, it) }
                     reset = r
                 }
@@ -281,42 +285,42 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
         var password by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Confirm reset") },
+            title = { Text(stringResource(R.string.confirm_reset)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (r.needsPassword) {
-                        Text("Enter your account password to confirm.")
+                        Text(stringResource(R.string.enter_your_account_password_to))
                         OutlinedTextField(
                             password, { password = it },
-                            label = { Text("Password") },
+                            label = { Text(stringResource(R.string.password)) },
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Password),
                             singleLine = true,
                         )
                     } else {
-                        Text("Approve the reset on your server's page that just opened, then come back and tap Done.")
-                        r.approvalUrl?.let { url -> TextButton(onClick = { openUrl(context, url) }) { Text("Open the page again") } }
+                        Text(stringResource(R.string.approve_the_reset_on_your_server_s))
+                        r.approvalUrl?.let { url -> TextButton(onClick = { openUrl(context, url) }) { Text(stringResource(R.string.open_the_page_again)) } }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
                     reset = null
-                    act("reset-confirm") { r.confirm(password.ifBlank { null }); snackbar.showSnackbar("Identity reset. Set up recovery again to keep your keys safe.") }
-                }) { Text(if (r.needsPassword) "Reset" else "Done") }
+                    act("reset-confirm") { r.confirm(password.ifBlank { null }); snackbar.showSnackbar(Strings.str(R.string.identity_reset_set_up_recovery_again)) }
+                }) { Text(if (r.needsPassword) stringResource(R.string.reset) else stringResource(R.string.lock_done)) }
             },
-            dismissButton = { TextButton(onClick = { reset = null; scope.launch { r.cancel() } }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { reset = null; scope.launch { r.cancel() } }) { Text(stringResource(R.string.lock_cancel)) } },
             properties = SecureDialog,
         )
     }
 }
 
-private fun backupNote(state: BackupState): String = when (state) {
-    BackupState.CREATING, BackupState.ENABLING -> " Turning on backup…"
-    BackupState.RESUMING -> " Resuming backup…"
-    BackupState.DOWNLOADING -> " Downloading keys…"
-    BackupState.DISABLING -> " Turning off backup…"
-    else -> ""
+private fun backupNote(state: BackupState): String? = when (state) {
+    BackupState.CREATING, BackupState.ENABLING -> Strings.str(R.string.backup_turning_on)
+    BackupState.RESUMING -> Strings.str(R.string.backup_resuming)
+    BackupState.DOWNLOADING -> Strings.str(R.string.backup_downloading)
+    BackupState.DISABLING -> Strings.str(R.string.backup_turning_off)
+    else -> null
 }
 
 /** Emoji comparison for verifying this device or another person. */
@@ -340,9 +344,9 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (otherUserId == null) "Verify this device" else "Verify user") },
-                navigationIcon = { IconButton(onClick = { scope.launch { service.cancel() }; finish() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cancel") } },
+            ScreenTopBar(
+                title = if (otherUserId == null) stringResource(R.string.verify_this_device) else stringResource(R.string.verify_user),
+                onBack = { scope.launch { service.cancel() }; finish() },
             )
         }
     ) { pad ->
@@ -355,24 +359,24 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
                 VerifyStep.Idle, VerifyStep.Requested -> {
                     CircularProgressIndicator()
                     Text(
-                        if (otherUserId == null) "Open Element (or ElementCtrl) on another signed-in device and accept the request there."
-                        else "Waiting for them to accept the request…",
+                        if (otherUserId == null) stringResource(R.string.open_element_or_elementctrl_on)
+                        else stringResource(R.string.waiting_for_them_to_accept_the),
                         textAlign = TextAlign.Center,
                     )
                 }
                 is VerifyStep.Incoming -> {
-                    Text("${s.request.senderName} wants to verify", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.wants_to_verify, s.request.senderName), style = MaterialTheme.typography.titleMedium)
                     Text((s.request.deviceName ?: "") + " " + s.request.deviceId, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { scope.launch { service.acceptIncoming() } }, modifier = Modifier.fillMaxWidth()) { Text("Start verification") }
-                    OutlinedButton(onClick = { scope.launch { service.cancel() }; finish() }, modifier = Modifier.fillMaxWidth()) { Text("Ignore") }
+                    Button(onClick = { scope.launch { service.acceptIncoming() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.start_verification)) }
+                    OutlinedButton(onClick = { scope.launch { service.cancel() }; finish() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ignore)) }
                 }
                 VerifyStep.Accepted, VerifyStep.Starting -> {
                     CircularProgressIndicator()
-                    Text("Getting the emojis ready…")
+                    Text(stringResource(R.string.getting_the_emojis_ready))
                 }
                 is VerifyStep.Compare -> {
-                    Text("Do these match on the other device?", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                    Text("Compare the emojis in the same order.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.do_these_match_on_the_other_device), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.compare_the_emojis_in_the_same_order), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (s.emojis.isNotEmpty()) {
                         LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.fillMaxWidth().height(220.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(s.emojis) { e ->
@@ -385,36 +389,36 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
                     } else {
                         Text(s.decimals.joinToString("  "), style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace)
                     }
-                    Button(onClick = { scope.launch { service.confirmMatch() } }, modifier = Modifier.fillMaxWidth()) { Text("They match") }
+                    Button(onClick = { scope.launch { service.confirmMatch() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.they_match)) }
                     OutlinedButton(
                         onClick = { scope.launch { service.denyMatch() } },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("They don't match") }
+                    ) { Text(stringResource(R.string.they_don_t_match)) }
                 }
                 VerifyStep.Confirming -> {
                     CircularProgressIndicator()
-                    Text("Waiting for the other side to confirm…")
+                    Text(stringResource(R.string.waiting_for_the_other_side_to))
                 }
                 VerifyStep.Done -> {
                     Box(Modifier.size(80.dp), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
                     }
-                    Text(if (otherUserId == null) "Device verified" else "User verified", style = MaterialTheme.typography.headlineSmall)
+                    Text(if (otherUserId == null) stringResource(R.string.device_verified) else stringResource(R.string.user_verified), style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        if (otherUserId == null) "Your encrypted messages will start decrypting here." else "Messages with them are now marked as trusted.",
+                        if (otherUserId == null) stringResource(R.string.your_encrypted_messages_will_start) else stringResource(R.string.messages_with_them_are_now_marked_as),
                         textAlign = TextAlign.Center,
                     )
-                    Button(onClick = { finish() }) { Text("Done") }
+                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_done)) }
                 }
                 VerifyStep.Cancelled -> {
-                    Text("Verification was cancelled.", style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { finish() }) { Text("Close") }
+                    Text(stringResource(R.string.verification_was_cancelled), style = MaterialTheme.typography.titleMedium)
+                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
                 }
                 is VerifyStep.Failed -> {
                     Icon(Icons.Default.Warning, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.error)
                     Text(s.message, textAlign = TextAlign.Center)
-                    Button(onClick = { finish() }) { Text("Close") }
+                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
                 }
             }
         }

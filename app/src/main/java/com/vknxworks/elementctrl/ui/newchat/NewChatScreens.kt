@@ -67,6 +67,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.statusBars
 import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.ScreenTopBar
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.UserProfile
 
@@ -108,13 +109,13 @@ fun NewChatScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { TopAppBar(title = { Text("New chat") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) },
+        topBar = { ScreenTopBar(stringResource(R.string.chats_new), onBack = onBack) },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).imePadding()) {
             item {
                 OutlinedTextField(
                     query, { query = it },
-                    placeholder = { Text("Search by name or @user:server") },
+                    placeholder = { Text(stringResource(R.string.search_by_name_or_user_server)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = { if (searching) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) },
                     singleLine = true,
@@ -122,13 +123,13 @@ fun NewChatScreen(
                 )
             }
             if (query.isBlank()) {
-                item { SettingRow(Icons.Default.GroupAdd, "Create a room", "A group chat for a team, friends or a topic", onClick = onCreateRoom) }
-                item { SettingRow(Icons.Default.Tag, "Join with an address", "#room:server or a room ID") { joinDialog = true } }
-                item { SettingRow(Icons.Default.Explore, "Explore public rooms", "Browse the room directory", onClick = onExplore) }
+                item { SettingRow(Icons.Default.GroupAdd, stringResource(R.string.create_a_room), stringResource(R.string.a_group_chat_for_a_team_friends_or_a), onClick = onCreateRoom) }
+                item { SettingRow(Icons.Default.Tag, stringResource(R.string.join_with_an_address), stringResource(R.string.room_server_or_a_room_id)) { joinDialog = true } }
+                item { SettingRow(Icons.Default.Explore, stringResource(R.string.explore_public_rooms), stringResource(R.string.browse_the_room_directory), onClick = onExplore) }
                 item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
                 item {
                     Text(
-                        "Search for someone to start an encrypted direct chat. Use their full Matrix ID (like @alice:matrix.org) if they're on another server.",
+                        stringResource(R.string.search_for_someone_to_start_an),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
@@ -150,14 +151,14 @@ fun NewChatScreen(
                     }
                 }
                 if (!searching && results.isEmpty() && query.length >= 2) {
-                    item { Text("No one found. Try their full Matrix ID.", modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text(stringResource(R.string.no_one_found_try_their_full_matrix), modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
         }
     }
 
     if (joinDialog) {
-        TextInputDialog("Join a room", label = "#room:server.org", confirm = "Join", onDismiss = { joinDialog = false }) { address ->
+        TextInputDialog(stringResource(R.string.join_a_room), label = "#room:server.org", confirm = stringResource(R.string.call_join), onDismiss = { joinDialog = false }) { address ->
             scope.launch {
                 runCatching { account.join(address) }
                     .onSuccess { onOpenRoom(it) }
@@ -184,9 +185,9 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = { Text("Create room") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            ScreenTopBar(
+                title = stringResource(R.string.create_room),
+                onBack = onBack,
                 actions = {
                     TextButton(enabled = name.isNotBlank() && !busy, onClick = {
                         busy = true
@@ -196,7 +197,7 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
                                 .onFailure { snackbar.showSnackbar(it.userMessage()) }
                             busy = false
                         }
-                    }) { if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Create") }
+                    }) { if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.create)) }
                 },
             )
         },
@@ -205,19 +206,19 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
             Modifier.fillMaxSize().padding(pad).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text("Room name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(topic, { topic = it }, label = { Text("Topic (optional)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.room_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(topic, { topic = it }, label = { Text(stringResource(R.string.topic_optional)) }, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Public room", style = MaterialTheme.typography.bodyLarge)
-                    Text("Anyone can find and join. Public rooms aren't encrypted.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.public_room), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.anyone_can_find_and_join_public), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(isPublic, { isPublic = it })
             }
             if (isPublic) {
                 OutlinedTextField(
                     alias, { alias = it },
-                    label = { Text("Address") },
+                    label = { Text(stringResource(R.string.address)) },
                     prefix = { Text("#") },
                     suffix = { Text(":" + session.client.userIdServerName()) },
                     singleLine = true,
@@ -226,17 +227,17 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("End-to-end encryption", style = MaterialTheme.typography.bodyLarge)
-                        Text("Recommended. Can't be turned off later.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.end_to_end_encryption), style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.recommended_can_t_be_turned_off), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(encrypted, { encrypted = it })
                 }
             }
-            SectionHeader("Invite people", Modifier.padding(0.dp))
+            SectionHeader(stringResource(R.string.invite_people), Modifier.padding(0.dp))
             invites.forEach { id ->
-                InputChip(selected = false, onClick = { invites.remove(id) }, label = { Text(id, maxLines = 1, overflow = TextOverflow.Ellipsis) }, trailingIcon = { Icon(Icons.Default.Close, "Remove", Modifier.size(16.dp)) })
+                InputChip(selected = false, onClick = { invites.remove(id) }, label = { Text(id, maxLines = 1, overflow = TextOverflow.Ellipsis) }, trailingIcon = { Icon(Icons.Default.Close, stringResource(R.string.remove), Modifier.size(16.dp)) })
             }
-            TextButton(onClick = { inviteDialog = true }) { Text("Add people") }
+            TextButton(onClick = { inviteDialog = true }) { Text(stringResource(R.string.add_people)) }
         }
     }
     if (inviteDialog) com.vknxworks.elementctrl.ui.room.InviteDialog(session, onDismiss = { inviteDialog = false }) { if (it !in invites) invites += it }

@@ -5,6 +5,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.rustcomponents.sdk.AccountManagementAction
+import com.vknxworks.elementctrl.Strings
+import com.vknxworks.elementctrl.R
 
 data class DeviceInfo(
     val deviceId: String,
@@ -66,12 +68,12 @@ class DeviceService(private val session: MatrixSession) {
                 if ("m.login.password" in stages && password == null) {
                     DeleteResult.NeedsPassword(res.getString("session"))
                 } else if (password != null) {
-                    error(res.optString("error").ifBlank { "Wrong password" })
+                    error(res.optString("error").ifBlank { Strings.str(R.string.wrong_password) })
                 } else {
-                    webPage(deviceIds.first()) ?: error("This server needs a sign-in method ElementCtrl can't do here")
+                    webPage(deviceIds.first()) ?: error(Strings.str(R.string.this_server_needs_a_sign_in_method))
                 }
             }
-            else -> webPage(deviceIds.first()) ?: error(res.optString("error").ifBlank { "The server refused (HTTP $code)" })
+            else -> webPage(deviceIds.first()) ?: error(res.optString("error").ifBlank { Strings.str(R.string.the_server_refused_http, code) })
         }
     }
 
