@@ -15,7 +15,7 @@ repo="${GITHUB_REPOSITORY:-}"
 
 # Paths that end up in the APK. Anything else (README, LICENSE, .github, badges)
 # never makes a new release, so it never shows up here either.
-app_paths=(app gradle build.gradle.kts settings.gradle.kts gradle.properties gradlew gradlew.bat VERSION)
+app_paths=(app element-call gradle build.gradle.kts settings.gradle.kts gradle.properties gradlew gradlew.bat VERSION)
 
 if [ -z "$prev" ]; then
   prev=$(git describe --tags --abbrev=0 --match 'v*' --exclude "$tag" "$ref^" 2>/dev/null || true)

@@ -77,9 +77,12 @@ android {
         buildConfig = true
     }
     androidResources {
-        // Leave Element Call's source maps and its background-blur model (MediaPipe) out of the APK: they're only
-        // needed for debugging and for blurring your background, and keep the download smaller.
-        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.map:!vision_wasm_internal-*:!*.tflite"
+        // Never ship source maps (element-call/build.sh doesn't make them, this is a second guard).
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.map"
+    }
+    sourceSets {
+        // Element Call, built from source by element-call/build.sh, is served from the APK's assets as element-call/.
+        getByName("main").assets.srcDir(rootProject.file("element-call/dist"))
     }
     lint {
         checkReleaseBuilds = false
@@ -112,23 +115,21 @@ dependencies {
     // Frosted-glass blur behind the floating composer island, as in the other Ctrl apps.
     implementation("dev.chrisbanes.haze:haze:1.6.0")
 
-    // Voice and video calls: the embedded Element Call web app (the same package Element X bundles), loaded from
-    // the APK into the system WebView and driven through the Rust SDK's widget API. Nothing is loaded from the web.
-    implementation("io.element.android:element-call-embedded:0.28.0")
-
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")
     // Plays animated GIFs and stickers other people send.
     implementation("io.coil-kt.coil3:coil-gif:$coil")
 }
 
-// The same files, removed from the merged assets too (library assets aren't always covered by the pattern above).
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") && !it.name.contains("Shader") }.configureEach {
-    doLast {
-        outputs.files.forEach { out ->
-            out.walkTopDown()
-                .filter { f -> f.isFile && (f.name.endsWith(".map") || f.name.endsWith(".tflite") || f.name.startsWith("vision_wasm_internal-")) }
-                .forEach { f -> f.delete() }
+// Voice and video calls need Element Call, built from source (Element Call 0.28.0, the release Element X bundles,
+// without its Google, analytics and crash-reporting code) by element-call/build.sh into element-call/dist/. It's
+// loaded from the APK into the system WebView and driven through the Rust SDK's widget API; nothing is loaded from
+// the web. A build without it would have no call screen, so it stops here instead.
+val elementCallIndex = rootProject.file("element-call/dist/element-call/index.html")
+tasks.named("preBuild") {
+    doFirst {
+        if (!elementCallIndex.isFile) {
+            throw GradleException("Element Call isn't built: run element-call/build.sh first (needs Node.js 24 and Corepack).")
         }
     }
 }

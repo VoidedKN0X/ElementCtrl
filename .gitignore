@@ -7,3 +7,5 @@ local.properties
 *.keystore
 captures/
 .DS_Store
+element-call/.work/
+element-call/dist/

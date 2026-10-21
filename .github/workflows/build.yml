@@ -12,6 +12,7 @@ on:
       - "gradle.properties"
       - "gradlew"
       - "gradlew.bat"
+      - "element-call/**"
   workflow_dispatch:
 
 permissions:
@@ -55,6 +56,29 @@ jobs:
           java-version: 17
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+
+      # The call screen: Element Call, built from source at the commit pinned in element-call/upstream.env, with
+      # ElementCtrl's patches (no Google reCAPTCHA or MediaPipe, no analytics, crash reporting or bug-report upload).
+      # If this fails, the APK isn't built and nothing is released.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.11.1
+
+      - name: Cache Element Call's dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ runner.temp }}/pnpm-store
+            ~/.cache/node/corepack
+          key: element-call-pnpm-${{ hashFiles('element-call/upstream.env') }}
+          restore-keys: element-call-pnpm-
+
+      - name: Build Element Call from source
+        env:
+          EC_PNPM_STORE: ${{ runner.temp }}/pnpm-store
+        run: |
+          corepack enable
+          bash element-call/build.sh
 
       - name: Decode signing key
         env:
