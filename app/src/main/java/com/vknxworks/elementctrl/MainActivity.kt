@@ -81,6 +81,14 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Coming back while a call is in picture-in-picture: the app never left the screen as a whole, so check
+        // the time away here (it counts from when the call went to picture-in-picture).
+        val graph = ElementCtrlApp.graph
+        AppLock.onForeground(graph.lockEnabled, graph.lock.lockTimeout.millis)
+    }
+
     private fun handleIntent(intent: Intent?) {
         intent ?: return
         intent.getStringExtra(Notifier.EXTRA_ROOM_ID)?.let {

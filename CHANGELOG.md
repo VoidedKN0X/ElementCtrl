@@ -2,6 +2,18 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.4
+
+### Security
+
+- **Room links ask before you join.** Opening a matrix.to or matrix: link to a room you're not in joined it straight away, without asking, and a link to a room you were invited to accepted the invite. Now ElementCtrl asks **Join …?** first, with the room's name, topic and number of members when your server can show them, and the room's address so you can check where the link really goes; nothing happens until you tap **Join**, and **Cancel** drops the link. A link to a room you're invited to now opens that room's invite, where you choose **Accept** or **Decline** yourself. A link that arrives while ElementCtrl is locked waits until you unlock, and then still asks.
+- **The app lock now also works during a call in picture-in-picture.** ElementCtrl never counted shrinking a call to the small picture-in-picture window as leaving the app, so it never locked during a call, however long it went on. Now it does: with **Lock again: as soon as you leave** it locks the moment the call goes to picture-in-picture, and with a lock time it counts from then. The call carries on; the small window shows a lock instead of the call, and you unlock when you open it full screen or go back to ElementCtrl.
+- **Shared files can't point back to ElementCtrl's own files any more.** A share from another app with an address like "content://0@…" (with a user number in front) slipped past the check that stops other apps from making ElementCtrl read and send its own private files, such as your chat database. That form is now recognised and refused too.
+
+### Privacy
+
+- **No hidden dependency list in the app file any more**: the build tools used to tuck an encrypted list of the libraries ElementCtrl is built with into the APK's signature block. Only Google can read it, so nobody checking the app could see what it holds. It's now left out, the same as in the other Ctrl apps. Nothing changes in how the app works.
+
 ## 1.6.3
 
 ### Changed

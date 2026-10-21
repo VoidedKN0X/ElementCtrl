@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.vknxworks.elementctrl.R
+import kotlinx.coroutines.launch
 import com.vknxworks.elementctrl.ui.settings.YouScreen
 import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
@@ -46,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +61,7 @@ import androidx.navigation.navArgument
 import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.matrix.RoomLinkPreview
 import com.vknxworks.elementctrl.matrix.VerifyStep
 import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.home.HomeScreen
@@ -116,6 +119,7 @@ fun MainNav(session: MatrixSession) {
     var media by remember { mutableStateOf<MediaRequest?>(null) }
     val account = remember(session) { AccountService(session) }
     var linkError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val backStack by nav.currentBackStackEntryAsState()
 
     // Tablets and unfolded foldables show the chat list and the open chat side by side.
@@ -142,13 +146,39 @@ fun MainNav(session: MatrixSession) {
     LaunchedEffect(openRoom) {
         openRoom?.let { DeepLinks.openRoom.value = null; showRoom(it) }
     }
+    // A link to a room never joins on its own: rooms you're in (or invited to, where you accept or decline)
+    // just open, anything else asks first. The link stays pending until you answer, so one that arrives while
+    // the app is locked still asks after unlocking.
     val joinTarget by DeepLinks.joinTarget.collectAsStateWithLifecycle()
+    var askJoin by remember { mutableStateOf<Pair<String, List<String>>?>(null) }
     LaunchedEffect(joinTarget) {
-        val (target, via) = joinTarget ?: return@LaunchedEffect
-        DeepLinks.joinTarget.value = null
+        val pending = joinTarget ?: return@LaunchedEffect
+        val target = pending.first
         val known = session.rooms.value.firstOrNull { it.roomId == target || it.canonicalAlias == target }
-        if (known != null && !known.isInvite) showRoom(known.roomId)
-        else runCatching { account.join(target, via) }.onSuccess { showRoom(it) }.onFailure { linkError = it.userMessage() }
+        if (known != null) {
+            DeepLinks.joinTarget.value = null
+            showRoom(known.roomId)
+        } else askJoin = pending
+    }
+    askJoin?.let { pending ->
+        JoinLinkDialog(
+            target = pending.first,
+            via = pending.second,
+            account = account,
+            onDismiss = {
+                askJoin = null
+                DeepLinks.joinTarget.value = null
+            },
+            onJoin = {
+                askJoin = null
+                DeepLinks.joinTarget.value = null
+                scope.launch {
+                    runCatching { account.join(pending.first, pending.second) }
+                        .onSuccess { showRoom(it) }
+                        .onFailure { linkError = it.userMessage() }
+                }
+            },
+        )
     }
     val openUser by DeepLinks.openUser.collectAsStateWithLifecycle()
     LaunchedEffect(openUser) {
@@ -209,6 +239,48 @@ fun MainNav(session: MatrixSession) {
             confirmButton = { TextButton(onClick = { linkError = null }) { Text(stringResource(R.string.ok)) } },
         )
     }
+}
+
+/** "Join #room?" for a room from a link: what the server can show about it, with Join and Cancel. */
+@Composable
+private fun JoinLinkDialog(target: String, via: List<String>, account: AccountService, onDismiss: () -> Unit, onJoin: () -> Unit) {
+    var loading by remember(target) { mutableStateOf(true) }
+    var preview by remember(target) { mutableStateOf<RoomLinkPreview?>(null) }
+    LaunchedEffect(target) {
+        preview = account.preview(target, via)
+        loading = false
+    }
+    val p = preview
+    val title = p?.name ?: p?.alias ?: target
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.join_link_title, title)) },
+        text = {
+            androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                when {
+                    loading -> Text(stringResource(R.string.loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    p == null -> Text(stringResource(R.string.join_link_no_preview))
+                    else -> {
+                        p.topic?.let {
+                            Text(it, maxLines = 6, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                        Text(
+                            androidx.compose.ui.res.pluralStringResource(R.plurals.members_count, p.members.toInt().coerceAtLeast(0), p.members.toInt().coerceAtLeast(0)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                // The address from the link, so a misleading room name can be checked.
+                Text(
+                    p?.alias ?: target,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = onJoin) { Text(stringResource(R.string.join_link_join)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 private data class MainTab(val route: String, val item: TabItem)

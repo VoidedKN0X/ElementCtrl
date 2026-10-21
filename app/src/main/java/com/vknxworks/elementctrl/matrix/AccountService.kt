@@ -27,6 +27,9 @@ import org.matrix.rustcomponents.sdk.UserProfile
 import com.vknxworks.elementctrl.Strings
 import com.vknxworks.elementctrl.R
 
+/** A room from a matrix.to or matrix: link, as far as the homeserver can show it before joining. */
+data class RoomLinkPreview(val roomId: String, val alias: String?, val name: String?, val topic: String?, val members: Long)
+
 /** Account-level actions: profile, people search, creating and joining rooms, and encryption recovery. */
 class AccountService(private val session: MatrixSession) {
     private val client get() = session.client
@@ -96,6 +99,30 @@ class AccountService(private val session: MatrixSession) {
     }
 
     /** Joins by room ID (!abc:server) or address (#room:server). Returns the room ID. */
+    /**
+     * What a room from a link is (name, topic, members), asked from the homeserver before joining, or null
+     * when the server can't tell (a private room, an unreachable server).
+     */
+    suspend fun preview(idOrAlias: String, via: List<String> = emptyList()): RoomLinkPreview? = io {
+        runCatching {
+            val target = idOrAlias.trim()
+            val preview = withTimeoutOrNull(15_000) {
+                if (target.startsWith("#")) client.getRoomPreviewFromRoomAlias(target)
+                else client.getRoomPreviewFromRoomId(target, via)
+            } ?: return@runCatching null
+            preview.use {
+                val info = it.info()
+                RoomLinkPreview(
+                    roomId = info.roomId,
+                    alias = info.canonicalAlias,
+                    name = info.name?.takeIf { n -> n.isNotBlank() },
+                    topic = info.topic?.takeIf { t -> t.isNotBlank() },
+                    members = info.numJoinedMembers.toLong(),
+                )
+            }
+        }.getOrNull()
+    }
+
     suspend fun join(idOrAlias: String, via: List<String> = emptyList()): String = io {
         client.joinRoomByIdOrAlias(idOrAlias.trim(), via).use { it.id() }
     }

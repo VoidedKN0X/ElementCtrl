@@ -14,8 +14,8 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         // Bump both to publish a new release (see CHANGELOG.md).
-        versionCode = 45
-        versionName = "1.6.3"
+        versionCode = 46
+        versionName = "1.6.4"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -84,6 +84,12 @@ android {
         // Element Call, built from source by element-call/build.sh, is served from the APK's assets as element-call/.
         getByName("main").assets.srcDir(rootProject.file("element-call/dist"))
     }
+    // No dependency metadata blob in the APK: it's encrypted for Google Play, so nobody checking the build can read it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     lint {
         checkReleaseBuilds = false
         abortOnError = false

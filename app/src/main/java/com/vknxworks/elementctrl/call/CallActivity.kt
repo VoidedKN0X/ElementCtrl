@@ -486,8 +486,27 @@ class CallActivity : ComponentActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPip = isInPictureInPictureMode
         controls?.setPip(isInPictureInPictureMode)
+        val graph = ElementCtrlApp.graph
+        if (isInPictureInPictureMode) {
+            // The app stays "on screen" in picture-in-picture, so the app-wide check never sees it leave: count
+            // this as leaving. "As soon as you leave" locks now (the call carries on, the small window shows the
+            // lock); with a lock time it counts from now.
+            AppLock.onBackground(graph.lockEnabled, graph.lock.lockTimeout.millis)
+        } else if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            // Opened full screen again: check the time away.
+            AppLock.onForeground(graph.lockEnabled, graph.lock.lockTimeout.millis)
+        }
         // The picture-in-picture window was closed (not expanded): that ends the call.
         if (!isInPictureInPictureMode && !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) endCall()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // Leaving for picture-in-picture: lock before the small window appears.
+        if (phase == Phase.InCall && loaded && !ending) {
+            val graph = ElementCtrlApp.graph
+            AppLock.onBackground(graph.lockEnabled, graph.lock.lockTimeout.millis)
+        }
     }
 
     /** Hangs up: tells Element Call to leave the call (so the others see you go), then closes. */

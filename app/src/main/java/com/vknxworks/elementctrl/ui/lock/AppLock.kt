@@ -112,6 +112,9 @@ object AppLock {
 
     fun onBackground(enabled: Boolean, timeoutMillis: Long) {
         if (authenticating) return
+        // Already away (a call went to picture-in-picture before the app left the screen): the time away
+        // counts from then.
+        if (backgroundAt > 0L) return
         backgroundAt = SystemClock.elapsedRealtime()
         // Only right after the app opened something itself; leaving later still counts.
         exemptTrip = expectReturnAt > 0 && backgroundAt - expectReturnAt < 5_000

@@ -29,7 +29,8 @@ object DeepLinks {
  */
 fun isForeignContentUri(context: Context, uri: Uri): Boolean {
     if (uri.scheme != ContentResolver.SCHEME_CONTENT) return false
-    val authority = uri.authority?.takeIf { it.isNotBlank() } ?: return false
+    // "content://0@<authority>" still reaches <authority> (the number is a user id), so look past it.
+    val authority = uri.authority?.substringAfterLast('@')?.takeIf { it.isNotBlank() } ?: return false
     val own = context.packageName
     if (authority == own || authority.startsWith("$own.")) return false
     val provider = runCatching { context.packageManager.resolveContentProvider(authority, 0) }.getOrNull()

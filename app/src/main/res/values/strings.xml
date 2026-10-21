@@ -491,6 +491,9 @@
     <string name="search_for_someone_to_start_an">Search for someone to start an encrypted direct chat. Use their full Matrix ID (like @alice:matrix.org) if they\'re on another server.</string>
     <string name="no_one_found_try_their_full_matrix">No one found. Try their full Matrix ID.</string>
     <string name="join_a_room">Join a room</string>
+    <string name="join_link_title">Join %1$s?</string>
+    <string name="join_link_join">Join</string>
+    <string name="join_link_no_preview">Your server can\'t show this room before you join. Only join if you trust the link.</string>
     <string name="create_room">Create room</string>
     <string name="create">Create</string>
     <string name="room_name">Room name</string>
