@@ -2,6 +2,13 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.6
+
+### Fixed
+
+- **Calls from a chat with one person ring again.** When you called someone from a one-to-one chat, their phone sometimes only showed a "call started" message instead of ringing like a phone call. ElementCtrl counted anyone who had once been invited to the chat but never joined, so a single old invite made it treat the chat as a group room and start the call without ringing. Now only the people who have actually joined count, the same way Element Desktop decides, so a chat between the two of you rings the other person's phone even if an old invite is still hanging around.
+- **Those chats also look like chats again.** The same old invites made some one-to-one chats appear under Rooms instead of People, show room settings (with Invite and room name options) instead of the other person's profile when you tap the name, and show their notifications as group-room notifications. They now show as a normal chat with that person everywhere in the app.
+
 ## 1.6.5
 
 ### Fixed

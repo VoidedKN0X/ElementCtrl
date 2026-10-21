@@ -2,6 +2,7 @@ package com.vknxworks.elementctrl.call
 
 import android.content.Context
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.matrix.isOneToOne
 import com.vknxworks.elementctrl.notify.NotificationAvatars
 import kotlinx.coroutines.delay
 import org.matrix.rustcomponents.sdk.MessageLikeEventContent
@@ -72,7 +73,7 @@ object CallPush {
                 senderId = sender,
                 senderName = item.senderInfo.displayName ?: sender,
                 roomName = item.roomInfo.displayName,
-                isDm = item.roomInfo.isDm,
+                isDm = item.roomInfo.isOneToOne(),
                 audioOnly = audioOnly,
                 avatarUrl = senderAvatar,
                 expiresAt = expiresAt,

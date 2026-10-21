@@ -13,6 +13,7 @@ import androidx.core.app.RemoteInput
 import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.MainActivity
 import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.matrix.isOneToOne
 import com.vknxworks.elementctrl.matrix.previewText
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.Membership
@@ -89,7 +90,7 @@ object PushNotifications {
         val senderName = item.senderInfo.displayName ?: Strings.str(R.string.invite_someone)
         val senderAvatar = item.senderInfo.avatarUrl
         val senderId = (item.event as? NotificationEvent.Timeline)?.event?.senderId()
-        val roomAvatar = item.roomInfo.avatarUrl ?: senderAvatar.takeIf { item.roomInfo.isDm }
+        val roomAvatar = item.roomInfo.avatarUrl ?: senderAvatar.takeIf { item.roomInfo.isOneToOne() }
         synchronized(history) { roomAvatars[roomId] = roomAvatar }
         // Pictures load through the SDK's encrypted media cache (from the phone after the first time), and never
         // hold up the notification for more than a few seconds.
@@ -98,7 +99,7 @@ object PushNotifications {
 
         val text: String = when (val ev = item.event) {
             is NotificationEvent.Invite -> {
-                postInvite(context, roomId, roomName, senderName, item.roomInfo.isDm)
+                postInvite(context, roomId, roomName, senderName, item.roomInfo.isOneToOne())
                 return Outcome.SHOWN
             }
             is NotificationEvent.Timeline -> when (val c = ev.event.content()) {
@@ -133,7 +134,7 @@ object PushNotifications {
             }.toList()
         }
         // Updating a placeholder with the real text shouldn't ring a second time.
-        post(context, roomId, roomName, item.roomInfo.isDm, !replaced && (item.isNoisy != false || item.hasMention == true), lines)
+        post(context, roomId, roomName, item.roomInfo.isOneToOne(), !replaced && (item.isNoisy != false || item.hasMention == true), lines)
         // The background check doesn't need to show this message again.
         Notifier.markNotified(context, roomId, ts)
         return if (encrypted) Outcome.ENCRYPTED else Outcome.SHOWN

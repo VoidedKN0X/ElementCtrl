@@ -3,6 +3,7 @@ package com.vknxworks.elementctrl.matrix
 import org.matrix.rustcomponents.sdk.LatestEventValue
 import org.matrix.rustcomponents.sdk.Membership
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.NotificationRoomInfo
 import org.matrix.rustcomponents.sdk.RoomInfo
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.TimelineItemContent
@@ -48,10 +49,22 @@ data class RoomSummary(
 
 fun RoomInfo.displayNameOrId(): String = displayName?.takeIf { it.isNotBlank() } ?: canonicalAlias ?: id
 
+/**
+ * A one-to-one chat: marked as a direct chat and with no more than two people in it.
+ *
+ * The SDK's own isDm also counts people who were invited but never joined, so a single stale invite turned a chat
+ * into a "room": calls from it then only showed a "call started" message on the other side instead of ringing.
+ * Like Element Desktop, only the people who have joined count here.
+ */
+fun RoomInfo.isOneToOne(): Boolean = isDm || isDirect && joinedMembersCount <= 2uL
+
+/** The same rule for a room as a push notification describes it. */
+fun NotificationRoomInfo.isOneToOne(): Boolean = isDm || isDirect && joinedMembersCount <= 2uL
+
 /** Reads the room's current info and latest event. Safe to call for every list update. */
 suspend fun Room.toSummary(): RoomSummary {
     val info = roomInfo()
-    val isDm = info.isDm || info.isDirect && info.activeMembersCount <= 2uL
+    val isDm = info.isOneToOne()
     val dmHero = if (isDm) info.heroes.firstOrNull() else null
     var lastMessage: String? = null
     var lastSender: String? = null

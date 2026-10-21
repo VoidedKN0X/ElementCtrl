@@ -66,6 +66,7 @@ import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.matrix.AppState
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.matrix.isOneToOne
 import com.vknxworks.elementctrl.ui.Avatar
 import com.vknxworks.elementctrl.ui.ElementCtrlTheme
 import com.vknxworks.elementctrl.ui.WindowPrivacy
@@ -328,7 +329,7 @@ class CallActivity : ComponentActivity() {
         room = r
         val info = r.roomInfo()
         val encrypted = runCatching { r.latestEncryptionState() }.getOrNull() == EncryptionState.ENCRYPTED
-        val isDm = info.isDm
+        val isDm = info.isOneToOne()
         val hasCall = info.hasRoomCall
         val intent = when {
             isDm && hasCall -> if (target.audioOnly) CallIntent.JOIN_EXISTING_DM_VOICE else CallIntent.JOIN_EXISTING_DM

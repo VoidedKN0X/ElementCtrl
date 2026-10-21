@@ -147,7 +147,7 @@ class RoomController(val session: MatrixSession, val room: Room) {
     }
 
     private suspend fun update(info: RoomInfo) {
-        val isDm = info.isDm
+        val isDm = info.isOneToOne()
         val notif = runCatching {
             session.notificationSettings().getUserDefinedRoomNotificationMode(info.id)
         }.getOrNull()
