@@ -12,76 +12,132 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import com.vknxworks.elementctrl.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.data.ThemeMode
 
-/** Element's green, used when Material You colours are off. */
+// Graphite base shared by the Ctrl apps. ElementCtrl's own accent is blossom, the pink of its icon.
+private val Graphite = Color(0xFF121418)
+private val Blossom = Color(0xFFF4A6C8)
+
+/** ElementCtrl's accent. */
+val ElementAccent = Blossom
+
 private val BrandDark = darkColorScheme(
-    primary = Color(0xFF5FDDB0),
-    onPrimary = Color(0xFF003828),
-    primaryContainer = Color(0xFF00513B),
-    onPrimaryContainer = Color(0xFF7DFACB),
-    secondary = Color(0xFFB3CCC0),
-    onSecondary = Color(0xFF1F352C),
-    secondaryContainer = Color(0xFF354B42),
-    onSecondaryContainer = Color(0xFFCFE9DC),
-    tertiary = Color(0xFFA6CCE0),
-    onTertiary = Color(0xFF0A3445),
-    tertiaryContainer = Color(0xFF254B5C),
-    onTertiaryContainer = Color(0xFFC2E8FD),
-    background = Color(0xFF101413),
-    onBackground = Color(0xFFDFE4E0),
-    surface = Color(0xFF101413),
-    onSurface = Color(0xFFDFE4E0),
-    surfaceVariant = Color(0xFF404944),
-    onSurfaceVariant = Color(0xFFBFC9C2),
-    surfaceContainerLowest = Color(0xFF0B0F0E),
-    surfaceContainerLow = Color(0xFF181D1B),
-    surfaceContainer = Color(0xFF1C211F),
-    surfaceContainerHigh = Color(0xFF262B29),
-    surfaceContainerHighest = Color(0xFF313634),
-    outline = Color(0xFF89938D),
-    outlineVariant = Color(0xFF404944),
-    error = Color(0xFFFFB4AB),
+    primary = Blossom,
+    onPrimary = Color(0xFF4F1530),
+    primaryContainer = Color(0xFF6A2A47),
+    onPrimaryContainer = Color(0xFFFFD9E6),
+    secondary = Color(0xFFC9CED8),
+    onSecondary = Color(0xFF1B1E24),
+    secondaryContainer = Color(0xFF2B3038),
+    onSecondaryContainer = Color(0xFFECEEF2),
+    tertiary = Color(0xFF8BD8C6),
+    onTertiary = Color(0xFF00382D),
+    tertiaryContainer = Color(0xFF1F4D43),
+    onTertiaryContainer = Color(0xFFB4F1E1),
+    background = Graphite,
+    onBackground = Color(0xFFECEEF2),
+    surface = Graphite,
+    onSurface = Color(0xFFECEEF2),
+    surfaceVariant = Color(0xFF23272E),
+    onSurfaceVariant = Color(0xFF9AA1AD),
+    surfaceContainerLowest = Color(0xFF0D0F12),
+    surfaceContainerLow = Color(0xFF171A1F),
+    surfaceContainer = Color(0xFF1C1F25),
+    surfaceContainerHigh = Color(0xFF23272E),
+    surfaceContainerHighest = Color(0xFF2B3038),
+    outline = Color(0xFF5A616C),
+    outlineVariant = Color(0xFF2E333B),
+    error = Color(0xFFFF8A80),
+    onError = Color(0xFF3B0907),
+    errorContainer = Color(0xFF5C1A16),
+    onErrorContainer = Color(0xFFFFDAD5),
 )
 
 private val BrandLight = lightColorScheme(
-    primary = Color(0xFF006C4F),
+    primary = Color(0xFF9C3D66),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF8AF7CF),
-    onPrimaryContainer = Color(0xFF002116),
-    secondary = Color(0xFF4C6358),
+    primaryContainer = Color(0xFFFFD9E6),
+    onPrimaryContainer = Color(0xFF3E0021),
+    secondary = Color(0xFF4A505B),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCFE9DA),
-    onSecondaryContainer = Color(0xFF092017),
-    tertiary = Color(0xFF3E6374),
+    secondaryContainer = Color(0xFFE4E7EC),
+    onSecondaryContainer = Color(0xFF15181D),
+    tertiary = Color(0xFF0F6E5B),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFC2E8FD),
-    onTertiaryContainer = Color(0xFF001F2A),
-    background = Color(0xFFF7FAF8),
-    onBackground = Color(0xFF181D1B),
-    surface = Color(0xFFF7FAF8),
-    onSurface = Color(0xFF181D1B),
-    surfaceVariant = Color(0xFFDBE5DE),
-    onSurfaceVariant = Color(0xFF404944),
+    tertiaryContainer = Color(0xFFB4F1E1),
+    onTertiaryContainer = Color(0xFF00201A),
+    background = Color(0xFFF6F7F9),
+    onBackground = Color(0xFF15181D),
+    surface = Color(0xFFF6F7F9),
+    onSurface = Color(0xFF15181D),
+    surfaceVariant = Color(0xFFE4E7EC),
+    onSurfaceVariant = Color(0xFF5B626E),
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF1F5F2),
-    surfaceContainer = Color(0xFFEBEFEC),
-    surfaceContainerHigh = Color(0xFFE5E9E6),
-    surfaceContainerHighest = Color(0xFFDFE4E0),
-    outline = Color(0xFF707973),
-    outlineVariant = Color(0xFFBFC9C2),
+    surfaceContainerLow = Color(0xFFF0F2F5),
+    surfaceContainer = Color(0xFFEBEDF1),
+    surfaceContainerHigh = Color(0xFFE4E7EC),
+    surfaceContainerHighest = Color(0xFFDCE0E6),
+    outline = Color(0xFF8A919C),
+    outlineVariant = Color(0xFFD3D7DE),
+)
+
+private fun manrope(weight: Int) = Font(
+    R.font.manrope,
+    FontWeight(weight),
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
+)
+
+/** The Ctrl series typeface. */
+val Manrope = FontFamily(manrope(400), manrope(500), manrope(600), manrope(700), manrope(800))
+
+private fun style(size: Int, line: Int, weight: Int, tracking: Double = 0.0) = TextStyle(
+    fontFamily = Manrope,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    fontWeight = FontWeight(weight),
+    letterSpacing = tracking.em,
+)
+
+private val AppTypography = Typography(
+    displayLarge = style(52, 56, 800, -0.03),
+    displayMedium = style(44, 48, 800, -0.03),
+    displaySmall = style(36, 40, 800, -0.025),
+    headlineLarge = style(32, 38, 800, -0.02),
+    headlineMedium = style(28, 34, 700, -0.015),
+    headlineSmall = style(24, 30, 700, -0.01),
+    titleLarge = style(20, 26, 700, -0.005),
+    titleMedium = style(16, 22, 700),
+    titleSmall = style(14, 20, 600),
+    bodyLarge = style(16, 24, 400),
+    bodyMedium = style(14, 21, 400),
+    bodySmall = style(12, 17, 500),
+    labelLarge = style(14, 20, 600),
+    labelMedium = style(12, 16, 600),
+    labelSmall = style(11, 14, 600, 0.01),
 )
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
     medium = RoundedCornerShape(16.dp),
     large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(32.dp),
 )
+
+/** Horizontal page margin used everywhere, as in the other Ctrl apps. */
+val Gutter = 20.dp
 
 /** Colours for names in group chats, chosen from the user ID so each person keeps theirs. */
 val SenderColors = listOf(
@@ -125,5 +181,5 @@ fun ElementCtrlTheme(content: @Composable () -> Unit) {
             surfaceContainerHighest = Color(0xFF22252A),
         )
     }
-    MaterialTheme(colorScheme = scheme, shapes = AppShapes, content = content)
+    MaterialTheme(colorScheme = scheme, typography = AppTypography, shapes = AppShapes, content = content)
 }

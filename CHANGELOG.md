@@ -2,6 +2,26 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.5.0
+
+ElementCtrl now has the same layout as the other Ctrl apps. Your chats, encryption and settings are unchanged.
+
+### New
+
+- **Chats and Explore tabs** on a floating glass tab bar at the bottom of the screen, the same frosted island as in the other Ctrl apps. **Explore** is the public room directory that used to be under **New chat › Explore**: search rooms on your server or another one (such as matrix.org) and join them. On tablets and unfolded foldables the tabs are a side rail on the left, next to the chat list and the open chat.
+- **Your profile picture is at the top right** of Chats and Explore. Tapping it opens the new **You** page: your picture (tap it to change it), display name, Matrix ID and server at the top, then **Account** (display name, your profile, security and recovery, devices, manage account and the homeserver address), **Settings**, **Sign out**, and **About** with the version underneath.
+- **The Ctrl series look**: the same graphite colours, the Manrope typeface, rounded grouped cards, spacing and empty screens as the other Ctrl apps, with pink, the colour of ElementCtrl's icon, as its accent.
+
+### Changed
+
+- **Settings moved to your profile picture › Settings**, in the same grouped cards and order as the other Ctrl apps: **Appearance** (theme, wallpaper colours, chat bubbles), **Notifications**, **Privacy and security** (app lock, fingerprint, lock again, Hide in screenshots, Hide in recent apps), **Chats** (profile pictures, seen by, double-tap to react, room events, Enter sends, link previews), **Ignored people** and **Troubleshooting**. Before, tapping your picture at the top left of Chats opened one long Settings list. The You page is now the only way in.
+- **Your account moved to the You page**: display name, your profile, security and recovery, devices, manage account and the homeserver address used to be in Settings › Account; **Sign out** and **About** are on the You page too.
+- **Theme, Lock again, notification modes and double-tap reaction** are chosen from a sheet that slides up from the bottom, as in the other Ctrl apps, instead of a dialog.
+- **Use wallpaper colours is now off by default**, so ElementCtrl uses its own colours like the other Ctrl apps. If you had turned it on yourself it stays on; otherwise turn it on again in Settings › Appearance if you prefer your wallpaper's colours.
+- **The chat list** has a big "Chats" title like the other Ctrl apps' tabs, with search next to your profile picture, and the **New chat** button sits just above the tab bar. Empty screens ("No chats yet", "Pick a chat") use the series style.
+- **README**: describes the tabs and the You page, and every settings path now starts with your profile picture.
+- Everything else stays as it was: the shared app lock, recents staying blank while locked, Hide in screenshots and Hide in recent apps (both off by default), push through ntfy only with the 15-minute background check, the battery warnings, the two-pane tablet layout, and the chat timeline and composer.
+
 ## 1.4.2
 
 ### Security

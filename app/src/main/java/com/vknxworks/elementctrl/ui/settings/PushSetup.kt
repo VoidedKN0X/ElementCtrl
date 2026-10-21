@@ -113,8 +113,9 @@ private fun Option(title: String, subtitle: String, selected: Boolean, enabled: 
 @Composable
 fun PushWarning(icon: ImageVector, title: String, body: String, actions: List<Pair<String, () -> Unit>>) {
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
+        // Shown inside the Notifications group's card.
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.errorContainer,
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

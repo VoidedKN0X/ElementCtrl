@@ -34,7 +34,7 @@ class Prefs(context: Context) {
     val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
     fun setTheme(mode: ThemeMode) { sp.edit().putInt("theme", mode.ordinal).apply(); _theme.value = mode }
 
-    private val _dynamicColor = MutableStateFlow(sp.getBoolean("dynamic_color", true))
+    private val _dynamicColor = MutableStateFlow(sp.getBoolean("dynamic_color", false))
     val dynamicColor: StateFlow<Boolean> = _dynamicColor.asStateFlow()
     fun setDynamicColor(on: Boolean) { sp.edit().putBoolean("dynamic_color", on).apply(); _dynamicColor.value = on }
 

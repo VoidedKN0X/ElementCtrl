@@ -63,6 +63,9 @@ import com.vknxworks.elementctrl.ui.SectionHeader
 import com.vknxworks.elementctrl.ui.SettingRow
 import com.vknxworks.elementctrl.ui.TextInputDialog
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.statusBarsPadding
+import com.vknxworks.elementctrl.R
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.UserProfile
 
@@ -238,9 +241,12 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
     if (inviteDialog) com.vknxworks.elementctrl.ui.room.InviteDialog(session, onDismiss = { inviteDialog = false }) { if (it !in invites) invites += it }
 }
 
-/** Browse and join public rooms on your server or another one. */
+/**
+ * Browse and join public rooms on your server or another one. The Explore tab (with [onProfile], your profile
+ * picture at the top right) or a pushed screen with a back arrow.
+ */
 @Composable
-fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (String) -> Unit) {
+fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (String) -> Unit, onProfile: (() -> Unit)? = null) {
     val search = remember { DirectorySearch(session) }
     DisposableEffect(Unit) { onDispose { search.close() } }
     val account = remember { AccountService(session) }
@@ -259,15 +265,57 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
     }
     LaunchedEffect(atEnd, results.size) { if (atEnd && results.isNotEmpty()) search.more() }
 
+    val clearance = com.vknxworks.elementctrl.ui.LocalBottomClearance.current
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        topBar = { TopAppBar(title = { Text("Explore rooms") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }) },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = if (clearance > 0.dp) androidx.compose.foundation.layout.WindowInsets.statusBars
+        else androidx.compose.material3.ScaffoldDefaults.contentWindowInsets,
+        topBar = {
+            if (onProfile != null) {
+                com.vknxworks.elementctrl.ui.TabTitle(
+                    stringResource(R.string.tab_explore), session, onProfile,
+                    Modifier.statusBarsPadding(),
+                )
+            } else {
+                com.vknxworks.elementctrl.ui.ScreenTopBar(stringResource(R.string.tab_explore), onBack = onBack)
+            }
+        },
     ) { pad ->
-        LazyColumn(Modifier.fillMaxSize().padding(pad).imePadding(), state = listState) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(pad).imePadding(),
+            state = listState,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp + clearance),
+        ) {
             item {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(query, { query = it }, placeholder = { Text("Search rooms") }, leadingIcon = { Icon(Icons.Default.Search, null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(server, { server = it }, placeholder = { Text("Server (blank for yours), e.g. matrix.org") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Column(
+                    Modifier.padding(horizontal = com.vknxworks.elementctrl.ui.Gutter, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        query, { query = it },
+                        placeholder = { Text(stringResource(R.string.explore_search)) },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        server, { server = it },
+                        placeholder = { Text(stringResource(R.string.explore_server)) },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            if (results.isEmpty() && query.isNotBlank()) {
+                item("empty") {
+                    com.vknxworks.elementctrl.ui.EmptyState(
+                        Icons.Default.Explore,
+                        stringResource(R.string.explore_empty),
+                        stringResource(R.string.explore_empty_body),
+                    )
                 }
             }
             items(results, key = { it.roomId }) { r ->
@@ -281,7 +329,7 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
                                 .onFailure { snackbar.showSnackbar(it.userMessage()) }
                             joining = null
                         }
-                    }.padding(horizontal = 16.dp, vertical = 10.dp),
+                    }.padding(horizontal = com.vknxworks.elementctrl.ui.Gutter, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Avatar(r.name ?: r.alias ?: r.roomId, r.avatarUrl, r.roomId, size = 44.dp)
@@ -289,7 +337,7 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
                     Column(Modifier.weight(1f)) {
                         Text(r.name ?: r.alias ?: r.roomId, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            listOfNotNull(r.alias, "${r.joinedMembers} members").joinToString(" · "),
+                            listOfNotNull(r.alias, stringResource(R.string.explore_members, r.joinedMembers.toInt())).joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

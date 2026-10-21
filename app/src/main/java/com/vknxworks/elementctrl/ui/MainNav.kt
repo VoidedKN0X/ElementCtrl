@@ -1,6 +1,31 @@
 package com.vknxworks.elementctrl.ui
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.settings.YouScreen
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.foundation.layout.Row
@@ -138,6 +163,110 @@ fun MainNav(session: MatrixSession) {
         }
     }
 
+    // The main sections, on the floating glass tab bar (phones) or a side rail (tablets), as in the other Ctrl apps.
+    val route = backStack?.destination?.route
+    val tabIndex = MainTabs.indexOfFirst { it.route == route }
+    fun selectTab(i: Int) {
+        val target = MainTabs[i].route
+        if (route == target) return
+        nav.navigate(target) {
+            popUpTo("home") { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    val host: @Composable () -> Unit = { MainHost(nav, session, wide, paneRoom, { paneRoom = it }, { showRoom(it) }, { media = it }, { media }, ::selectTab) }
+    if (wide) {
+        Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            NavigationRail(
+                containerColor = MaterialTheme.colorScheme.background,
+                modifier = Modifier.fillMaxHeight().statusBarsPadding(),
+            ) {
+                Spacer(Modifier.weight(1f))
+                MainTabs.forEachIndexed { i, tab ->
+                    val selected = i == tabIndex
+                    NavigationRailItem(
+                        selected = selected,
+                        onClick = { selectTab(i) },
+                        icon = { Icon(if (selected) tab.item.selectedIcon else tab.item.icon, contentDescription = stringResource(tab.item.label)) },
+                        label = { Text(stringResource(tab.item.label)) },
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+            }
+            androidx.compose.foundation.layout.Box(Modifier.weight(1f).fillMaxHeight()) { host() }
+        }
+    } else {
+        PhoneShell(showTabs = tabIndex >= 0, selectedIndex = tabIndex, onSelect = ::selectTab, content = host)
+    }
+
+    linkError?.let {
+        AlertDialog(
+            onDismissRequest = { linkError = null },
+            title = { Text(stringResource(R.string.link_error_title)) },
+            text = { Text(it) },
+            confirmButton = { TextButton(onClick = { linkError = null }) { Text(stringResource(R.string.ok)) } },
+        )
+    }
+}
+
+private data class MainTab(val route: String, val item: TabItem)
+
+private val MainTabs = listOf(
+    MainTab("home", TabItem(R.string.tab_chats, Icons.AutoMirrored.Outlined.Chat, Icons.AutoMirrored.Filled.Chat)),
+    MainTab("explore", TabItem(R.string.tab_explore, Icons.Outlined.Explore, Icons.Filled.Explore)),
+)
+
+/**
+ * Phones: the main tabs run edge to edge and scroll under the floating glass tab bar; pushed screens (a chat,
+ * the You page, settings) get the full height and the bar slides away.
+ */
+@Composable
+private fun PhoneShell(showTabs: Boolean, selectedIndex: Int, onSelect: (Int) -> Unit, content: @Composable () -> Unit) {
+    val hazeState = remember { dev.chrisbanes.haze.HazeState() }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    var overlayHeight by remember { mutableStateOf(0.dp) }
+    CompositionLocalProvider(
+        LocalHazeState provides hazeState,
+        LocalBottomClearance provides if (showTabs) overlayHeight else 0.dp,
+    ) {
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().hazeSource(hazeState)) { content() }
+            androidx.compose.foundation.layout.Column(
+                Modifier
+                    .align(androidx.compose.ui.Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { overlayHeight = with(density) { it.height.toDp() } }
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            ) {
+                AnimatedVisibility(
+                    visible = showTabs,
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut() + slideOutVertically { it / 2 },
+                ) {
+                    GlassTabBar(items = MainTabs.map { it.item }, selectedIndex = selectedIndex, onSelect = onSelect)
+                }
+            }
+        }
+    }
+}
+
+/** Every screen after sign-in. */
+@Composable
+private fun MainHost(
+    nav: NavHostController,
+    session: MatrixSession,
+    wide: Boolean,
+    paneRoom: String?,
+    setPaneRoom: (String?) -> Unit,
+    showRoom: (String) -> Unit,
+    setMedia: (MediaRequest) -> Unit,
+    media: () -> MediaRequest?,
+    selectTab: (Int) -> Unit,
+) {
     NavHost(nav, startDestination = "home") {
         composable("home") {
             val home: @Composable (Modifier) -> Unit = { modifier ->
@@ -146,7 +275,7 @@ fun MainNav(session: MatrixSession) {
                         session,
                         onOpenRoom = { showRoom(it) },
                         onNewChat = { nav.go("newchat") },
-                        onSettings = { nav.go("settings") },
+                        onProfile = { nav.go("you") },
                         onSecurity = { nav.go("security") },
                         selectedRoomId = if (wide) paneRoom else null,
                     )
@@ -156,15 +285,15 @@ fun MainNav(session: MatrixSession) {
                 home(Modifier.fillMaxSize())
             } else {
                 Row(Modifier.fillMaxSize()) {
-                    home(Modifier.width(380.dp).fillMaxHeight())
+                    home(Modifier.width(if (LocalConfiguration.current.screenWidthDp >= 840) 380.dp else 320.dp).fillMaxHeight())
                     VerticalDivider()
                     androidx.compose.foundation.layout.Box(Modifier.weight(1f).fillMaxHeight()) {
                         val id = paneRoom
                         if (id == null) {
                             EmptyState(
                                 Icons.AutoMirrored.Filled.Chat,
-                                "Pick a chat",
-                                "Choose a conversation on the left to open it here.",
+                                stringResource(R.string.chats_pick),
+                                stringResource(R.string.chats_pick_body),
                                 Modifier.align(androidx.compose.ui.Alignment.Center),
                             )
                         } else {
@@ -173,12 +302,12 @@ fun MainNav(session: MatrixSession) {
                                 ScopedViewModels {
                                     RoomScreen(
                                         session, id, threadRootId = null,
-                                        onBack = { paneRoom = null },
+                                        onBack = { setPaneRoom(null) },
                                         onDetails = { nav.go("details/${enc(id)}") },
                                         onOpenThread = { root -> nav.go("thread/${enc(id)}/${enc(root)}") },
                                         onOpenUser = { nav.go("user/${enc(it)}?room=${enc(id)}") },
-                                        onOpenImage = { media = it; nav.go("media") },
-                                        onOpenRoom = { paneRoom = it },
+                                        onOpenImage = { setMedia(it); nav.go("media") },
+                                        onOpenRoom = { setPaneRoom(it) },
                                         onSecurity = { nav.go("security") },
                                         onSearch = { nav.go("search/${enc(id)}") },
                                     )
@@ -204,7 +333,7 @@ fun MainNav(session: MatrixSession) {
                 onDetails = { nav.go("details/${enc(roomId)}") },
                 onOpenThread = { root -> nav.go("thread/${enc(roomId)}/${enc(root)}") },
                 onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
-                onOpenImage = { media = it; nav.go("media") },
+                onOpenImage = { setMedia(it); nav.go("media") },
                 onOpenRoom = { nav.openRoom(it, replaceCurrent = true) },
                 onSecurity = { nav.go("security") },
                 onSearch = { nav.go("search/${enc(roomId)}") },
@@ -230,7 +359,7 @@ fun MainNav(session: MatrixSession) {
                 onDetails = {},
                 onOpenThread = {},
                 onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
-                onOpenImage = { media = it; nav.go("media") },
+                onOpenImage = { setMedia(it); nav.go("media") },
                 onOpenRoom = { nav.openRoom(it) },
                 onSecurity = { nav.go("security") },
                 onSearch = { nav.go("search/${enc(roomId)}") },
@@ -243,7 +372,7 @@ fun MainNav(session: MatrixSession) {
                 onBack = { nav.back() },
                 onMembers = { nav.go("members/${enc(roomId)}") },
                 onOpenUser = { nav.go("user/${enc(it)}?room=${enc(roomId)}") },
-                onLeft = { paneRoom = null; nav.popBackStack("home", inclusive = false) },
+                onLeft = { setPaneRoom(null); nav.popBackStack("home", inclusive = false) },
                 onMedia = { nav.go("gallery/${enc(roomId)}") },
             )
         }
@@ -252,7 +381,7 @@ fun MainNav(session: MatrixSession) {
             com.vknxworks.elementctrl.ui.room.MediaGalleryScreen(
                 session, roomId,
                 onBack = { nav.back() },
-                onOpenImage = { media = it; nav.go("media") },
+                onOpenImage = { setMedia(it); nav.go("media") },
             )
         }
         composable("members/{roomId}") { entry ->
@@ -277,7 +406,7 @@ fun MainNav(session: MatrixSession) {
                 onBack = { nav.back() },
                 onOpenRoom = { if (wide) showRoom(it) else nav.openRoom(it, replaceCurrent = true) },
                 onCreateRoom = { nav.go("createroom") },
-                onExplore = { nav.go("explore") },
+                onExplore = { selectTab(1) },
             )
         }
         composable("createroom") {
@@ -286,18 +415,25 @@ fun MainNav(session: MatrixSession) {
             })
         }
         composable("explore") {
-            ExploreScreen(session, onBack = { nav.back() }, onOpenRoom = { id ->
-                if (wide) showRoom(id) else nav.navigate("room/${enc(id)}") { popUpTo("home"); launchSingleTop = true }
+            ExploreScreen(session, onBack = { nav.back() }, onProfile = { nav.go("you") }, onOpenRoom = { id ->
+                if (wide) {
+                    showRoom(id)
+                    selectTab(0)
+                } else nav.navigate("room/${enc(id)}") { launchSingleTop = true }
             })
         }
-        composable("settings") {
-            SettingsScreen(
+        composable("you") {
+            YouScreen(
                 session,
                 onBack = { nav.back() },
+                onSettings = { nav.go("settings") },
                 onSecurity = { nav.go("security") },
-                onOpenUser = { nav.go("user/${enc(it)}") },
                 onDevices = { nav.go("devices") },
+                onOpenUser = { nav.go("user/${enc(it)}") },
             )
+        }
+        composable("settings") {
+            SettingsScreen(session, onBack = { nav.back() })
         }
         composable("security") {
             SecurityScreen(session, onBack = { nav.back() }, onVerifyDevice = { nav.go("verify?start=true") })
@@ -317,19 +453,11 @@ fun MainNav(session: MatrixSession) {
             )
         }
         composable("media") {
-            val m = media
+            val m = media()
             if (m != null) MediaViewer(session, m, onBack = { nav.back() }) else LaunchedEffect(Unit) { nav.close("media") }
         }
     }
 
-    linkError?.let {
-        AlertDialog(
-            onDismissRequest = { linkError = null },
-            title = { Text("Couldn't open link") },
-            text = { Text(it) },
-            confirmButton = { TextButton(onClick = { linkError = null }) { Text("OK") } },
-        )
-    }
 }
 
 /** Two panes from 840 dp wide (tablets, unfolded foldables), or 600 dp in landscape. */

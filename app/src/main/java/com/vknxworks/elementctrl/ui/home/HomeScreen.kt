@@ -79,20 +79,31 @@ import com.vknxworks.elementctrl.ui.EmptyState
 import com.vknxworks.elementctrl.ui.SettingRow
 import com.vknxworks.elementctrl.ui.UnreadBadge
 import com.vknxworks.elementctrl.ui.shortTime
+import com.vknxworks.elementctrl.ui.TabTitle
+import com.vknxworks.elementctrl.ui.LocalBottomClearance
+import com.vknxworks.elementctrl.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.ReceiptType
 import org.matrix.rustcomponents.sdk.RecoveryState
 import org.matrix.rustcomponents.sdk.SyncServiceState
 import org.matrix.rustcomponents.sdk.VerificationState
 
-enum class RoomFilter(val label: String) { ALL("All"), UNREAD("Unread"), PEOPLE("People"), ROOMS("Rooms"), FAVOURITES("Favourites"), INVITES("Invites") }
+enum class RoomFilter(@androidx.annotation.StringRes val label: Int) {
+    ALL(R.string.filter_all), UNREAD(R.string.filter_unread), PEOPLE(R.string.filter_people), ROOMS(R.string.filter_rooms),
+    FAVOURITES(R.string.filter_favourites), INVITES(R.string.filter_invites),
+}
 
 @Composable
 fun HomeScreen(
     session: MatrixSession,
     onOpenRoom: (String) -> Unit,
     onNewChat: () -> Unit,
-    onSettings: () -> Unit,
+    /** Your profile picture at the top right: opens the You page (account and settings). */
+    onProfile: () -> Unit,
     onSecurity: () -> Unit,
     /** The chat open beside the list on tablets, highlighted. */
     selectedRoomId: String? = null,
@@ -134,6 +145,10 @@ fun HomeScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        // On phones the list runs under the floating glass tab bar (which pads for the navigation bar itself).
+        contentWindowInsets = if (LocalBottomClearance.current > 0.dp) androidx.compose.foundation.layout.WindowInsets.statusBars
+        else androidx.compose.material3.ScaffoldDefaults.contentWindowInsets,
         topBar = {
             if (searching) {
                 TopAppBar(
@@ -141,7 +156,7 @@ fun HomeScreen(
                         TextField(
                             value = query,
                             onValueChange = { query = it },
-                            placeholder = { Text("Search chats") },
+                            placeholder = { Text(stringResource(R.string.chats_search_hint)) },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -152,28 +167,28 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     },
-                    navigationIcon = { IconButton(onClick = { searching = false; query = "" }) { Icon(Icons.Default.Close, "Close search") } },
+                    navigationIcon = { IconButton(onClick = { searching = false; query = "" }) { Icon(Icons.Default.Close, stringResource(R.string.chats_close_search)) } },
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 )
             } else {
-                TopAppBar(
-                    title = { Text("Chats", fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(onClick = onSettings) {
-                            Avatar(profile.displayName ?: session.userId, profile.avatarUrl, session.userId, size = 32.dp)
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { searching = true }) { Icon(Icons.Default.Search, "Search") }
-                    },
-                )
+                // The Ctrl series tab title: big "Chats" with your profile picture at the top right.
+                TabTitle(stringResource(R.string.tab_chats), session, onProfile, Modifier.statusBarsPadding()) {
+                    IconButton(onClick = { searching = true }) { Icon(Icons.Default.Search, stringResource(R.string.chats_search)) }
+                }
             }
         },
         floatingActionButton = {
+            // Sits above the floating glass tab bar on phones.
+            val clearance = LocalBottomClearance.current
             ExtendedFloatingActionButton(
                 onClick = onNewChat,
                 icon = { Icon(Icons.Default.Edit, null) },
-                text = { Text("New chat") },
+                text = { Text(stringResource(R.string.chats_new)) },
                 expanded = listState.firstVisibleItemIndex == 0,
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.padding(bottom = if (clearance > 0.dp) clearance - 4.dp else 0.dp),
             )
         },
     ) { pad ->
@@ -189,9 +204,9 @@ fun HomeScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         when {
-                            stuck -> "Can't reach the server"
-                            sync == SyncServiceState.OFFLINE -> "Offline — showing saved messages"
-                            else -> "Connection problem, retrying…"
+                            stuck -> stringResource(R.string.chats_unreachable)
+                            sync == SyncServiceState.OFFLINE -> stringResource(R.string.chats_offline)
+                            else -> stringResource(R.string.chats_retrying)
                         },
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodySmall,
@@ -201,7 +216,7 @@ fun HomeScreen(
                     androidx.compose.material3.TextButton(onClick = {
                         com.vknxworks.elementctrl.matrix.ConnectionLog.log("Reconnect tapped (sync $sync)")
                         com.vknxworks.elementctrl.AppRestart.restart(ctx)
-                    }) { Text("Reconnect", color = MaterialTheme.colorScheme.onErrorContainer) }
+                    }) { Text(stringResource(R.string.chats_reconnect), color = MaterialTheme.colorScheme.onErrorContainer) }
                 }
             }
             if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -211,8 +226,8 @@ fun HomeScreen(
                     Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer).padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Choose a chat to share to", Modifier.weight(1f), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    IconButton(onClick = { com.vknxworks.elementctrl.ui.DeepLinks.share.value = null }) { Icon(Icons.Default.Close, "Cancel sharing") }
+                    Text(stringResource(R.string.chats_share_to), Modifier.weight(1f), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    IconButton(onClick = { com.vknxworks.elementctrl.ui.DeepLinks.share.value = null }) { Icon(Icons.Default.Close, stringResource(R.string.chats_cancel_share)) }
                 }
             }
 
@@ -224,18 +239,14 @@ fun HomeScreen(
                 com.vknxworks.elementctrl.notify.Battery.shouldShowBanner(ctx, notificationsOn)
             }
             val appHeldBack = !health.appUnrestricted || health.appBackgroundRestricted
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp + LocalBottomClearance.current)) {
                 if (showBattery) {
                     item("battery") {
                         Banner(
                             icon = Icons.Default.BatteryAlert,
-                            title = "Notifications may be missed",
-                            body = if (appHeldBack) {
-                                "Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so messages can't be fetched. Let it run in the background."
-                            } else {
-                                "ntfy is battery-optimised, so Android can cut its connection while the phone sleeps and messages arrive late or not at all. Set ntfy's battery usage to Unrestricted."
-                            },
-                            action = if (appHeldBack) "Allow" else "Fix",
+                            title = stringResource(R.string.banner_battery_title),
+                            body = stringResource(if (appHeldBack) R.string.banner_battery_app else R.string.banner_battery_ntfy),
+                            action = stringResource(if (appHeldBack) R.string.warn_allow else R.string.banner_fix),
                             onClick = {
                                 if (appHeldBack) com.vknxworks.elementctrl.notify.Battery.requestUnrestricted(ctx)
                                 else com.vknxworks.elementctrl.notify.Battery.openNtfyAppInfo(ctx)
@@ -248,9 +259,9 @@ fun HomeScreen(
                     item("verify") {
                         Banner(
                             icon = Icons.Default.VerifiedUser,
-                            title = "Confirm it's you",
-                            body = "Verify this device to read your encrypted message history and let others trust it.",
-                            action = "Verify",
+                            title = stringResource(R.string.banner_verify_title),
+                            body = stringResource(R.string.banner_verify_body),
+                            action = stringResource(R.string.banner_verify),
                             onClick = onSecurity,
                         )
                     }
@@ -258,9 +269,9 @@ fun HomeScreen(
                     item("recovery") {
                         Banner(
                             icon = Icons.Default.Security,
-                            title = if (recovery == RecoveryState.INCOMPLETE) "Finish setting up recovery" else "Set up recovery",
-                            body = "Keep a recovery key so you never lose your encrypted messages if you lose your devices.",
-                            action = "Set up",
+                            title = stringResource(if (recovery == RecoveryState.INCOMPLETE) R.string.banner_recovery_incomplete_title else R.string.banner_recovery_title),
+                            body = stringResource(R.string.banner_recovery_body),
+                            action = stringResource(R.string.banner_set_up),
                             onClick = onSecurity,
                         )
                     }
@@ -274,7 +285,7 @@ fun HomeScreen(
                             FilterChip(
                                 selected = filter == f,
                                 onClick = { filter = if (filter == f) RoomFilter.ALL else f },
-                                label = { Text(if (f == RoomFilter.INVITES) "Invites ($inviteCount)" else f.label) },
+                                label = { Text(if (f == RoomFilter.INVITES) stringResource(f.label, inviteCount) else stringResource(f.label)) },
                             )
                         }
                     }
@@ -283,8 +294,8 @@ fun HomeScreen(
                     item("empty") {
                         EmptyState(
                             Icons.AutoMirrored.Filled.Chat,
-                            if (query.isNotBlank() || filter != RoomFilter.ALL) "Nothing here" else "No chats yet",
-                            if (query.isNotBlank() || filter != RoomFilter.ALL) "Try another filter or search." else "Start a chat with someone or join a room.",
+                            stringResource(if (query.isNotBlank() || filter != RoomFilter.ALL) R.string.chats_nothing else R.string.chats_empty),
+                            stringResource(if (query.isNotBlank() || filter != RoomFilter.ALL) R.string.chats_nothing_body else R.string.chats_empty_body),
                         )
                     }
                 } else if (!loaded && rooms.isEmpty()) {
@@ -337,20 +348,20 @@ fun HomeScreen(
                 }
             }
             if (room.hasUnread) {
-                SettingRow(Icons.Default.MarkChatRead, "Mark as read") {
+                SettingRow(Icons.Default.MarkChatRead, stringResource(R.string.room_mark_read)) {
                     withRoom { it.markAsRead(ReceiptType.READ); it.setUnreadFlag(false) }
                 }
             } else {
-                SettingRow(Icons.Default.MarkChatUnread, "Mark as unread") { withRoom { it.setUnreadFlag(true) } }
+                SettingRow(Icons.Default.MarkChatUnread, stringResource(R.string.room_mark_unread)) { withRoom { it.setUnreadFlag(true) } }
             }
             SettingRow(
                 if (room.isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                if (room.isFavourite) "Remove from favourites" else "Add to favourites",
+                stringResource(if (room.isFavourite) R.string.room_favourite_remove else R.string.room_favourite_add),
             ) { withRoom { it.setIsFavourite(!room.isFavourite, null) } }
-            SettingRow(Icons.Default.SouthEast, if (room.isLowPriority) "Remove low priority" else "Low priority") {
+            SettingRow(Icons.Default.SouthEast, stringResource(if (room.isLowPriority) R.string.room_low_priority_remove else R.string.room_low_priority)) {
                 withRoom { it.setIsLowPriority(!room.isLowPriority, null) }
             }
-            SettingRow(Icons.AutoMirrored.Filled.ExitToApp, "Leave", tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+            SettingRow(Icons.AutoMirrored.Filled.ExitToApp, stringResource(R.string.room_leave), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                 leaving = room; menuFor = null
             }
             Spacer(Modifier.height(24.dp))
@@ -359,9 +370,9 @@ fun HomeScreen(
 
     leaving?.let { room ->
         ConfirmDialog(
-            title = "Leave ${room.name}?",
-            text = if (room.isDm) "You'll stop receiving messages from this chat." else "You'll need an invite to rejoin if the room is private.",
-            confirm = "Leave",
+            title = stringResource(R.string.room_leave_title, room.name),
+            text = stringResource(if (room.isDm) R.string.room_leave_dm else R.string.room_leave_room),
+            confirm = stringResource(R.string.room_leave),
             destructive = true,
             onDismiss = { leaving = null },
             onConfirm = { scope.launch { runCatching { session.getRoom(room.roomId)?.use { it.leave() } } } },
@@ -393,7 +404,7 @@ private fun Banner(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Button(onClick = onClick) { Text(action) }
                 if (onDismiss != null) {
-                    androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Not now", color = MaterialTheme.colorScheme.onPrimaryContainer) }
+                    androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.banner_not_now), color = MaterialTheme.colorScheme.onPrimaryContainer) }
                 }
             }
         }
@@ -402,6 +413,8 @@ private fun Banner(
 
 @Composable
 private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val draftLabel = stringResource(R.string.room_draft)
+    val youLabel = stringResource(R.string.room_you)
     Row(
         Modifier
             .fillMaxWidth()
@@ -426,7 +439,7 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
                     )
                     if (room.isEncrypted && !room.isDm) {
                         Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Lock, "Encrypted", Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.Lock, stringResource(R.string.room_encrypted), Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 room.lastTimestamp?.let {
@@ -443,18 +456,18 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (room.lastFailed) {
-                    Icon(Icons.Default.ErrorOutline, "Not sent", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.ErrorOutline, stringResource(R.string.room_not_sent), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(4.dp))
                 }
                 Text(
                     if (draft != null) {
                         androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)) { append("Draft: ") }
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)) { append(draftLabel) }
                             append(draft)
                         }
                     } else androidx.compose.ui.text.AnnotatedString(buildString {
                         if (!room.isDm && room.lastSender != null) append(room.lastSender).append(": ")
-                        else if (room.isDm && room.lastIsOwn && room.lastSender != null) append("You: ")
+                        else if (room.isDm && room.lastIsOwn && room.lastSender != null) append(youLabel)
                         append(room.lastMessage ?: room.topic ?: "")
                     }),
                     style = MaterialTheme.typography.bodyMedium,
@@ -465,11 +478,11 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
                 )
                 if (room.isMuted) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.NotificationsOff, "Muted", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.NotificationsOff, stringResource(R.string.room_muted), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (room.isFavourite) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.Favorite, "Favourite", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.Favorite, stringResource(R.string.room_favourite), Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (room.hasUnread) {
                     Spacer(Modifier.width(8.dp))
@@ -494,7 +507,7 @@ private fun InviteRow(room: RoomSummary, onOpen: () -> Unit, onAccept: () -> Uni
             Column(Modifier.weight(1f)) {
                 Text(room.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${room.inviterName ?: "Someone"} invited you" + if (room.isDm) " to chat" else "",
+                    stringResource(if (room.isDm) R.string.invite_from_dm else R.string.invite_from, room.inviterName ?: stringResource(R.string.invite_someone)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -502,8 +515,8 @@ private fun InviteRow(room: RoomSummary, onOpen: () -> Unit, onAccept: () -> Uni
             UnreadBadge(0, highlight = true, muted = false)
         }
         Row(Modifier.padding(start = 66.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDecline) { Text("Decline") }
-            Button(onClick = onAccept) { Text("Accept") }
+            OutlinedButton(onClick = onDecline) { Text(stringResource(R.string.invite_decline)) }
+            Button(onClick = onAccept) { Text(stringResource(R.string.invite_accept)) }
         }
     }
 }

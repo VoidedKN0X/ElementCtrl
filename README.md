@@ -27,6 +27,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Device list**: rename your signed-in sessions or sign them out
 - **App lock** with its own PIN and optional fingerprint unlock; your saved sign-in stays encrypted while the app is locked (with notifications off)
 - **Hide in screenshots** and **Hide in recent apps**, two separate switches, both off by default
+- **The Ctrl series layout**: **Chats** and **Explore** tabs on a floating glass tab bar (a side rail on tablets), and your profile picture at the top right opens the **You** page with your account, **Settings** and **About**
 - Two-pane layout on tablets and foldables
 
 ## Screenshots
@@ -60,18 +61,20 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 2. Sign in with whatever your server offers.
 3. Confirm it's you: tap **Use another device** (approve in Element or ElementCtrl and compare emojis) or **Use your recovery key**, and your chats appear.
 
+Your account, devices, security and recovery, **Settings**, **Sign out** and **About** are on the **You** page: tap your profile picture at the top right of **Chats** or **Explore**. Every path below that starts with **Settings** is there.
+
 ## Tips and troubleshooting
 
-- **Notifications:** instant push comes through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) only (no other push apps). Install ntfy, then turn it on in *Settings → Notifications → Delivery → Instant push with ntfy*. ElementCtrl also checks for new messages about every 15 minutes, with or without ntfy, so a push that doesn't arrive still turns into a notification.
-- **Reliable notifications:** let both ElementCtrl and ntfy run unrestricted in the background. *Settings → Notifications* warns when either is battery-restricted and has buttons to fix it. A battery-optimised ElementCtrl gets no network while the phone sleeps, so pushed messages can't be fetched; a battery-optimised ntfy loses its connection to your ntfy server. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in *App info → Battery* for both apps.
-- **Self-hosted ntfy:** your ntfy server's Matrix push gateway (`https://your-ntfy/_matrix/push/v1/notify`, built into ntfy) is used for every push, so your Matrix server must be able to reach it, and the ntfy server needs `base-url` set in its config. ntfy.sh works too. If the gateway can't be found, *Settings → Notifications* shows an error; no other gateway is ever used.
+- **Notifications:** instant push comes through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/) only (no other push apps). Install ntfy, then turn it on in *Settings › Notifications › Delivery › Instant push with ntfy*. ElementCtrl also checks for new messages about every 15 minutes, with or without ntfy, so a push that doesn't arrive still turns into a notification.
+- **Reliable notifications:** let both ElementCtrl and ntfy run unrestricted in the background. *Settings › Notifications* warns when either is battery-restricted and has buttons to fix it. A battery-optimised ElementCtrl gets no network while the phone sleeps, so pushed messages can't be fetched; a battery-optimised ntfy loses its connection to your ntfy server. On OPPO, OnePlus and realme phones, also turn on *Allow background activity* in *App info → Battery* for both apps.
+- **Self-hosted ntfy:** your ntfy server's Matrix push gateway (`https://your-ntfy/_matrix/push/v1/notify`, built into ntfy) is used for every push, so your Matrix server must be able to reach it, and the ntfy server needs `base-url` set in its config. ntfy.sh works too. If the gateway can't be found, *Settings › Notifications* shows an error; no other gateway is ever used.
 - **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to the Matrix gateway of your own ntfy server, which passes it to ntfy on your phone.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
 ## App lock
 
-Turn it on under **Settings > Privacy and security > App lock**. It's off until you turn it on.
+Turn it on under **Settings › Privacy and security › App lock** (tap your profile picture, then **Settings**). It's off until you turn it on.
 
 - **Its own app PIN** of at least 6 digits, separate from your phone's screen lock. Very obvious PINs such as 111111 or 123456 are refused.
 - **Unlock with fingerprint** (optional) only accepts strong biometrics, such as the fingerprint sensor, checked by the phone's secure hardware. Face unlock that only uses the camera isn't accepted. The PIN is still needed after the phone restarts and at least every 72 hours, and adding a new fingerprint to the phone turns fingerprint unlock off until you turn it on again.
@@ -80,7 +83,7 @@ Turn it on under **Settings > Privacy and security > App lock**. It's off until 
 - **Lock again:** as soon as you leave the app (the default), after 1, 5 or 15 minutes or 1 hour away, or only when the app restarts. Picking photos or files, recording a voice message for the first time, sharing, opening a file or link, and the notification and battery settings don't count as leaving, unless you stay away for more than 5 minutes.
 - **Change app PIN** asks for your current PIN first, and turning the app lock off asks for the PIN too.
 - **Forgot your PIN?** It can't be recovered, because it encrypts your saved sign-in. The lock screen offers to sign out on this phone and delete its copy of your chats and keys. With recovery set up, your message history comes back after you sign in again.
-- **With the app lock on**, the recent-apps screen always shows a blank card, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so.
+- **With the app lock on**, the recent-apps screen always shows a blank card, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings › Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so.
 
 Two more switches in the same section work with or without the app lock, and are both off until you turn them on:
 
@@ -119,7 +122,7 @@ The APK only includes 64-bit ARM code. To run it on an emulator, add `x86_64` to
 
 ## Support the project
 
-ElementCtrl is free and open source. If it's useful to you, you can support development on [GitHub Sponsors](https://github.com/sponsors/VoidedKN0X). In the app, **Settings → About** (tap your profile picture on the Chats screen) has **Support ElementCtrl** and **Report a bug**, which opens the [issue tracker](https://github.com/VoidedKN0X/ElementCtrl/issues). Starring the repo helps too.
+ElementCtrl is free and open source. If it's useful to you, you can support development on [GitHub Sponsors](https://github.com/sponsors/VoidedKN0X). In the app, the **About** section at the bottom of the **You** page (tap your profile picture) has **Support ElementCtrl** and **Report a bug**, which opens the [issue tracker](https://github.com/VoidedKN0X/ElementCtrl/issues). Starring the repo helps too.
 
 ## The Ctrl series
 
@@ -147,3 +150,5 @@ Native Android apps for self-hosted services and everyday tools, all with the sa
 ## License
 
 ElementCtrl is licensed under the [GNU General Public License v3.0](LICENSE). © VKNXWorks
+
+The Manrope font is licensed under the SIL Open Font License; see `FONT-LICENSE-Manrope.txt`.
