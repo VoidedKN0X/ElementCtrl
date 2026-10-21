@@ -75,6 +75,17 @@ if grep -r -l -i -E 'recaptcha\.net|grecaptcha|google\.com/(policies|recaptcha)|
   exit 1
 fi
 find dist -name '*.map' -delete
+# What's still named, for the record (protocol and type names that calls need; see README).
+pat='google|gstatic|googleapis|recaptcha|mediapipe|posthog|sentry'
+counts=$(grep -r -o -i -E "$pat" dist | awk -F: '{ n = $1; sub(/^dist\//, "", n); print n ": " tolower($2) }' | sort | uniq -c | sort -rn || true)
+context=$(grep -r -o -h -i -E ".{0,50}($pat).{0,50}" dist | sort -u | head -n 80 || true)
+annotate() { printf '%s' "$2" | sed 's/%/%25/g' | awk -v t="$1" 'BEGIN { printf "::notice title=%s::", t } { printf "%s%%0A", $0 } END { print "" }'; }
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  annotate "Element Call: remaining mentions" "${counts:-none}"
+  [ -n "$context" ] && annotate "Element Call: where" "$context"
+else
+  echo "Remaining mentions:"; echo "${counts:-  none}"
+fi
 
 rm -rf "$dist"
 mkdir -p "$(dirname "$dist")"

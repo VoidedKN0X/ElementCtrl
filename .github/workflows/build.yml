@@ -78,7 +78,16 @@ jobs:
           EC_PNPM_STORE: ${{ runner.temp }}/pnpm-store
         run: |
           corepack enable
-          bash element-call/build.sh
+          set -o pipefail
+          if ! bash element-call/build.sh 2>&1 | tee element-call-build.log; then
+            # Surface the end of the log as annotations so the error is visible without opening the logs.
+            tail -n 150 element-call-build.log | sed 's/\x1b\[[0-9;]*m//g' | split -l 50 - "$RUNNER_TEMP/ec-log-"
+            for f in "$RUNNER_TEMP"/ec-log-*; do
+              msg=$(sed 's/%/%25/g' "$f" | awk '{printf "%s%%0A", $0}')
+              echo "::error title=Element Call build failed ($(basename "$f"))::$msg"
+            done
+            exit 1
+          fi
 
       - name: Decode signing key
         env:
