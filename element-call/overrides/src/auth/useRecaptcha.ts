@@ -21,6 +21,6 @@ export function useRecaptcha(_sitekey?: string): {
   reset: () => void;
   recaptchaId: string;
 } {
-  const [recaptchaId] = useState("recaptcha-disabled");
+  const [recaptchaId] = useState("elementctrl-no-captcha");
   return { execute: noResponse, reset: noop, recaptchaId };
 }

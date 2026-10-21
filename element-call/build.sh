@@ -11,12 +11,16 @@
 #    background blur with Google's MediaPipe.
 # 3. Installs the locked dependencies (pnpm install --frozen-lockfile) and runs the
 #    embedded build, the one Element X ships, with vite-elementctrl.config.ts.
-# 4. Checks the result and puts it in element-call/dist/element-call/, which
-#    app/build.gradle.kts packs into the APK's assets as element-call/.
+# 4. Checks the result (nothing removed has come back; it starts as a widget in headless
+#    Chrome and contacts nothing but the homeserver, see smoke-test.mjs) and puts it in
+#    element-call/dist/element-call/, which app/build.gradle.kts packs into the APK's
+#    assets as element-call/.
 #
 # Needs git, Node.js 24 and Corepack 0.34.5 or newer (for the pnpm versions Element Call
-# and matrix-js-sdk pin, which Corepack checks against their published hashes). Element Call's code is AGPL-3.0: its licence
-# and a note of the commit and patches go into the output next to it.
+# and matrix-js-sdk pin, which Corepack checks against their published hashes), and
+# Google Chrome for the smoke test (skipped with a warning without it, or with
+# EC_SKIP_SMOKE_TEST=1). Element Call's code is AGPL-3.0: its licence and a note of the
+# commit and patches go into the output next to it.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -85,6 +89,13 @@ if [ -n "${GITHUB_ACTIONS:-}" ]; then
   [ -n "$context" ] && annotate "Element Call: where" "$context"
 else
   echo "Remaining mentions:"; echo "${counts:-  none}"
+fi
+
+# Start it as ElementCtrl does and make sure it loads and contacts nothing but the homeserver.
+if [ -z "${EC_SKIP_SMOKE_TEST:-}" ]; then
+  echo "== Smoke test"
+  cp "$here/smoke-test.mjs" ./elementctrl-smoke-test.mjs
+  node ./elementctrl-smoke-test.mjs dist
 fi
 
 rm -rf "$dist"
