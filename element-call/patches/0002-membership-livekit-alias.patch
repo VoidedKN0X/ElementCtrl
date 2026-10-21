@@ -1,0 +1,21 @@
+diff --git a/src/state/CallViewModel/localMember/LocalMember.ts b/src/state/CallViewModel/localMember/LocalMember.ts
+index feb4955..75f4bc6 100644
+--- a/src/state/CallViewModel/localMember/LocalMember.ts
++++ b/src/state/CallViewModel/localMember/LocalMember.ts
+@@ -995,7 +995,15 @@ export function enterRTCSession(
+   // Multi-sfu does not need a preferred foci list. just the focus that is actually used.
+   // TODO where/how do we track errors originating from the ongoing rtcSession?
+ 
+-  rtcSession.join(ownMembershipIdentity, [transport], {
++  // ElementCtrl: the transport from the homeserver's rtc/transports endpoint has no
++  // livekit_alias, but the Rust SDK (Element X on iPhone and Android) can't read a
++  // call membership whose foci_preferred lacks one. It then sees no ongoing call
++  // and shows the ring as a plain notification. Add the room id, as Element Web does.
++  const publishedTransport =
++    "livekit_alias" in transport
++      ? transport
++      : { ...transport, livekit_alias: rtcSession.room.roomId };
++  rtcSession.join(ownMembershipIdentity, [publishedTransport], {
+     notificationType,
+     callIntent,
+     manageMediaKeys: encryptMedia,

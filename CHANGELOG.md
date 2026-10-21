@@ -2,6 +2,13 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.7
+
+### Fixed
+
+- **Calls from ElementCtrl now ring on the other person's phone.** When you called someone who uses Element X (on iPhone or Android), their phone only showed a "call started" message instead of the incoming-call screen, even though ElementCtrl asked it to ring. Before ringing, Element X checks that the caller is really in the call, and it couldn't read ElementCtrl's "I'm in this call" announcement because one detail it needs (which call room on the server the call uses) was missing. That happened with servers that tell apps about their call server in the newer way, as current Synapse does. ElementCtrl now always includes it, the same way Element Desktop does, so Element X sees the call and rings like a phone call.
+- **Calls between two ElementCtrl phones** are fixed by the same change: ElementCtrl also checks that the caller is in the call before ringing, and couldn't read the announcement from another ElementCtrl either.
+
 ## 1.6.6
 
 ### Fixed
