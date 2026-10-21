@@ -26,7 +26,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Share to ElementCtrl** from other apps
 - **Device list**: rename your signed-in sessions or sign them out
 - **App lock** with its own PIN and optional fingerprint unlock; your saved sign-in stays encrypted while the app is locked (with notifications off)
-- **Hide in screenshots and recent apps**; the recent-apps screen never shows your chats
+- **Hide in screenshots** and **Hide in recent apps**, two separate switches, both off by default
 - Two-pane layout on tablets and foldables
 
 ## Screenshots
@@ -80,9 +80,9 @@ Turn it on under **Settings > Privacy and security > App lock**. It's off until 
 - **Lock again:** as soon as you leave the app (the default), after 1, 5 or 15 minutes or 1 hour away, or only when the app restarts. Picking photos or files, recording a voice message for the first time, sharing, opening a file or link, and the notification and battery settings don't count as leaving, unless you stay away for more than 5 minutes.
 - **Change app PIN** asks for your current PIN first, and turning the app lock off asks for the PIN too.
 - **Forgot your PIN?** It can't be recovered, because it encrypts your saved sign-in. The lock screen offers to sign out on this phone and delete its copy of your chats and keys. With recovery set up, your message history comes back after you sign in again.
-- **With the app lock on**, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so. The recent-apps screen never shows your chats.
+- **With the app lock on**, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so.
 
-**Hide in screenshots and recent apps** (in the same section, also without the app lock) keeps ElementCtrl out of screenshots, screen recordings and the recent-apps view. Recovery key, password and lock screens are always hidden.
+**Hide in screenshots** and **Hide in recent apps** (the last two switches in the same section, both off by default, also without the app lock): the first makes screenshots and screen recordings of ElementCtrl show a blank screen, the second makes the recent apps view show a blank card instead of the app. Recovery key, password and lock screens are always hidden.
 
 ## Privacy
 

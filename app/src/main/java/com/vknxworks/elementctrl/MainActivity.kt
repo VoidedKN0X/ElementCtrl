@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        // Never keep a snapshot of open chats in the recent-apps screen (FLAG_SECURE below is the stronger, optional step).
+        // Recents shows a blank card until the settings are read (then "Hide in recent apps" decides).
         setRecentsScreenshotEnabled(false)
         handleIntent(intent)
         setContent {
@@ -44,12 +44,15 @@ class MainActivity : ComponentActivity() {
                 // The old PIN lock is still set: unlock with it once, then choose the app PIN.
                 val legacyLock = lock.legacyPinSet
                 val locked = (legacyLock && !graph.vault.enabled) || (graph.vault.enabled && !AppLock.unlocked)
-                // "Hide in screenshots and recent apps", screens holding secrets (recovery key, password sign-in)
-                // and the lock and PIN screens keep the window out of screenshots and recordings.
-                val secure = lock.hideScreens || locked || AppLock.request != null || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
+                // "Hide in screenshots", screens holding secrets (recovery key, password sign-in) and the lock and
+                // PIN screens keep the window out of screenshots and recordings; "Hide in recent apps" blanks the card.
+                val secure = lock.hideScreenshots || locked || AppLock.request != null || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
                 LaunchedEffect(secure) {
                     if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+                LaunchedEffect(lock.hideRecents, secure) {
+                    setRecentsScreenshotEnabled(!lock.hideRecents && !secure)
                 }
                 Box(Modifier.fillMaxSize()) {
                     Surface(Modifier.fillMaxSize()) {

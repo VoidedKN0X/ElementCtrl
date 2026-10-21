@@ -31,7 +31,10 @@
     <string name="lock_again_15m">After 15 minutes away</string>
     <string name="lock_again_1h">After 1 hour away</string>
     <string name="lock_again_restart">Only when the app restarts</string>
-    <string name="hide_screens">Hide in screenshots and recent apps</string>
+    <string name="hide_screenshots">Hide in screenshots</string>
+    <string name="hide_screenshots_subtitle">Screenshots and screen recordings show a blank screen</string>
+    <string name="hide_recents">Hide in recent apps</string>
+    <string name="hide_recents_subtitle">The recent apps view shows a blank card instead of the app</string>
     <string name="lock_title">ElementCtrl is locked</string>
     <string name="lock_legacy_body">Unlock with your fingerprint, face or screen lock one last time, then choose an app PIN.</string>
     <string name="lock_legacy_prompt_subtitle">Confirm it\'s you to choose an app PIN</string>
@@ -66,7 +69,6 @@
     <string name="app_lock_footer">While ElementCtrl is locked, your saved sign-in and the key to its encrypted message store are encrypted with your PIN, and the connection to your homeserver is closed until you unlock.</string>
     <string name="app_lock_footer_background">Notifications are on, so the background check and push can still open your account while ElementCtrl is locked: your saved sign-in is then only encrypted with the Android Keystore, as without the app lock. Turn off notifications to keep it sealed with your PIN too. Message text is hidden on the lock screen unless you choose to show it in Notifications.</string>
     <string name="app_lock_footer_off">ElementCtrl has no analytics or tracking. It only talks to your homeserver, and to your ntfy server through the ntfy app when push is on.</string>
-    <string name="hide_screens_subtitle">Screenshots, screen recordings and the recent apps view show a blank screen</string>
     <string name="lock_prompt_subtitle">Your chats</string>
     <string name="lock_legacy_pin_body">Enter your old ElementCtrl PIN one last time, then choose a new app PIN.</string>
     <string name="lock_forgot_body">The PIN can\'t be recovered, because it encrypts your saved sign-in. ElementCtrl will sign out on this phone and delete its copy of your chats and keys. With recovery set up, your message history comes back after you sign in again; without it, older encrypted messages can\'t be read on this phone any more.</string>

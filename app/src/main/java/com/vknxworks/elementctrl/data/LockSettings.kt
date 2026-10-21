@@ -56,16 +56,22 @@ class LockSettings(context: Context, private val lockOn: () -> Boolean) {
     }
 
     /**
-     * Hide in screenshots and recent apps: blocks screenshots and screen recording. The old setting only
-     * applied with a PIN set, so it carries over as it worked: on if the old lock was on with it.
+     * Hide in screenshots (FLAG_SECURE) and Hide in recent apps (a blank card there), both off by default.
+     * The older single switch ("Hide from recents & screenshots", or 1.4.0's "Hide in screenshots and recent
+     * apps") carries over to both when someone had explicitly turned it on.
      */
-    private var _hide by mutableStateOf(
-        if (prefs.contains(KEY_HIDE_SCREENS)) prefs.getBoolean(KEY_HIDE_SCREENS, false)
-        else prefs.contains(KEY_PIN_HASH) && prefs.getBoolean(KEY_HIDE, true),
-    )
-    var hideScreens: Boolean
-        get() = _hide
-        set(v) { _hide = v; prefs.edit().putBoolean(KEY_HIDE_SCREENS, v).apply() }
+    private val hideBefore: Boolean =
+        prefs.getBoolean(KEY_HIDE_SCREENS, false) || (prefs.contains(KEY_HIDE) && prefs.getBoolean(KEY_HIDE, false))
+
+    private var _hideShots by mutableStateOf(prefs.getBoolean(KEY_HIDE_SCREENSHOTS, hideBefore))
+    var hideScreenshots: Boolean
+        get() = _hideShots
+        set(v) { _hideShots = v; prefs.edit().putBoolean(KEY_HIDE_SCREENSHOTS, v).apply() }
+
+    private var _hideRecents by mutableStateOf(prefs.getBoolean(KEY_HIDE_RECENTS, hideBefore))
+    var hideRecents: Boolean
+        get() = _hideRecents
+        set(v) { _hideRecents = v; prefs.edit().putBoolean(KEY_HIDE_RECENTS, v).apply() }
 
     /**
      * Show who wrote what in message notifications. Until the user picks, it follows the app lock: shown without
@@ -103,7 +109,9 @@ class LockSettings(context: Context, private val lockOn: () -> Boolean) {
         prefs.edit()
             // What the old settings carried over to stays as it is.
             .putString(KEY_TIMEOUT, _timeout.name)
-            .putBoolean(KEY_HIDE_SCREENS, _hide)
+            .putBoolean(KEY_HIDE_SCREENSHOTS, _hideShots)
+            .putBoolean(KEY_HIDE_RECENTS, _hideRecents)
+            .remove(KEY_HIDE_SCREENS)
             .remove(KEY_PIN_LENGTH).remove(KEY_PIN_HASH).remove(KEY_PIN_SALT)
             .remove(KEY_BIOMETRIC).remove(KEY_FAILED).remove(KEY_LOCKOUT_UNTIL)
             .remove(KEY_LOCKOUT_REMAINING).remove(KEY_LOCKOUT_BASE).remove(KEY_LOCKOUT_BOOT)
@@ -168,6 +176,8 @@ class LockSettings(context: Context, private val lockOn: () -> Boolean) {
     private companion object {
         const val KEY_TIMEOUT = "lock_timeout"
         const val KEY_HIDE_SCREENS = "hide_screens"
+        const val KEY_HIDE_SCREENSHOTS = "hide_screenshots"
+        const val KEY_HIDE_RECENTS = "hide_recents"
         const val KEY_NOTIF_CONTENT = "notification_content"
         // The old PIN lock
         const val KEY_PIN_HASH = "pin_hash"

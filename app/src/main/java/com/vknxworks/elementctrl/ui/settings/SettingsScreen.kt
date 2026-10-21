@@ -101,6 +101,7 @@ import com.vknxworks.elementctrl.ui.copyText
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Timer
@@ -360,9 +361,13 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 SettingRow(Icons.Outlined.Timer, stringResource(R.string.lock_again), stringResource(lock.lockTimeout.label)) { lockAfterDialog = true }
             }
             SettingRow(
-                Icons.Outlined.VisibilityOff, stringResource(R.string.hide_screens), stringResource(R.string.hide_screens_subtitle),
-                trailing = { Switch(lock.hideScreens, { lock.hideScreens = it }) },
-            ) { lock.hideScreens = !lock.hideScreens }
+                Icons.Outlined.VisibilityOff, stringResource(R.string.hide_screenshots), stringResource(R.string.hide_screenshots_subtitle),
+                trailing = { Switch(lock.hideScreenshots, { lock.hideScreenshots = it }) },
+            ) { lock.hideScreenshots = !lock.hideScreenshots }
+            SettingRow(
+                Icons.Outlined.Layers, stringResource(R.string.hide_recents), stringResource(R.string.hide_recents_subtitle),
+                trailing = { Switch(lock.hideRecents, { lock.hideRecents = it }) },
+            ) { lock.hideRecents = !lock.hideRecents }
             Text(
                 stringResource(
                     when {

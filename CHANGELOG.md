@@ -2,6 +2,15 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.4.1
+
+### Changed
+
+- **Hide in screenshots** and **Hide in recent apps** are now two separate switches in Settings › Privacy and security, both off by default. **Hide in screenshots** makes screenshots and screen recordings show a blank screen; **Hide in recent apps** makes the recent apps view show a blank card instead of the app, while screenshots still work. If you had turned on the single "Hide from recents & screenshots" (or 1.4.0's "Hide in screenshots and recent apps") switch yourself, both are on after the update.
+- **The recent apps view now shows your chats unless you turn on Hide in recent apps.** Before, ElementCtrl always showed a blank card there; now it's your choice, off by default.
+- **Always hidden, whatever the switches say**: the lock screen, choosing or changing the app PIN, password sign-in and the recovery key screens, because a password, PIN or key is typed or shown there.
+- **README**: describes the two switches.
+
 ## 1.4.0
 
 ElementCtrl's app lock is now the one every Ctrl app shares, with its own app PIN that also encrypts your saved sign-in.
