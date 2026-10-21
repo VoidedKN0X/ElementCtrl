@@ -50,6 +50,12 @@ data class RoomHeader(
     val notificationMode: RoomNotificationMode?,
     val dmUserId: String?,
     val successorRoomId: String?,
+    /** A MatrixRTC call (Element Call) is going on in the room. */
+    val hasCall: Boolean = false,
+    /** How many people are in it. */
+    val callMembers: Int = 0,
+    /** You're in it (on any of your devices). */
+    val inCall: Boolean = false,
 )
 
 data class MemberInfo(
@@ -177,6 +183,9 @@ class RoomController(val session: MatrixSession, val room: Room) {
             notificationMode = notif,
             dmUserId = if (isDm) info.heroes.firstOrNull()?.userId else null,
             successorRoomId = info.successorRoom?.roomId,
+            hasCall = info.hasRoomCall,
+            callMembers = info.activeRoomCallParticipants.distinct().size,
+            inCall = session.userId in info.activeRoomCallParticipants,
         )
         runCatching {
             val pl = room.getPowerLevels()

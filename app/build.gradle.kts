@@ -14,8 +14,8 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         // Bump both to publish a new release (see CHANGELOG.md).
-        versionCode = 41
-        versionName = "1.5.0"
+        versionCode = 42
+        versionName = "1.6.0"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -76,6 +76,11 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        // Leave Element Call's source maps and its background-blur model (MediaPipe) out of the APK: they're only
+        // needed for debugging and for blurring your background, and keep the download smaller.
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.map:!vision_wasm_internal-*:!*.tflite"
+    }
     lint {
         checkReleaseBuilds = false
         abortOnError = false
@@ -107,8 +112,23 @@ dependencies {
     // Frosted-glass blur behind the floating composer island, as in the other Ctrl apps.
     implementation("dev.chrisbanes.haze:haze:1.6.0")
 
+    // Voice and video calls: the embedded Element Call web app (the same package Element X bundles), loaded from
+    // the APK into the system WebView and driven through the Rust SDK's widget API. Nothing is loaded from the web.
+    implementation("io.element.android:element-call-embedded:0.28.0")
+
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")
     // Plays animated GIFs and stickers other people send.
     implementation("io.coil-kt.coil3:coil-gif:$coil")
+}
+
+// The same files, removed from the merged assets too (library assets aren't always covered by the pattern above).
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") && !it.name.contains("Shader") }.configureEach {
+    doLast {
+        outputs.files.forEach { out ->
+            out.walkTopDown()
+                .filter { f -> f.isFile && (f.name.endsWith(".map") || f.name.endsWith(".tflite") || f.name.startsWith("vision_wasm_internal-")) }
+                .forEach { f -> f.delete() }
+        }
+    }
 }

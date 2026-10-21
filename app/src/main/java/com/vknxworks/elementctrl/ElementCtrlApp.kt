@@ -51,6 +51,7 @@ class ElementCtrlApp : Application(), SingletonImageLoader.Factory {
         // Decrypted attachments only live in the cache for a day.
         graph.scope.launch(kotlinx.coroutines.Dispatchers.IO) { runCatching { MediaFiles.purgeOld(this@ElementCtrlApp) } }
         Notifier.createChannels(this)
+        com.vknxworks.elementctrl.call.CallNotifications.createChannels(this)
         graph.boot()
 
         // Sync while the app is open; the background worker takes over (if enabled) when it isn't.

@@ -12,6 +12,22 @@
     <!-- Lets the user exempt the app from battery optimisation, so pushes can be fetched in deep sleep (as Element X asks). -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Voice and video calls (Element Call, bundled in the app). The camera and microphone are only asked for
+         when you start or answer a call. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- The ongoing-call notification keeps the call running while you use other apps or the screen is off. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <!-- Lets the ongoing call use the "phone call" foreground service type (no Telecom/phone access). -->
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+    <!-- Full-screen ringing screen for incoming calls. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
     <application
         android:name=".ElementCtrlApp"
         android:allowBackup="false"
@@ -62,6 +78,31 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+
+        <!-- The call screen: the bundled Element Call web app in the system WebView. Its own task, so it can float
+             in picture-in-picture while you use the rest of the app. -->
+        <activity
+            android:name=".call.CallActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.call"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode"
+            android:theme="@style/Theme.ElementCtrl" />
+
+        <service
+            android:name=".call.CallService"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall|microphone|camera" />
+
+        <receiver
+            android:name=".call.CallActionReceiver"
+            android:exported="false" />
+
+        <!-- The system WebView used for calls never asks Google Safe Browsing about pages and sends no usage metrics. -->
+        <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
+        <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

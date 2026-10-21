@@ -51,13 +51,29 @@ object PushNotifications {
      * keeps it and tries again.
      */
     suspend fun resolve(context: Context, session: com.vknxworks.elementctrl.matrix.MatrixSession, roomId: String, eventId: String): Outcome {
-        if (session.inForeground && OpenRoom.id == roomId) return Outcome.SKIPPED
         if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return Outcome.SKIPPED
+        // Calls ring even in the chat you have open, so the event is fetched before skipping that chat.
         val item = when (val r = session.fetchNotification(roomId, eventId)) {
             is com.vknxworks.elementctrl.matrix.NotificationFetch.Found -> r.item
-            com.vknxworks.elementctrl.matrix.NotificationFetch.NotFound -> return Outcome.NOT_FOUND
+            com.vknxworks.elementctrl.matrix.NotificationFetch.NotFound -> return if (session.inForeground && OpenRoom.id == roomId) Outcome.SKIPPED else Outcome.NOT_FOUND
             com.vknxworks.elementctrl.matrix.NotificationFetch.Nothing -> return Outcome.SKIPPED
         }
+        val rtc = com.vknxworks.elementctrl.call.CallPush.content(item)
+        var callText: String? = null
+        if (rtc != null) {
+            when (val c = com.vknxworks.elementctrl.call.CallPush.handle(context, session, roomId, eventId, item, rtc)) {
+                com.vknxworks.elementctrl.call.CallPush.Result.Rang -> return Outcome.SHOWN
+                com.vknxworks.elementctrl.call.CallPush.Result.Skip -> return Outcome.SKIPPED
+                is com.vknxworks.elementctrl.call.CallPush.Result.AsMessage -> callText = context.getString(
+                    when {
+                        !c.missed -> R.string.call_started
+                        c.audioOnly -> R.string.call_missed_voice
+                        else -> R.string.call_missed_video
+                    },
+                ).let { if (c.missed) "📞 $it" else it }
+            }
+        }
+        if (session.inForeground && OpenRoom.id == roomId) return Outcome.SKIPPED
         // Only rooms we're in (or invited to): ignore pushes naming a room we've left, been banned from, etc.
         // A room not in the local store yet (joined on another device since the last sync) is still allowed,
         // since the homeserver only returned the event because this account can see it.
@@ -90,7 +106,8 @@ object PushNotifications {
                     is MessageLikeEventContent.Poll -> "📊 ${m.question}"
                     is MessageLikeEventContent.Sticker -> "Sticker"
                     is MessageLikeEventContent.ReactionContent -> "Reacted to your message"
-                    is MessageLikeEventContent.CallInvite, is MessageLikeEventContent.RtcNotification -> "📞 Incoming call"
+                    is MessageLikeEventContent.CallInvite -> "📞 Incoming call"
+                    is MessageLikeEventContent.RtcNotification -> callText ?: "📞 Incoming call"
                     is MessageLikeEventContent.RoomEncrypted -> "🔒 New encrypted message"
                     else -> return Outcome.SKIPPED
                 }

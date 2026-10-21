@@ -433,7 +433,7 @@ private fun MainHost(
             )
         }
         composable("settings") {
-            SettingsScreen(session, onBack = { nav.back() })
+            SettingsScreen(session, onBack = { nav.back() }, extraGroups = { com.vknxworks.elementctrl.call.CallSettingsGroup(session) })
         }
         composable("security") {
             SecurityScreen(session, onBack = { nav.back() }, onVerifyDevice = { nav.go("verify?start=true") })

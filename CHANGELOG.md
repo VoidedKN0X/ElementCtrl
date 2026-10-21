@@ -2,6 +2,33 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.0
+
+Voice and video calls, compatible with Element X and Element Web.
+
+### New
+
+- **Voice and video calls** in direct chats and rooms. Tap the phone (voice, in direct chats) or camera (video) button at the top of a chat. Calls use MatrixRTC, the same calls Element X and Element Web make, so you can call anyone on your homeserver who uses them. The call screen is Element Call, the same one Element X bundles (version 0.28.0), shipped inside ElementCtrl and shown in your phone's own WebView: nothing of it is loaded from the web.
+- **Join a call that's going on**: a chat with a call in progress shows a **Call in progress** banner with how many people are in it and a **Join** button (and a voice-only join in direct chats). The chat list shows a camera icon next to chats with a call going on.
+- **Incoming calls ring**: when someone calls you in a direct chat, ElementCtrl rings on a full screen, also over the phone's lock screen, with **Answer** and **Decline** (in the notification too). It stops ringing when the caller hangs up, when you answer or decline on another of your devices, or after 90 seconds, and then leaves a **Missed call** notification. Declining tells the caller's phone to stop ringing. Ringing comes through the existing push through ntfy, so instant push has to be on. A call started in a group shows as a normal notification ("Started a call").
+- **During a call**: mute, camera on or off, switch between the front and back camera, and pick where the sound goes (speaker, earpiece, wired headphones or Bluetooth) on the call screen. The volume buttons control the call, and the screen turns off when you hold the phone to your ear on the earpiece.
+- **Picture-in-picture**: going back or home shrinks the call into a small floating window, so you can keep chatting. Closing that window hangs up.
+- **Ongoing-call notification** with **Hang up**, which keeps the call going while you use other apps or the screen is off.
+- **Settings › Calls**: shows whether your server is set up for calls (and which call service it uses), and on Android 14 and newer whether incoming calls may ring on a full screen, with a shortcut to allow it.
+- **Calls aren't set up on your server**: if your homeserver doesn't announce a MatrixRTC (LiveKit) call service, the call button explains that instead of opening a call, with a link to the README's new **Calls** section on what Synapse, LiveKit and lk-jwt-service need.
+
+### Changed
+
+- **The app lock and calls**: answering a call or opening the call screen while ElementCtrl is locked shows the lock screen first; a call that's already running keeps going when the app locks (the connection to your homeserver is only closed once the call has ended); and the call screen never shows in Recents while the app lock is on. With message content hidden in notifications (the app lock's default), the ringing screen and call notifications say "Incoming call" without the caller's name or picture.
+- **Permissions**: ElementCtrl can now use the camera and microphone for calls, and asks for them only the first time you start or answer a call. It also declares what Android needs for an ongoing call (a phone-call foreground service, and full-screen ringing). It doesn't get access to your phone calls or contacts.
+- **Signing out** now also clears what the call screen stored on the phone.
+- **README**: new Calls section (how calls work, the app lock, and the server setup for Synapse, LiveKit and lk-jwt-service), the network destinations for calls in Privacy, and Element Call's licence (AGPL-3.0). Calls are no longer listed under "Not included yet".
+
+### Privacy
+
+- **Calls only go through your own server's call service.** ElementCtrl asks your homeserver which MatrixRTC (LiveKit) service to use and never falls back to a public one. During a call the phone talks to your homeserver, that call service, the LiveKit server it points to, and the TURN/STUN servers that LiveKit server hands out; the call screen refuses every other web address.
+- **No analytics or crash reporting in calls.** Element Call's PostHog analytics, Sentry crash reporting, bug-report upload and its fallback STUN server are all switched off, and the call WebView doesn't use Google Safe Browsing or send usage metrics. Element Call's source maps and its MediaPipe background-blur model are left out of the app, so background blur isn't offered in calls.
+
 ## 1.5.0
 
 ElementCtrl now has the same layout as the other Ctrl apps. Your chats, encryption and settings are unchanged.

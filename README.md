@@ -21,6 +21,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Media and files** for each chat: a photo and video grid and a list of files and voice messages
 - **Search inside chats**, including encrypted ones
 - **Push notifications through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/)** only, grouped per chat with reply and Mark as read, with a background check every ~15 minutes as a fallback
+- **Voice and video calls** in direct chats and rooms, with people on Element X and Element Web: the same Element Call as Element X, bundled in the app, with incoming calls ringing on a full screen, picture-in-picture and speaker, earpiece and Bluetooth audio ([what your server needs](#calls))
 - **Link previews and drafts** for every chat
 - **Create rooms**, start direct chats, explore public rooms, and manage members and moderation
 - **Share to ElementCtrl** from other apps
@@ -70,7 +71,49 @@ Your account, devices, security and recovery, **Settings**, **Sign out** and **A
 - **Self-hosted ntfy:** your ntfy server's Matrix push gateway (`https://your-ntfy/_matrix/push/v1/notify`, built into ntfy) is used for every push, so your Matrix server must be able to reach it, and the ntfy server needs `base-url` set in its config. ntfy.sh works too. If the gateway can't be found, *Settings › Notifications* shows an error; no other gateway is ever used.
 - **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to the Matrix gateway of your own ntfy server, which passes it to ntfy on your phone.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
-- **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
+- **Not included yet:** spaces, live location and multiple accounts at once.
+
+## Calls
+
+Voice and video calls work in direct chats and rooms, and with everyone on your homeserver who uses Element X or Element Web (MatrixRTC, the calls Element X makes). ElementCtrl uses Element Call, the same call screen Element X has, bundled in the app: it runs in your phone's own WebView and nothing of it is loaded from the web.
+
+- **Start a call** with the phone (voice, direct chats) or camera (video) button at the top of a chat. While a call is going on in a chat, a **Call in progress** banner there has **Join**, and the chat list shows a camera next to the chat.
+- **Incoming calls** in direct chats ring on a full screen, also over the phone's lock screen, with **Answer** and **Decline**, until the caller hangs up, you answer or decline on another device, or after 90 seconds (then you get a **Missed call** notification). Ringing comes through push, so [instant push with ntfy](#tips-and-troubleshooting) has to be on. On Android 14 and newer, check **Settings › Calls › Full-screen incoming calls**. A call started in a group shows as a normal notification.
+- **During a call**: mute, camera on or off, switch camera, and the audio output (speaker, earpiece, wired headphones or Bluetooth) are on the call screen. Going back or home shrinks the call to a picture-in-picture window, and the **Ongoing call** notification has **Hang up**. The camera and microphone are only asked for the first time you start or answer a call.
+- **With the app lock on**, answering a call or opening the call screen shows the lock screen first, a call that's already running keeps going while ElementCtrl locks, and the call never shows in Recents. With message content hidden in notifications (the app lock's default), the ringing screen and notifications say "Incoming call" without the caller's name.
+
+### What your server needs
+
+Calls need a MatrixRTC backend next to your homeserver, the same one Element X needs. If your server doesn't announce one, the call button says **Calls aren't set up on your server**, and **Settings › Calls** shows what your server offers.
+
+1. **A LiveKit SFU** ([livekit-server](https://github.com/livekit/livekit)), reachable from the internet: its WebSocket port (7880, behind your reverse proxy), TCP 7881 and the UDP port range it's configured for (e.g. 50100-50200). Its built-in TURN server helps clients on restrictive networks.
+2. **The MatrixRTC Authorization Service** ([lk-jwt-service](https://github.com/element-hq/lk-jwt-service)), with `LIVEKIT_URL` (the SFU's `wss://` address), `LIVEKIT_KEY` and `LIVEKIT_SECRET` (the same key as the SFU), and `LIVEKIT_FULL_ACCESS_HOMESERVERS` set to your server name. Synapse needs a `federation` or `openid` listener for it. A common setup is one hostname with `/livekit/jwt` and `/livekit/sfu` behind the reverse proxy (Nginx Proxy Manager works: one proxy host with two custom locations and WebSockets on).
+3. **Synapse settings** in `homeserver.yaml`, from [Element Call's self-hosting guide](https://github.com/element-hq/element-call/blob/livekit/docs/self_hosting.md):
+   ```yaml
+   experimental_features:
+     msc3266_enabled: true
+     msc4143_enabled: true
+     msc4222_enabled: true
+   max_event_delay_duration: 24h
+   rc_message:
+     per_second: 0.5
+     burst_count: 30
+   rc_delayed_event_mgmt:
+     per_second: 1
+     burst_count: 20
+   matrix_rtc:
+     transports:
+       - type: livekit
+         livekit_service_url: https://matrix-rtc.example.com/livekit/jwt
+   ```
+4. **Or announce it in `.well-known`**, for homeservers without the transports endpoint: add this to `https://example.com/.well-known/matrix/client`:
+   ```json
+   "org.matrix.msc4143.rtc_foci": [
+     { "type": "livekit", "livekit_service_url": "https://matrix-rtc.example.com/livekit/jwt" }
+   ]
+   ```
+
+ElementCtrl asks your homeserver for its MatrixRTC service (the transports endpoint first, then `.well-known`) and only ever uses that one: there's no fallback to a public call service.
 
 ## App lock
 
@@ -94,10 +137,11 @@ Password sign-in, the recovery key screens and the lock and PIN screens are alwa
 
 ## Privacy
 
-**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser) and, if you turn on push, your ntfy server.
+**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser), if you turn on push, your ntfy server, and during calls, your server's call service.
 
 - **Push:** when you turn it on, ElementCtrl asks your ntfy server whether its Matrix gateway is there. Pushes then reach the phone through ntfy (see *What a push contains* above).
 - **Link previews** are fetched by your homeserver, never by the phone.
+- **Calls** connect only to your homeserver (and its domain), the MatrixRTC Authorization Service your homeserver announces, the LiveKit SFU it points to, and the TURN/STUN servers that SFU hands out. The bundled Element Call has its analytics (PostHog), crash reporting (Sentry), bug-report upload and fallback call servers switched off, and the call WebView refuses every other web address. The WebView doesn't ask Google Safe Browsing about pages and sends no usage metrics.
 - **The Matrix SDK's crash reporting is switched off**, and release builds don't write the SDK's logs anywhere.
 
 ## Build from source
@@ -152,3 +196,5 @@ Native Android apps for self-hosted services and everyday tools, all with the sa
 ElementCtrl is licensed under the [GNU General Public License v3.0](LICENSE). © VKNXWorks
 
 The Manrope font is licensed under the SIL Open Font License; see `FONT-LICENSE-Manrope.txt`.
+
+Calls use [Element Call](https://github.com/element-hq/element-call) by Element, bundled unchanged from its embedded Android package (`io.element.android:element-call-embedded`, AGPL-3.0); its source code is on GitHub. Its source maps and the MediaPipe background-blur model are left out of the APK, so background blur isn't available in calls.

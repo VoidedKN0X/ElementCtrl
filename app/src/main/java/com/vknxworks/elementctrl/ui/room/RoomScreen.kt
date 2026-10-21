@@ -420,6 +420,7 @@ fun RoomScreen(
 
     val isDm = header?.isDm == true
     val membership = header?.membership
+    val startCall = com.vknxworks.elementctrl.call.rememberCallStarter(session)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -459,6 +460,9 @@ fun RoomScreen(
                     }
                 },
                 actions = {
+                    if (threadRootId == null && membership == org.matrix.rustcomponents.sdk.Membership.JOINED) {
+                        com.vknxworks.elementctrl.call.CallButtons(isDm) { audio -> startCall(roomId, audio) }
+                    }
                     IconButton(onClick = onSearch) { Icon(Icons.Default.Search, "Search messages") }
                     if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Default.Info, "Room info") }
                 },
@@ -507,6 +511,12 @@ fun RoomScreen(
                         }
                     }
                 }
+            }
+            if (threadRootId == null && header?.hasCall == true && membership == org.matrix.rustcomponents.sdk.Membership.JOINED) {
+                com.vknxworks.elementctrl.call.CallBanner(
+                    roomId, header?.callMembers ?: 0, isDm,
+                    Modifier.align(Alignment.TopCenter),
+                ) { audio -> startCall(roomId, audio) }
             }
             header?.successorRoomId?.let { successor ->
                 Card(

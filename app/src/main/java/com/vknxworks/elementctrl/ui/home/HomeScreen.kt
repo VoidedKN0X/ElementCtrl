@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SouthEast
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -476,6 +477,10 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                if (room.hasCall) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Default.Videocam, stringResource(R.string.call_room_icon), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
                 if (room.isMuted) {
                     Spacer(Modifier.width(6.dp))
                     Icon(Icons.Default.NotificationsOff, stringResource(R.string.room_muted), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)

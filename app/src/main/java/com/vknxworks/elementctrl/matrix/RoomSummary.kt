@@ -36,6 +36,8 @@ data class RoomSummary(
     val canonicalAlias: String?,
     val topic: String?,
     val memberCount: Long,
+    /** A call is going on in the room. */
+    val hasCall: Boolean = false,
 ) {
     val isMuted get() = notificationMode == RoomNotificationMode.MUTE
     val hasUnread get() = isMarkedUnread || unreadMessages > 0 || unreadNotifications > 0
@@ -118,5 +120,6 @@ suspend fun Room.toSummary(): RoomSummary {
         canonicalAlias = info.canonicalAlias,
         topic = info.topic,
         memberCount = info.joinedMembersCount.toLong(),
+        hasCall = info.hasRoomCall,
     )
 }

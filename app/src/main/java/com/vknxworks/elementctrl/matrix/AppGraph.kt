@@ -140,6 +140,11 @@ class AppGraph(val context: Context) {
     fun onLocked() {
         vault.close()
         if (!sealing()) return
+        // A call keeps running while the app locks: the session is shut down when the call ends.
+        if (com.vknxworks.elementctrl.call.CallManager.inCall) {
+            com.vknxworks.elementctrl.call.CallManager.sealWhenCallEnds = true
+            return
+        }
         scope.launch {
             mutex.withLock {
                 val s = session ?: return@withLock
@@ -274,7 +279,11 @@ class AppGraph(val context: Context) {
         withContext(Dispatchers.Main) {
             runCatching { com.vknxworks.elementctrl.ui.room.AudioPlayer.stop() }
             runCatching { coil3.SingletonImageLoader.get(context).memoryCache?.clear() }
+            // What Element Call kept in the call WebView (its local storage) goes too.
+            runCatching { android.webkit.WebStorage.getInstance().deleteAllData() }
+            runCatching { android.webkit.CookieManager.getInstance().removeAllCookies(null) }
         }
+        com.vknxworks.elementctrl.call.CallSupport.forget()
     }
 
     /** Account data kept outside the SDK's folders: drafts, decrypted/outgoing files and notification state. */
