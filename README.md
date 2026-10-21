@@ -80,9 +80,14 @@ Turn it on under **Settings > Privacy and security > App lock**. It's off until 
 - **Lock again:** as soon as you leave the app (the default), after 1, 5 or 15 minutes or 1 hour away, or only when the app restarts. Picking photos or files, recording a voice message for the first time, sharing, opening a file or link, and the notification and battery settings don't count as leaving, unless you stay away for more than 5 minutes.
 - **Change app PIN** asks for your current PIN first, and turning the app lock off asks for the PIN too.
 - **Forgot your PIN?** It can't be recovered, because it encrypts your saved sign-in. The lock screen offers to sign out on this phone and delete its copy of your chats and keys. With recovery set up, your message history comes back after you sign in again.
-- **With the app lock on**, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so.
+- **With the app lock on**, the recent-apps screen always shows a blank card, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so.
 
-**Hide in screenshots** and **Hide in recent apps** (the last two switches in the same section, both off by default, also without the app lock): the first makes screenshots and screen recordings of ElementCtrl show a blank screen, the second makes the recent apps view show a blank card instead of the app. Recovery key, password and lock screens are always hidden.
+Two more switches in the same section work with or without the app lock, and are both off until you turn them on:
+
+- **Hide in screenshots**: screenshots and screen recordings show a blank screen (and so does the recent-apps view).
+- **Hide in recent apps**: the recent-apps view shows a blank card instead of ElementCtrl. Screenshots still work.
+
+Password sign-in, the recovery key screens and the lock and PIN screens are always kept out of screenshots and recordings, whatever these switches say.
 
 ## Privacy
 

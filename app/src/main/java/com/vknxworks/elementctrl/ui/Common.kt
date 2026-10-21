@@ -359,3 +359,19 @@ fun rememberPushHealth(): PushHealth {
     }
     return health
 }
+
+/**
+ * Applies "Hide in screenshots" ([secure]: FLAG_SECURE, which also blanks the recent-apps preview) and
+ * "Hide in recent apps" ([hideRecents]: a blank card in Recents, screenshots still work) to [activity]'s
+ * window, and again whenever they change, so a switch works at once in every open screen. Callers pass the
+ * app lock being on as part of [hideRecents]: Android takes the Recents snapshot when you leave, before the
+ * app locks, so a preview would otherwise show what's behind the PIN.
+ */
+@Composable
+fun WindowPrivacy(activity: android.app.Activity, secure: Boolean, hideRecents: Boolean) {
+    androidx.compose.runtime.LaunchedEffect(secure) {
+        if (secure) activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        else activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+    }
+    androidx.compose.runtime.LaunchedEffect(hideRecents) { activity.setRecentsScreenshotEnabled(!hideRecents) }
+}

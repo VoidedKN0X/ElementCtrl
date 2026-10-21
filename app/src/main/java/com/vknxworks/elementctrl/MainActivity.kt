@@ -3,6 +3,7 @@ package com.vknxworks.elementctrl
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import com.vknxworks.elementctrl.ui.WindowPrivacy
 import android.view.WindowManager
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -47,13 +48,9 @@ class MainActivity : ComponentActivity() {
                 // "Hide in screenshots", screens holding secrets (recovery key, password sign-in) and the lock and
                 // PIN screens keep the window out of screenshots and recordings; "Hide in recent apps" blanks the card.
                 val secure = lock.hideScreenshots || locked || AppLock.request != null || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
-                LaunchedEffect(secure) {
-                    if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                    else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                }
-                LaunchedEffect(lock.hideRecents, secure) {
-                    setRecentsScreenshotEnabled(!lock.hideRecents && !secure)
-                }
+                // "Hide in recent apps" (off by default). With the app lock on, Recents always shows a blank
+                // card: a preview there would show your chats without the PIN.
+                WindowPrivacy(this@MainActivity, secure, hideRecents = lock.hideRecents || legacyLock || graph.vault.enabled)
                 Box(Modifier.fillMaxSize()) {
                     Surface(Modifier.fillMaxSize()) {
                         val state by graph.state.collectAsStateWithLifecycle()
