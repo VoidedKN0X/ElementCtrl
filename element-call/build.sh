@@ -14,8 +14,8 @@
 # 4. Checks the result and puts it in element-call/dist/element-call/, which
 #    app/build.gradle.kts packs into the APK's assets as element-call/.
 #
-# Needs git, Node.js 24 and Corepack (for the pnpm version Element Call pins, which
-# Corepack checks against its sha512). Element Call's code is AGPL-3.0: its licence
+# Needs git, Node.js 24 and Corepack 0.34.5 or newer (for the pnpm versions Element Call
+# and matrix-js-sdk pin, which Corepack checks against their published hashes). Element Call's code is AGPL-3.0: its licence
 # and a note of the commit and patches go into the output next to it.
 set -euo pipefail
 

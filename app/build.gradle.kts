@@ -129,7 +129,7 @@ val elementCallIndex = rootProject.file("element-call/dist/element-call/index.ht
 tasks.named("preBuild") {
     doFirst {
         if (!elementCallIndex.isFile) {
-            throw GradleException("Element Call isn't built: run element-call/build.sh first (needs Node.js 24 and Corepack).")
+            throw GradleException("Element Call isn't built: run element-call/build.sh first (needs Node.js 24 and Corepack 0.34.5 or newer).")
         }
     }
 }

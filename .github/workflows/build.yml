@@ -77,6 +77,8 @@ jobs:
         env:
           EC_PNPM_STORE: ${{ runner.temp }}/pnpm-store
         run: |
+          # Corepack 0.34.5+ is needed for pnpm 11 and 12 (Element Call's and matrix-js-sdk's); Node 24.11's is older.
+          npm install -g corepack@0.36.0
           corepack enable
           set -o pipefail
           if ! bash element-call/build.sh 2>&1 | tee element-call-build.log; then
