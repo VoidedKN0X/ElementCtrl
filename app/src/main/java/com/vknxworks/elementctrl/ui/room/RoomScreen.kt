@@ -304,7 +304,7 @@ fun RoomScreen(
     }
 
     val visible = remember(entries, showState) {
-        entries.filter { e -> showState || !(e is TimelineEntry.Message && e.isStateLike) }.asReversed()
+        entries.filter { e -> e !is TimelineEntry.Hidden && (showState || !(e is TimelineEntry.Message && e.isStateLike)) }.asReversed()
     }
     val listState = rememberLazyListState()
 
@@ -491,6 +491,7 @@ fun RoomScreen(
                             is TimelineEntry.Day -> DayDivider(entry.timestamp)
                             is TimelineEntry.ReadMarker -> if (index > 0) ReadMarkerLine()
                             is TimelineEntry.Start -> RoomStart(header?.name, isDm, header?.isEncrypted == true)
+                            is TimelineEntry.Hidden -> Unit
                             is TimelineEntry.Message -> {
                                 val older = visible.getOrNull(index + 1)
                                 val showSender = older !is TimelineEntry.Message || older.sender != entry.sender || older.isStateLike ||

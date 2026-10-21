@@ -7,6 +7,8 @@ sealed interface TimelineEntry {
     data class Day(override val key: String, val timestamp: Long) : TimelineEntry
     data class ReadMarker(override val key: String) : TimelineEntry
     data class Start(override val key: String) : TimelineEntry
+    /** An event that keeps its place in the list (the SDK's diffs count by position) but is never shown. */
+    data class Hidden(override val key: String) : TimelineEntry
     data class Message(
         override val key: String,
         val eventId: String?,

@@ -2,6 +2,13 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.8
+
+### Fixed
+
+- **Call updates no longer clutter your chats.** Every time someone joined or left a call, the chat showed a line like "Axel changed org.matrix.msc3401.call.member" under the "started a call" message, often several in a row. These are the behind-the-scenes updates calls use to keep track of who's in them, and they're now hidden everywhere in the chat, including when **Show room events** is turned on. The call itself still appears as "started a call".
+- **The chat list shows "📞 Call" instead of that technical name** when a call update was the latest thing in a chat.
+
 ## 1.6.7
 
 ### Fixed

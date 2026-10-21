@@ -183,7 +183,10 @@ class TimelineController(
 
     private fun map(item: TimelineItem): TimelineEntry = item.use { ti ->
         val key = ti.uniqueId().id
-        ti.asEvent()?.let { return@use mapEvent(key, it) }
+        ti.asEvent()?.let { ev ->
+            if (ev.content.isCallMembership()) return@use TimelineEntry.Hidden(key)
+            return@use mapEvent(key, ev)
+        }
         when (val v = ti.asVirtual()) {
             is VirtualTimelineItem.DateDivider -> TimelineEntry.Day(key, v.ts.toLong())
             is VirtualTimelineItem.ReadMarker -> TimelineEntry.ReadMarker(key)

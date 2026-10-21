@@ -17,6 +17,24 @@ fun ProfileDetails.avatarOrNull(): String? = (this as? ProfileDetails.Ready)?.av
 
 fun String.localpart(): String = removePrefix("@").substringBefore(':')
 
+/**
+ * The state event types MatrixRTC calls use to say who is in a call. Every join, leave and heartbeat of a call
+ * changes one, so they're never shown in the timeline; the call itself appears as "started a call".
+ */
+private val CALL_MEMBER_TYPES = setOf(
+    "org.matrix.msc3401.call.member",
+    "m.call.member",
+    "m.rtc.member",
+    "org.matrix.msc4143.rtc.member",
+)
+
+/** A call membership update (someone joining or leaving a call), which the timeline hides. */
+fun TimelineItemContent.isCallMembership(): Boolean = when (this) {
+    is TimelineItemContent.State -> (content as? OtherState.Custom)?.eventType in CALL_MEMBER_TYPES
+    is TimelineItemContent.FailedToParseState -> eventType in CALL_MEMBER_TYPES
+    else -> false
+}
+
 /** One-line text for a message, used in the room list, replies and notifications. */
 fun TimelineItemContent.previewText(): String = when (this) {
     is TimelineItemContent.MsgLike -> when (val kind = content.kind) {
@@ -34,7 +52,8 @@ fun TimelineItemContent.previewText(): String = when (this) {
     is TimelineItemContent.CallInvite -> Strings.str(R.string.call_started_2)
     is TimelineItemContent.RtcNotification -> Strings.str(R.string.call)
     is TimelineItemContent.FailedToParseMessageLike -> Strings.str(R.string.unsupported_message)
-    is TimelineItemContent.FailedToParseState -> Strings.str(R.string.unsupported_room_event)
+    is TimelineItemContent.FailedToParseState ->
+        if (eventType in CALL_MEMBER_TYPES) Strings.str(R.string.call) else Strings.str(R.string.unsupported_room_event)
 }
 
 fun MessageType.previewText(body: String): String = when (this) {
@@ -92,5 +111,6 @@ fun stateText(sender: String, state: OtherState): String = when (state) {
     is OtherState.RoomGuestAccess -> Strings.str(R.string.changed_guest_access, sender)
     is OtherState.SpaceChild, is OtherState.SpaceParent -> Strings.str(R.string.changed_the_space, sender)
     is OtherState.PolicyRuleRoom, is OtherState.PolicyRuleServer, is OtherState.PolicyRuleUser -> Strings.str(R.string.changed_a_moderation_rule, sender)
-    is OtherState.Custom -> Strings.str(R.string.changed, sender, state.eventType)
+    is OtherState.Custom ->
+        if (state.eventType in CALL_MEMBER_TYPES) Strings.str(R.string.call) else Strings.str(R.string.changed, sender, state.eventType)
 }
