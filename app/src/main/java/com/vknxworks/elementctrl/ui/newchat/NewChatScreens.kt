@@ -65,6 +65,7 @@ import com.vknxworks.elementctrl.ui.TextInputDialog
 import kotlinx.coroutines.delay
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import com.vknxworks.elementctrl.R
 import kotlinx.coroutines.launch
 import org.matrix.rustcomponents.sdk.UserProfile
