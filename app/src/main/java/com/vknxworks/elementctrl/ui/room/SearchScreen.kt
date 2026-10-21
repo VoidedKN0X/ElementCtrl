@@ -86,7 +86,7 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
                     TextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text(stringResource(R.string.search, roomName ?: "this chat")) },
+                        placeholder = { Text(roomName?.let { stringResource(R.string.search, it) } ?: stringResource(R.string.search_this_chat)) },
                         singleLine = true,
                         trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, stringResource(R.string.clear)) } },
                         colors = TextFieldDefaults.colors(

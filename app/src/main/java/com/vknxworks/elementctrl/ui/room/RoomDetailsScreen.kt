@@ -421,7 +421,7 @@ fun UserScreen(
             }
             HorizontalDivider()
             if (userId != session.userId && verified != true) {
-                SettingRow(Icons.Default.VerifiedUser, stringResource(R.string.verify_2, profile?.displayName ?: "user"), stringResource(R.string.compare_emojis_to_make_sure_you_re)) { onVerify(userId) }
+                SettingRow(Icons.Default.VerifiedUser, stringResource(R.string.verify_2, profile?.displayName ?: userId), stringResource(R.string.compare_emojis_to_make_sure_you_re)) { onVerify(userId) }
             }
             SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_matrix_id), userId) { copyText(context, Strings.str(R.string.matrix_id), userId) }
             SettingRow(Icons.Default.Share, stringResource(R.string.share_profile_link)) {

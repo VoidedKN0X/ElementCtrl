@@ -145,7 +145,7 @@ fun YouScreen(
                 Spacer(Modifier.height(14.dp))
                 Text(name, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
                 Text(
-                    listOf(session.userId, server).distinct().joinToString("  ·  "),
+                    listOf(session.userId, server).distinct().joinToString(stringResource(R.string.list_separator_wide)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

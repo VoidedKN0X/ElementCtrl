@@ -284,7 +284,7 @@ private fun FileRow(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) ->
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                listOfNotNull(detail, m.senderName, dayFormat.format(Date(m.timestamp))).joinToString(" · "),
+                listOfNotNull(detail, m.senderName, dayFormat.format(Date(m.timestamp))).joinToString(stringResource(R.string.list_separator)),
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
                 maxLines = 1,

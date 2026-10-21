@@ -759,6 +759,7 @@
     <string name="they_ll_need_to_sign_in_again_make">They\'ll need to sign in again. Make sure recovery is set up so you don\'t lose access to encrypted messages.</string>
     <string name="confirm_with_your_password">Confirm with your password</string>
     <string name="active">active %1$s</string>
+    <string name="device_id_active">%1$s · active %2$s</string>
     <string name="notification_delivery">Notification delivery</string>
     <string name="instant_push_with_ntfy">Instant push with ntfy</string>
     <string name="plus_the_background_check">Plus the background check</string>
@@ -830,4 +831,26 @@
     <string name="backup_downloading">Downloading keys…</string>
     <string name="backup_turning_off">Turning off backup…</string>
     <string name="recovery_state_with_note">%1$s %2$s</string>
+
+    <!-- Whole sentences instead of joined pieces -->
+    <string name="list_separator">" · "</string>
+    <string name="list_separator_wide">"  ·  "</string>
+    <string name="someone_lower">someone</string>
+    <string name="search_this_chat">Search this chat</string>
+    <string name="this_is_the_beginning_of_this_room">This is the beginning of this room</string>
+    <string name="bubble_style_summary">%1$s · %2$s</string>
+    <string name="preview_image">🖼 %1$s</string>
+    <string name="preview_video">🎬 %1$s</string>
+    <string name="preview_audio">🎵 %1$s</string>
+    <string name="preview_file">📎 %1$s</string>
+    <string name="preview_poll">📊 %1$s</string>
+    <string name="by_with_reason">%1$s by %2$s: %3$s</string>
+    <plurals name="thread_replies">
+        <item quantity="one">%1$d reply</item>
+        <item quantity="other">%1$d replies</item>
+    </plurals>
+    <plurals name="thread_replies_latest">
+        <item quantity="one">%1$d reply · %2$s</item>
+        <item quantity="other">%1$d replies · %2$s</item>
+    </plurals>
 </resources>

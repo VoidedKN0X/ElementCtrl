@@ -1,5 +1,6 @@
 package com.vknxworks.elementctrl.ui.room
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
@@ -401,7 +402,7 @@ fun MessageRow(
                             Icon(Icons.Default.Forum, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "${item.threadReplies} ${if (item.threadReplies == 1) "reply" else "replies"}" + (item.threadLatest?.let { " · $it" } ?: ""),
+                                item.threadLatest?.let { pluralStringResource(R.plurals.thread_replies_latest, item.threadReplies, item.threadReplies, it) } ?: pluralStringResource(R.plurals.thread_replies, item.threadReplies, item.threadReplies),
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -520,7 +521,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
         is UiContent.File -> AttachmentRow(
             icon = Icons.Default.AttachFile,
             title = c.filename,
-            subtitle = listOf(formatSize(c.size), c.mime.substringAfter('/').uppercase()).filter { it.isNotBlank() }.joinToString(" · "),
+            subtitle = listOf(formatSize(c.size), c.mime.substringAfter('/').uppercase()).filter { it.isNotBlank() }.joinToString(stringResource(R.string.list_separator)),
             onBubble = onBubble,
             caption = c.caption,
         )

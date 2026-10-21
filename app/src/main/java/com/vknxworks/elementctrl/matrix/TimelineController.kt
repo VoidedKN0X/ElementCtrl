@@ -256,7 +256,7 @@ class TimelineController(
             is TimelineItemContent.RoomMembership -> UiContent.Event(
                 membershipText(c.userDisplayName ?: c.userId.localpart(), c.change).let { base ->
                     if (c.change == org.matrix.rustcomponents.sdk.MembershipChange.KICKED || c.change == org.matrix.rustcomponents.sdk.MembershipChange.BANNED) {
-                        Strings.str(R.string.by, base, senderName) + (c.reason?.let { ": $it" } ?: "")
+                        c.reason?.let { Strings.str(R.string.by_with_reason, base, senderName, it) } ?: Strings.str(R.string.by, base, senderName)
                     } else base
                 }
             )

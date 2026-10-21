@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Password
@@ -70,6 +71,9 @@ import com.vknxworks.elementctrl.matrix.VerifyStep
 import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.ConfirmDialog
 import com.vknxworks.elementctrl.ui.SectionHeader
+import com.vknxworks.elementctrl.ui.Group
+import com.vknxworks.elementctrl.ui.GroupRow
+import com.vknxworks.elementctrl.ui.Gutter
 import com.vknxworks.elementctrl.ui.SecureDialog
 import com.vknxworks.elementctrl.ui.SecureScreen
 import com.vknxworks.elementctrl.ui.SettingRow
@@ -123,7 +127,8 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 colors = CardDefaults.cardColors(
                     containerColor = if (verified) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
                 ),
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 8.dp),
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(if (verified) Icons.Default.CheckCircle else Icons.Default.Warning, null)
@@ -147,55 +152,67 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
             }
 
             if (verification == VerificationState.UNVERIFIED) {
-                SectionHeader(stringResource(R.string.verify_this_device))
-                SettingRow(Icons.Default.Devices, stringResource(R.string.use_another_device), stringResource(R.string.compare_emojis_with_a_signed_in)) { onVerifyDevice() }
-                SettingRow(Icons.Default.Key, stringResource(R.string.enter_recovery_key), stringResource(R.string.the_key_you_saved_when_you_set_up)) { enterKey = true }
-                SettingRow(
-                    Icons.Default.LockReset, stringResource(R.string.can_t_confirm_reset_your_identity),
-                    stringResource(R.string.last_resort_starts_fresh_you_ll_lose),
-                    tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
-                ) { confirmReset = true }
+                Group(stringResource(R.string.verify_this_device)) {
+                    GroupRow(stringResource(R.string.use_another_device), stringResource(R.string.compare_emojis_with_a_signed_in), Icons.Default.Devices, showChevron = true, onClick = onVerifyDevice)
+                    GroupRow(stringResource(R.string.enter_recovery_key), stringResource(R.string.the_key_you_saved_when_you_set_up), Icons.Default.Key, onClick = { enterKey = true })
+                    GroupRow(
+                        stringResource(R.string.can_t_confirm_reset_your_identity),
+                        stringResource(R.string.last_resort_starts_fresh_you_ll_lose),
+                        Icons.Default.LockReset,
+                        iconTint = MaterialTheme.colorScheme.error,
+                        titleColor = MaterialTheme.colorScheme.error,
+                        onClick = { confirmReset = true },
+                    )
+                }
             }
 
-            SectionHeader(stringResource(R.string.recovery))
-            SettingRow(
-                if (recovery == RecoveryState.ENABLED) Icons.Default.CloudDone else Icons.Default.CloudOff,
-                stringResource(R.string.key_storage),
+            Group(stringResource(R.string.recovery)) {
+                GroupRow(
+                    stringResource(R.string.key_storage),
+                    when (recovery) {
+                        RecoveryState.ENABLED -> Strings.str(R.string.on_your_message_keys_are_backed_up)
+                        RecoveryState.INCOMPLETE -> Strings.str(R.string.set_up_but_this_device_doesn_t_have)
+                        RecoveryState.DISABLED -> Strings.str(R.string.off_set_up_recovery_so_you_don_t)
+                        RecoveryState.UNKNOWN -> Strings.str(R.string.calls_server_checking)
+                    }.let { text -> backupNote(backup)?.let { note -> stringResource(R.string.recovery_state_with_note, text, note) } ?: text },
+                    if (recovery == RecoveryState.ENABLED) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                )
                 when (recovery) {
-                    RecoveryState.ENABLED -> Strings.str(R.string.on_your_message_keys_are_backed_up)
-                    RecoveryState.INCOMPLETE -> Strings.str(R.string.set_up_but_this_device_doesn_t_have)
-                    RecoveryState.DISABLED -> Strings.str(R.string.off_set_up_recovery_so_you_don_t)
-                    RecoveryState.UNKNOWN -> Strings.str(R.string.calls_server_checking)
-                }.let { text -> backupNote(backup)?.let { note -> stringResource(R.string.recovery_state_with_note, text, note) } ?: text },
-            )
-            when (recovery) {
-                RecoveryState.DISABLED -> SettingRow(Icons.Default.Key, stringResource(R.string.banner_recovery_title), stringResource(R.string.creates_a_recovery_key_and_backs_up)) {
-                    act("enable") { newKey = account.enableRecovery(null) { } }
-                }
-                RecoveryState.INCOMPLETE -> SettingRow(Icons.Default.Key, stringResource(R.string.enter_recovery_key)) { enterKey = true }
-                RecoveryState.ENABLED -> {
-                    SettingRow(Icons.Default.Password, stringResource(R.string.change_recovery_key), stringResource(R.string.get_a_new_key_the_old_one_stops)) {
-                        act("change") { newKey = account.resetRecoveryKey() }
+                    RecoveryState.DISABLED -> GroupRow(stringResource(R.string.banner_recovery_title), stringResource(R.string.creates_a_recovery_key_and_backs_up), Icons.Default.Key, onClick = {
+                        act("enable") { newKey = account.enableRecovery(null) { } }
+                    })
+                    RecoveryState.INCOMPLETE -> GroupRow(stringResource(R.string.enter_recovery_key), icon = Icons.Default.Key, onClick = { enterKey = true })
+                    RecoveryState.ENABLED -> {
+                        GroupRow(stringResource(R.string.change_recovery_key), stringResource(R.string.get_a_new_key_the_old_one_stops), Icons.Default.Password, onClick = {
+                            act("change") { newKey = account.resetRecoveryKey() }
+                        })
+                        GroupRow(
+                            stringResource(R.string.turn_off_key_storage),
+                            icon = Icons.Default.CloudOff,
+                            iconTint = MaterialTheme.colorScheme.error,
+                            titleColor = MaterialTheme.colorScheme.error,
+                            onClick = { confirmDisable = true },
+                        )
                     }
-                    SettingRow(Icons.Default.CloudOff, stringResource(R.string.turn_off_key_storage), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
-                        confirmDisable = true
-                    }
+                    RecoveryState.UNKNOWN -> Unit
                 }
-                RecoveryState.UNKNOWN -> Unit
             }
             busy?.let {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(12.dp))
                     Text(stringResource(R.string.working))
                 }
             }
 
-            SectionHeader(stringResource(R.string.this_device))
-            SettingRow(null, stringResource(R.string.session_id_2), session.deviceId) { copyText(context, Strings.str(R.string.session_id_2), session.deviceId) }
             var keys by remember { mutableStateOf<String?>(null) }
             androidx.compose.runtime.LaunchedEffect(Unit) { keys = runCatching { session.client.encryption().ed25519Key() }.getOrNull() }
-            keys?.let { SettingRow(null, stringResource(R.string.session_key), it.chunked(4).joinToString(" ")) { copyText(context, Strings.str(R.string.session_key), it) } }
+            Group(stringResource(R.string.this_device)) {
+                GroupRow(stringResource(R.string.session_id_2), session.deviceId, Icons.Default.Fingerprint, onClick = { copyText(context, Strings.str(R.string.session_id_2), session.deviceId) })
+                keys?.let { k ->
+                    GroupRow(stringResource(R.string.session_key), k.chunked(4).joinToString(" "), Icons.Default.Key, onClick = { copyText(context, Strings.str(R.string.session_key), k) })
+                }
+            }
             Spacer(Modifier.height(32.dp))
         }
     }

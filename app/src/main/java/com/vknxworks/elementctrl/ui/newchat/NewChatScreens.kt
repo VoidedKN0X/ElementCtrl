@@ -339,7 +339,7 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
                     Column(Modifier.weight(1f)) {
                         Text(r.name ?: r.alias ?: r.roomId, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            listOfNotNull(r.alias, stringResource(R.string.explore_members, r.joinedMembers.toInt())).joinToString(" · "),
+                            listOfNotNull(r.alias, stringResource(R.string.explore_members, r.joinedMembers.toInt())).joinToString(stringResource(R.string.list_separator)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

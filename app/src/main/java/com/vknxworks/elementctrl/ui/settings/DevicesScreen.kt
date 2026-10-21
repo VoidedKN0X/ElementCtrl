@@ -44,7 +44,9 @@ import com.vknxworks.elementctrl.matrix.DeviceService
 import com.vknxworks.elementctrl.matrix.MatrixSession
 import com.vknxworks.elementctrl.matrix.userMessage
 import com.vknxworks.elementctrl.ui.ConfirmDialog
-import com.vknxworks.elementctrl.ui.SectionHeader
+import com.vknxworks.elementctrl.ui.Group
+import androidx.compose.foundation.layout.PaddingValues
+import com.vknxworks.elementctrl.ui.GroupRow
 import com.vknxworks.elementctrl.ui.SettingRow
 import com.vknxworks.elementctrl.ui.TextInputDialog
 import com.vknxworks.elementctrl.ui.openUrl
@@ -108,25 +110,33 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            LazyColumn {
+            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
                 devices.firstOrNull { it.isCurrent }?.let { me ->
-                    item { SectionHeader(stringResource(R.string.this_device)) }
-                    item { DeviceRow(me) { selected = me } }
+                    item { Group(stringResource(R.string.this_device)) { DeviceRow(me) { selected = me } } }
                 }
                 if (others.isNotEmpty()) {
-                    item { SectionHeader(stringResource(R.string.other_devices, others.size)) }
-                    items(others, key = { it.deviceId }) { d -> DeviceRow(d) { selected = d } }
                     item {
-                        HorizontalDivider(Modifier.padding(top = 8.dp))
-                        SettingRow(
-                            Icons.AutoMirrored.Filled.Logout, stringResource(R.string.sign_out_all_other_devices),
-                            tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
-                        ) { confirmOut = others.map { it.deviceId } }
+                        Group(stringResource(R.string.other_devices, others.size)) {
+                            others.forEach { d -> DeviceRow(d) { selected = d } }
+                        }
+                    }
+                    item {
+                        Group {
+                            GroupRow(
+                                stringResource(R.string.sign_out_all_other_devices),
+                                icon = Icons.AutoMirrored.Filled.Logout,
+                                iconTint = MaterialTheme.colorScheme.error,
+                                titleColor = MaterialTheme.colorScheme.error,
+                                onClick = { confirmOut = others.map { it.deviceId } },
+                            )
+                        }
                     }
                 }
                 item {
-                    SettingRow(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.manage_on_your_account_page), stringResource(R.string.for_accounts_using_an_oauth_sign_in)) {
-                        scope.launch { service.webPage(null)?.let { openUrl(context, it.url) } ?: snackbar.showSnackbar(Strings.str(R.string.your_server_has_no_account_page)) }
+                    Group(footer = stringResource(R.string.for_accounts_using_an_oauth_sign_in)) {
+                        GroupRow(stringResource(R.string.manage_on_your_account_page), icon = Icons.AutoMirrored.Filled.OpenInNew, onClick = {
+                            scope.launch { service.webPage(null)?.let { openUrl(context, it.url) } ?: snackbar.showSnackbar(Strings.str(R.string.your_server_has_no_account_page)) }
+                        })
                     }
                 }
             }
@@ -194,11 +204,11 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
 
 @Composable
 private fun DeviceRow(d: DeviceInfo, onClick: () -> Unit) {
-    SettingRow(
-        Icons.Default.PhoneAndroid,
+    GroupRow(
         d.displayName ?: d.deviceId,
-        listOfNotNull(d.deviceId, d.lastSeenTs?.let { Strings.str(R.string.active, shortTime(it)) }).joinToString(" · "),
-        tint = if (d.isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        d.lastSeenTs?.let { stringResource(R.string.device_id_active, d.deviceId, shortTime(it)) } ?: d.deviceId,
+        icon = Icons.Default.PhoneAndroid,
+        iconTint = if (d.isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         onClick = onClick,
     )
 }

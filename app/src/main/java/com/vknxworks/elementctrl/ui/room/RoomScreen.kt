@@ -864,7 +864,7 @@ fun RoomScreen(
 @Composable
 private fun RoomStart(name: String?, isDm: Boolean, encrypted: Boolean) {
     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(if (isDm) stringResource(R.string.this_is_the_beginning_of_your_chat) else stringResource(R.string.this_is_the_beginning_of, name ?: "this room"), style = MaterialTheme.typography.titleSmall)
+        Text(if (isDm) stringResource(R.string.this_is_the_beginning_of_your_chat) else (name?.let { stringResource(R.string.this_is_the_beginning_of, it) } ?: stringResource(R.string.this_is_the_beginning_of_this_room)), style = MaterialTheme.typography.titleSmall)
         if (encrypted) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1068,11 +1068,11 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
 
 private fun previewOf(item: TimelineEntry.Message): String = when (val c = item.content) {
     is UiContent.Text -> c.body
-    is UiContent.Image -> "🖼 " + (c.caption ?: Strings.str(R.string.image))
-    is UiContent.Video -> "🎬 " + (c.caption ?: Strings.str(R.string.video))
+    is UiContent.Image -> Strings.str(R.string.preview_image, c.caption ?: Strings.str(R.string.image))
+    is UiContent.Video -> Strings.str(R.string.preview_video, c.caption ?: Strings.str(R.string.video))
     is UiContent.Audio -> Strings.str(R.string.audio)
-    is UiContent.File -> "📎 " + c.filename
-    is UiContent.Poll -> "📊 " + c.question
+    is UiContent.File -> Strings.str(R.string.preview_file, c.filename)
+    is UiContent.Poll -> Strings.str(R.string.preview_poll, c.question)
     is UiContent.Location -> Strings.str(R.string.location)
     else -> ""
 }

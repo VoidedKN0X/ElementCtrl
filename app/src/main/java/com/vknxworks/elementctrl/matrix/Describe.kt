@@ -38,12 +38,12 @@ fun TimelineItemContent.previewText(): String = when (this) {
 }
 
 fun MessageType.previewText(body: String): String = when (this) {
-    is MessageType.Image -> "🖼 " + (content.caption ?: Strings.str(R.string.image))
-    is MessageType.Video -> "🎬 " + (content.caption ?: Strings.str(R.string.video))
-    is MessageType.Audio -> if (content.voice != null) Strings.str(R.string.voice_message) else "🎵 " + (content.caption ?: content.filename)
-    is MessageType.File -> "📎 " + (content.caption ?: content.filename)
+    is MessageType.Image -> Strings.str(R.string.preview_image, content.caption ?: Strings.str(R.string.image))
+    is MessageType.Video -> Strings.str(R.string.preview_video, content.caption ?: Strings.str(R.string.video))
+    is MessageType.Audio -> if (content.voice != null) Strings.str(R.string.voice_message) else Strings.str(R.string.preview_audio, content.caption ?: content.filename)
+    is MessageType.File -> Strings.str(R.string.preview_file, content.caption ?: content.filename)
     is MessageType.Location -> Strings.str(R.string.location)
-    is MessageType.Gallery -> "🖼 " + content.body.ifBlank { Strings.str(R.string.gallery) }
+    is MessageType.Gallery -> Strings.str(R.string.preview_image, content.body.ifBlank { Strings.str(R.string.gallery) })
     is MessageType.Emote -> "* " + content.body
     is MessageType.Notice -> content.body
     is MessageType.Text -> content.body
@@ -87,7 +87,7 @@ fun stateText(sender: String, state: OtherState): String = when (state) {
     is OtherState.RoomPinnedEvents -> Strings.str(R.string.changed_the_pinned_messages, sender)
     is OtherState.RoomCanonicalAlias -> Strings.str(R.string.changed_the_room_address, sender)
     is OtherState.RoomTombstone -> Strings.str(R.string.this_room_has_been_replaced)
-    is OtherState.RoomThirdPartyInvite -> Strings.str(R.string.invited, sender, state.displayName ?: "someone")
+    is OtherState.RoomThirdPartyInvite -> Strings.str(R.string.invited, sender, state.displayName ?: Strings.str(R.string.someone_lower))
     is OtherState.RoomServerAcl -> Strings.str(R.string.changed_the_server_access_rules, sender)
     is OtherState.RoomGuestAccess -> Strings.str(R.string.changed_guest_access, sender)
     is OtherState.SpaceChild, is OtherState.SpaceParent -> Strings.str(R.string.changed_the_space, sender)

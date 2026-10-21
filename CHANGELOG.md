@@ -2,6 +2,17 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.3
+
+### Changed
+
+- **Devices and Security & recovery use the series cards**: their rows now sit in rounded cards with a heading above each one (This device, Other devices, Verify this device, Recovery), with round icons, the same as Settings, the You page and the other Ctrl apps. Before, they were flat lists with small section labels. Everything on them works the same: tap a device for its details, rename or sign out; **Sign out all other devices** and **Manage on your account page** (with its explanation under the card) are in cards of their own; your Session ID and Session key are still copied with a tap.
+- **Whole sentences instead of joined pieces, ready for translations**: thread summaries ("2 replies · latest message"), chat previews ("🖼 Image", "📎 file name"), "removed by … : reason", the chat bubble setting's summary, "Search this chat", "This is the beginning of this room", "Verify …" (now with the person's Matrix ID when they have no display name, instead of "user") and the " · " between details are now each one piece of text.
+
+### Fixed
+
+- **Thread summaries count correctly**: "1 reply" and "2 replies" now come from the app's plurals.
+
 ## 1.6.2
 
 The last screens now look like the rest of ElementCtrl and the other Ctrl apps, and all text is ready for translations.

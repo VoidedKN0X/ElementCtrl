@@ -177,7 +177,7 @@ fun SettingsScreen(
                 ) { prefs.setDynamicColor(it) }
                 GroupRow(
                     stringResource(R.string.bubbles),
-                    bubbleStyle.label + " · " + bubbleStyle.description,
+                    stringResource(R.string.bubble_style_summary, bubbleStyle.label, bubbleStyle.description),
                     icon = Icons.Filled.ChatBubbleOutline,
                     showChevron = true,
                     onClick = { bubbleDialog = true },
