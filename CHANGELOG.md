@@ -2,6 +2,24 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.1
+
+The call screen is now built from source, without Google's code. Calls work exactly as before.
+
+### Privacy
+
+- **Element Call is now built from source**: the call screen (Element Call 0.28.0, the same release Element X bundles) used to come prebuilt from Element's Android package. ElementCtrl now builds it itself from Element Call's published source code, and every release is built that way, so what's inside is exactly what's in the source plus ElementCtrl's changes, which are public in the `element-call` folder of the repository.
+- **What was removed from it**, all of it code that calls inside an app never use and that was already switched off in 1.6.0, now left out of the app entirely instead:
+  - **Google reCAPTCHA** and Element Call's own **sign-up and account pages**, with their links to Google's privacy policy and terms of service.
+  - **PostHog analytics**, including its lists of search engines and web crawlers (Googlebot and others).
+  - **Sentry crash reporting**.
+  - **Bug-report (rageshake) upload**: nothing in the call screen can send logs anywhere, and requests from other people in a call to send them your logs are ignored.
+  - **Background blur**, which needs Google's MediaPipe and was never available on phones anyway.
+- **What's still named "Google" in the call screen, and why**: only names, no Google code or services: the message type names of the protocol the LiveKit call service speaks (such as `google.protobuf.Timestamp`), the `x-google-…` settings in WebRTC video connection descriptions, which calls need, and Google in the Matrix library's list of sign-in providers. Nothing in the call screen contacts Google.
+- **Checked on every build**: the build fails if any of the removed code comes back, and the call screen is started the way ElementCtrl starts it to check that it loads and tries to reach nothing but your homeserver.
+- **Nothing changes in how calls work**: the same call screen, the same calls with Element X and Element Web, the same server setup and the same call service your homeserver announces.
+- **README**: the Calls, Privacy, Build from source and License sections say how Element Call is built, which release and commit it's from, and what ElementCtrl changes. The APK carries Element Call's licence (AGPL-3.0) and a note of its source next to it.
+
 ## 1.6.0
 
 Voice and video calls, compatible with Element X and Element Web.

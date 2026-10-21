@@ -75,7 +75,7 @@ Your account, devices, security and recovery, **Settings**, **Sign out** and **A
 
 ## Calls
 
-Voice and video calls work in direct chats and rooms, and with everyone on your homeserver who uses Element X or Element Web (MatrixRTC, the calls Element X makes). ElementCtrl uses Element Call, the same call screen Element X has, bundled in the app: it runs in your phone's own WebView and nothing of it is loaded from the web.
+Voice and video calls work in direct chats and rooms, and with everyone on your homeserver who uses Element X or Element Web (MatrixRTC, the calls Element X makes). ElementCtrl uses Element Call, the same call screen Element X has (the same release), built from source and bundled in the app: it runs in your phone's own WebView and nothing of it is loaded from the web. ElementCtrl's build leaves out Element Call's Google reCAPTCHA and sign-up pages, PostHog analytics, Sentry crash reporting, bug-report upload and MediaPipe background blur, none of which calls use (see [Build from source](#build-from-source)).
 
 - **Start a call** with the phone (voice, direct chats) or camera (video) button at the top of a chat. While a call is going on in a chat, a **Call in progress** banner there has **Join**, and the chat list shows a camera next to the chat.
 - **Incoming calls** in direct chats ring on a full screen, also over the phone's lock screen, with **Answer** and **Decline**, until the caller hangs up, you answer or decline on another device, or after 90 seconds (then you get a **Missed call** notification). Ringing comes through push, so [instant push with ntfy](#tips-and-troubleshooting) has to be on. On Android 14 and newer, check **Settings › Calls › Full-screen incoming calls**. A call started in a group shows as a normal notification.
@@ -141,7 +141,7 @@ Password sign-in, the recovery key screens and the lock and PIN screens are alwa
 
 - **Push:** when you turn it on, ElementCtrl asks your ntfy server whether its Matrix gateway is there. Pushes then reach the phone through ntfy (see *What a push contains* above).
 - **Link previews** are fetched by your homeserver, never by the phone.
-- **Calls** connect only to your homeserver (and its domain), the MatrixRTC Authorization Service your homeserver announces, the LiveKit SFU it points to, and the TURN/STUN servers that SFU hands out. The bundled Element Call has its analytics (PostHog), crash reporting (Sentry), bug-report upload and fallback call servers switched off, and the call WebView refuses every other web address. The WebView doesn't ask Google Safe Browsing about pages and sends no usage metrics.
+- **Calls** connect only to your homeserver (and its domain), the MatrixRTC Authorization Service your homeserver announces, the LiveKit SFU it points to, and the TURN/STUN servers that SFU hands out. The bundled Element Call is built from source without its analytics (PostHog), crash reporting (Sentry), bug-report upload, Google reCAPTCHA and Google MediaPipe code, its fallback call servers are switched off, and the call WebView refuses every other web address. The WebView doesn't ask Google Safe Browsing about pages and sends no usage metrics.
 - **The Matrix SDK's crash reporting is switched off**, and release builds don't write the SDK's logs anywhere.
 
 ## Build from source
@@ -153,16 +153,33 @@ You need [Android Studio](https://developer.android.com/studio), or JDK 17 and t
    git clone https://github.com/VoidedKN0X/ElementCtrl.git
    cd ElementCtrl
    ```
-2. Build the app:
+2. Build the call screen (Element Call) from source. You need git, [Node.js](https://nodejs.org/) 24 and Corepack 0.34.5 or newer (`npm install -g corepack@latest`, then `corepack enable`), and a Linux or macOS shell (on Windows, WSL):
+   ```bash
+   bash element-call/build.sh
+   ```
+   This fetches Element Call at the release pinned in `element-call/upstream.env`, applies ElementCtrl's changes (see [Element Call](#element-call) below), installs its locked dependencies and builds it into `element-call/dist/`. Run it again after updating ElementCtrl if `element-call/` changed. The app build stops with a message if this step is missing.
+3. Build the app:
    ```bash
    ./gradlew assembleDebug
    ```
    On Windows, use `gradlew.bat assembleDebug`.
-3. The APK is in `app/build/outputs/apk/debug/`. Copy it to your phone and install it.
+4. The APK is in `app/build/outputs/apk/debug/`. Copy it to your phone and install it.
 
 Or open the folder in Android Studio and press **Run** with your phone connected.
 
 The APK only includes 64-bit ARM code. To run it on an emulator, add `x86_64` to `abiFilters` in `app/build.gradle.kts`.
+
+### Element Call
+
+The call screen is [Element Call](https://github.com/element-hq/element-call) **0.28.0** (commit `9b3c3569ecefbb79cf527ea24e3756ba50553a8f`), the release Element X bundles. Instead of Element's prebuilt package, `element-call/build.sh` builds it from source, and CI does the same for every release (a failed Element Call build means no release). ElementCtrl's changes are all in `element-call/`:
+
+- `patches/0001-build-no-sentry-or-codecov-plugins.patch`: the build no longer adds Sentry's release and debug IDs or uploads anything to Sentry or Codecov.
+- `overrides/vite-elementctrl.config.ts`: the embedded build Element X ships, with Sentry's SDK, PostHog's SDK, LiveKit's track processors and Google's MediaPipe replaced by small local stand-ins in `overrides/src/elementctrl/`, so none of them are in the app. No source maps.
+- `overrides/src/`: reCAPTCHA, the sign-up page (with Google's privacy and terms links) and account registration, PostHog analytics, bug-report upload and background blur are replaced by versions that do nothing. These are only used by Element Call's own website or on desktop, never by a call inside an app.
+- `strip-locales.mjs`: removes the reCAPTCHA texts from the translations.
+- `smoke-test.mjs`: after every build, starts Element Call in headless Chrome the way ElementCtrl does and checks that it loads as a widget and tries to reach nothing but the homeserver. The build also fails if any of the removed code shows up again.
+
+Calls work exactly as with Element's package: the same widget URL, the same call service discovery and the same calls as Element X and Element Web. The APK's `assets/element-call/` folder includes Element Call's licence and a `SOURCE.txt` naming the commit and changes it was built from.
 
 ## Support the project
 
@@ -197,4 +214,4 @@ ElementCtrl is licensed under the [GNU General Public License v3.0](LICENSE). ©
 
 The Manrope font is licensed under the SIL Open Font License; see `FONT-LICENSE-Manrope.txt`.
 
-Calls use [Element Call](https://github.com/element-hq/element-call) by Element, bundled unchanged from its embedded Android package (`io.element.android:element-call-embedded`, AGPL-3.0); its source code is on GitHub. Its source maps and the MediaPipe background-blur model are left out of the APK, so background blur isn't available in calls.
+Calls use [Element Call](https://github.com/element-hq/element-call) by Element (AGPL-3.0-only), built from source at release 0.28.0 (commit `9b3c3569ecefbb79cf527ea24e3756ba50553a8f`) with the changes in `element-call/` (build script, patches and replaced files, under the same licence); see [Element Call](#element-call). Its licence and a note of the source are in the APK next to it (`assets/element-call/LICENSE-AGPL-3.0` and `SOURCE.txt`). Background blur isn't available in calls.
