@@ -97,7 +97,7 @@ fun isDarkTheme(): Boolean {
     return when (mode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
+        ThemeMode.DARK, ThemeMode.BLACK -> true
     }
 }
 
@@ -106,11 +106,24 @@ fun ElementCtrlTheme(content: @Composable () -> Unit) {
     val dark = isDarkTheme()
     val dynamic by ElementCtrlApp.graph.prefs.dynamicColor.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scheme = when {
+    val mode by ElementCtrlApp.graph.prefs.theme.collectAsStateWithLifecycle()
+    var scheme = when {
         dynamic && dark -> dynamicDarkColorScheme(context)
         dynamic -> dynamicLightColorScheme(context)
         dark -> BrandDark
         else -> BrandLight
+    }
+    if (mode == ThemeMode.BLACK) {
+        // Pure black: the same as in the other Ctrl apps, for OLED screens.
+        scheme = scheme.copy(
+            background = Color.Black,
+            surface = Color.Black,
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF0B0C0E),
+            surfaceContainer = Color(0xFF131518),
+            surfaceContainerHigh = Color(0xFF1A1C20),
+            surfaceContainerHighest = Color(0xFF22252A),
+        )
     }
     MaterialTheme(colorScheme = scheme, shapes = AppShapes, content = content)
 }

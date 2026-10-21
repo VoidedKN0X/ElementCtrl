@@ -14,8 +14,8 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         // Bump both to publish a new release (see CHANGELOG.md).
-        versionCode = 37
-        versionName = "1.3.1"
+        versionCode = 38
+        versionName = "1.4.0"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -105,10 +105,6 @@ dependencies {
 
     // Frosted-glass blur behind the floating composer island, as in the other Ctrl apps.
     implementation("dev.chrisbanes.haze:haze:1.6.0")
-
-    // App lock with fingerprint.
-    implementation("androidx.biometric:biometric:1.2.0-alpha05")
-    implementation("androidx.fragment:fragment-ktx:1.8.6")
 
     val coil = "3.1.0"
     implementation("io.coil-kt.coil3:coil-compose:$coil")

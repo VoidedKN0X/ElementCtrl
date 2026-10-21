@@ -100,6 +100,16 @@ import com.vknxworks.elementctrl.ui.TextInputDialog
 import com.vknxworks.elementctrl.ui.copyText
 import com.vknxworks.elementctrl.ui.openUrl
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.VisibilityOff
+import com.vknxworks.elementctrl.data.LockTimeout
+import com.vknxworks.elementctrl.data.lock.LockVault
+import com.vknxworks.elementctrl.ui.lock.AppLock
+import com.vknxworks.elementctrl.ui.lock.PinRequest
+import com.vknxworks.elementctrl.ui.lock.findActivity
 import org.matrix.rustcomponents.sdk.RecoveryState
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
 import org.matrix.rustcomponents.sdk.sdkGitSha
@@ -146,9 +156,8 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
     val linkPreviews by prefs.linkPreviews.collectAsStateWithLifecycle()
     val linkPreviewsE2ee by prefs.linkPreviewsEncrypted.collectAsStateWithLifecycle()
     val lock = graph.lock
-    var pinDialog by remember { mutableStateOf<com.vknxworks.elementctrl.ui.lock.PinMode?>(null) }
     var lockAfterDialog by remember { mutableStateOf(false) }
-    val bioAvailable = remember { com.vknxworks.elementctrl.ui.lock.biometricAvailable(context) }
+    val bioAvailable = remember { AppLock.biometricAvailable(context) }
     var signingOut by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -181,7 +190,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Avatar(
                     profile.displayName ?: session.userId, profile.avatarUrl, session.userId, size = 72.dp,
-                    modifier = Modifier.clickable { pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    modifier = Modifier.clickable { com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 )
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
@@ -192,29 +201,26 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             }
             HorizontalDivider()
 
-            SectionHeader("Account")
-            SettingRow(Icons.Default.Person, "Your profile", "How others see you") { onOpenUser(session.userId) }
+            SectionHeader("Appearance")
+            SettingRow(Icons.Default.Brightness6, "Theme", when (theme) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark"; ThemeMode.BLACK -> "Pure black" }) { themeDialog = true }
+            SettingRow(Icons.Default.ChatBubbleOutline, "Chat bubbles", bubbleStyle.label + " · " + bubbleStyle.description) { bubbleDialog = true }
             SettingRow(
-                Icons.Default.Security, "Security & recovery",
-                when (recovery) {
-                    RecoveryState.ENABLED -> "Recovery is on"
-                    RecoveryState.DISABLED -> "Set up recovery to protect your messages"
-                    RecoveryState.INCOMPLETE -> "Enter your recovery key"
-                    RecoveryState.UNKNOWN -> "Verification, recovery key, key backup"
-                },
-                onClick = onSecurity,
+                Icons.Default.AccountCircle, "Profile pictures",
+                "Show pictures next to messages, in direct chats and next to yours too",
+                trailing = { Switch(chatAvatars, prefs::setChatAvatars) },
             )
-            SettingRow(Icons.Default.Devices, "Devices", "Phones and computers signed in to your account", onClick = onDevices)
-            accountUrl?.let { url ->
-                SettingRow(
-                    Icons.AutoMirrored.Filled.OpenInNew, "Manage account",
-                    "Password, email, signed-in devices",
-                ) { openUrl(context, url) }
-            }
             SettingRow(
-                Icons.Default.Dns, "Homeserver", session.homeserver,
-                trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
-            ) { copyText(context, "Homeserver", session.homeserver) }
+                Icons.Default.DoneAll, "Seen by",
+                "Small pictures under messages showing who has read up to there",
+                trailing = { Switch(readReceipts, prefs::setShowReadReceipts) },
+            )
+            SettingRow(
+                Icons.Default.TouchApp, "Double-tap to react",
+                if (doubleTap.isBlank()) "Off" else "Double-tap a message to react with $doubleTap",
+            ) { doubleTapDialog = true }
+            SettingRow(Icons.Default.Palette, "Use wallpaper colours", "Replaces the default colours with ones from your wallpaper", trailing = { Switch(dynamic, prefs::setDynamicColor) })
+            SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
+            SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
 
             SectionHeader("Notifications")
             SettingRow(
@@ -223,7 +229,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 trailing = {
                     Switch(notifications, { on ->
                         if (on && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } else prefs.setNotifications(on)
                     })
                 },
@@ -301,7 +307,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             }
             SettingRow(
                 Icons.Default.Visibility, "Show message content in notifications",
-                if (lock.pinSet) "Off by default while app lock is on" else "Sender, chat name and message text",
+                if (graph.vault.enabled && !lock.notificationContentChosen) "Off by default while the app lock is on" else "Sender, chat name and message text",
                 trailing = { Switch(lock.showNotificationContent, { lock.showNotificationContent = it }) },
             )
             SettingRow(Icons.Default.Group, "Group chats", modeLabel(groupMode)) { modeDialog = false }
@@ -313,26 +319,86 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                 Switch(invites, { on -> invites = on; scope.launch { runCatching { account.setInvitesEnabled(on) } } })
             })
 
-            SectionHeader("Appearance")
-            SettingRow(Icons.Default.Brightness6, "Theme", when (theme) { ThemeMode.SYSTEM -> "Follow system"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" }) { themeDialog = true }
-            SettingRow(Icons.Default.ChatBubbleOutline, "Chat bubbles", bubbleStyle.label + " · " + bubbleStyle.description) { bubbleDialog = true }
+            SectionHeader(stringResource(R.string.group_privacy_security))
+            val lockOn = graph.vault.enabled
+            SettingRow(Icons.Outlined.Lock, stringResource(R.string.app_lock), stringResource(R.string.app_lock_subtitle), trailing = {
+                Switch(lockOn, { on -> AppLock.request = if (on) PinRequest.ENABLE else PinRequest.DISABLE })
+            }) { AppLock.request = if (lockOn) PinRequest.DISABLE else PinRequest.ENABLE }
+            if (lockOn) {
+                SettingRow(
+                    Icons.Outlined.Password, stringResource(R.string.lock_change_pin),
+                    stringResource(R.string.lock_change_pin_subtitle, LockVault.PIN_MIN),
+                ) { AppLock.request = PinRequest.CHANGE }
+                SettingRow(
+                    Icons.Outlined.Fingerprint, stringResource(R.string.lock_fingerprint),
+                    stringResource(if (bioAvailable || graph.vault.biometricEnabled) R.string.lock_fingerprint_subtitle else R.string.lock_fingerprint_unavailable),
+                    trailing = {
+                        Switch(graph.vault.biometricEnabled, { on ->
+                            if (!on) {
+                                graph.vault.disableBiometric()
+                            } else {
+                                val activity = context.findActivity()
+                                val cipher = graph.vault.biometricEnrolCipher()
+                                if (activity == null || cipher == null) {
+                                    scope.launch { snackbar.showSnackbar(context.getString(R.string.lock_fingerprint_setup_failed)) }
+                                } else {
+                                    AppLock.biometricPrompt(
+                                        activity,
+                                        context.getString(R.string.lock_fingerprint_enable_title),
+                                        context.getString(R.string.lock_fingerprint_enable_subtitle),
+                                        cipher,
+                                    ) { unlocked ->
+                                        if (!graph.vault.finishBiometricEnrol(unlocked)) {
+                                            scope.launch { snackbar.showSnackbar(context.getString(R.string.lock_fingerprint_setup_failed)) }
+                                        }
+                                    }
+                                }
+                            }
+                        }, enabled = bioAvailable || graph.vault.biometricEnabled)
+                    },
+                )
+                SettingRow(Icons.Outlined.Timer, stringResource(R.string.lock_again), stringResource(lock.lockTimeout.label)) { lockAfterDialog = true }
+            }
             SettingRow(
-                Icons.Default.AccountCircle, "Profile pictures",
-                "Show pictures next to messages, in direct chats and next to yours too",
-                trailing = { Switch(chatAvatars, prefs::setChatAvatars) },
+                Icons.Outlined.VisibilityOff, stringResource(R.string.hide_screens), stringResource(R.string.hide_screens_subtitle),
+                trailing = { Switch(lock.hideScreens, { lock.hideScreens = it }) },
+            ) { lock.hideScreens = !lock.hideScreens }
+            Text(
+                stringResource(
+                    when {
+                        !lockOn -> R.string.app_lock_footer_off
+                        notifications -> R.string.app_lock_footer_background
+                        else -> R.string.app_lock_footer
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
             )
+
+            SectionHeader("Account")
+            SettingRow(Icons.Default.Person, "Your profile", "How others see you") { onOpenUser(session.userId) }
             SettingRow(
-                Icons.Default.DoneAll, "Seen by",
-                "Small pictures under messages showing who has read up to there",
-                trailing = { Switch(readReceipts, prefs::setShowReadReceipts) },
+                Icons.Default.Security, "Security & recovery",
+                when (recovery) {
+                    RecoveryState.ENABLED -> "Recovery is on"
+                    RecoveryState.DISABLED -> "Set up recovery to protect your messages"
+                    RecoveryState.INCOMPLETE -> "Enter your recovery key"
+                    RecoveryState.UNKNOWN -> "Verification, recovery key, key backup"
+                },
+                onClick = onSecurity,
             )
+            SettingRow(Icons.Default.Devices, "Devices", "Phones and computers signed in to your account", onClick = onDevices)
+            accountUrl?.let { url ->
+                SettingRow(
+                    Icons.AutoMirrored.Filled.OpenInNew, "Manage account",
+                    "Password, email, signed-in devices",
+                ) { openUrl(context, url) }
+            }
             SettingRow(
-                Icons.Default.TouchApp, "Double-tap to react",
-                if (doubleTap.isBlank()) "Off" else "Double-tap a message to react with $doubleTap",
-            ) { doubleTapDialog = true }
-            SettingRow(Icons.Default.Palette, "Material You colours", "Use your wallpaper's colours", trailing = { Switch(dynamic, prefs::setDynamicColor) })
-            SettingRow(Icons.Default.Visibility, "Show room events", "Joins, leaves, renames and other changes", trailing = { Switch(showState, prefs::setShowStateEvents) })
-            SettingRow(Icons.Default.KeyboardReturn, "Enter sends", "Press Enter to send instead of adding a new line", trailing = { Switch(sendOnEnter, prefs::setSendOnEnter) })
+                Icons.Default.Dns, "Homeserver", session.homeserver,
+                trailing = { if (com.vknxworks.elementctrl.ui.isCleartext(session.homeserver)) com.vknxworks.elementctrl.ui.NotEncryptedBadge() },
+            ) { copyText(context, "Homeserver", session.homeserver) }
 
             SectionHeader("Chats")
             SettingRow(Icons.Default.Link, "Link previews", "Show a preview card for links, fetched by your homeserver", trailing = { Switch(linkPreviews, prefs::setLinkPreviews) })
@@ -342,40 +408,6 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
                     "Your homeserver would see which links are shared in those chats",
                     trailing = { Switch(linkPreviewsE2ee, prefs::setLinkPreviewsEncrypted) },
                 )
-            }
-
-            SectionHeader("App lock")
-            SettingRow(Icons.Default.Lock, "App lock", "Ask for a PIN when opening ElementCtrl", trailing = {
-                Switch(lock.pinSet, { on -> pinDialog = if (on) com.vknxworks.elementctrl.ui.lock.PinMode.New else com.vknxworks.elementctrl.ui.lock.PinMode.Disable })
-            })
-            if (lock.pinSet) {
-                SettingRow(
-                    Icons.Default.Fingerprint, "Unlock with fingerprint",
-                    if (bioAvailable) "Your PIN still works as a backup" else "No secure fingerprint unlock is set up on this phone",
-                    trailing = {
-                        Switch(lock.biometricEnabled, { on ->
-                            val act = context as? androidx.fragment.app.FragmentActivity
-                            if (on && act != null) com.vknxworks.elementctrl.ui.lock.showBiometricPrompt(
-                                act, "Confirm to turn on", enrol = true,
-                                onUnavailable = { scope.launch { snackbar.showSnackbar("Fingerprint unlock isn't available on this phone") } },
-                            ) { lock.biometricEnabled = true }
-                            else {
-                                lock.biometricEnabled = false
-                                com.vknxworks.elementctrl.ui.lock.clearBiometricKey()
-                            }
-                        }, enabled = bioAvailable)
-                    },
-                )
-                SettingRow(
-                    Icons.Default.Timer, "Lock again after leaving",
-                    when (lock.lockAfterSeconds) { 0 -> "Instantly"; 30 -> "After 30 seconds"; 60 -> "After 1 minute"; else -> "After 5 minutes" },
-                ) { lockAfterDialog = true }
-                SettingRow(
-                    Icons.Default.VisibilityOff, "Hide from recents & screenshots",
-                    "Blank preview in the app switcher; blocks screenshots and screen recording",
-                    trailing = { Switch(lock.hideContent, { lock.hideContent = it }) },
-                )
-                SettingRow(Icons.Default.Password, "Change PIN") { pinDialog = com.vknxworks.elementctrl.ui.lock.PinMode.Change }
             }
 
             if (ignored.isNotEmpty()) {
@@ -441,25 +473,22 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
         scope.launch { runCatching { account.setDisplayName(name.trim()) }.onFailure { snackbar.showSnackbar(it.userMessage()) } }
     }
 
-    pinDialog?.let { mode -> com.vknxworks.elementctrl.ui.lock.PinSetupDialog(mode) { pinDialog = null } }
-
     if (lockAfterDialog) {
-        val options = listOf(0 to "Instantly", 30 to "After 30 seconds", 60 to "After 1 minute", 300 to "After 5 minutes")
         AlertDialog(
             onDismissRequest = { lockAfterDialog = false },
-            title = { Text("Lock again after leaving") },
+            title = { Text(stringResource(R.string.lock_again)) },
             text = {
                 Column {
-                    options.forEach { (secs, label) ->
-                        Row(Modifier.fillMaxWidth().selectable(lock.lockAfterSeconds == secs) { lock.lockAfterSeconds = secs; lockAfterDialog = false }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(lock.lockAfterSeconds == secs, null)
+                    LockTimeout.entries.forEach { t ->
+                        Row(Modifier.fillMaxWidth().selectable(lock.lockTimeout == t) { lock.lockTimeout = t; lockAfterDialog = false }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(lock.lockTimeout == t, null)
                             Spacer(Modifier.width(12.dp))
-                            Text(label)
+                            Text(stringResource(t.label))
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { lockAfterDialog = false }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { lockAfterDialog = false }) { Text(stringResource(R.string.lock_close)) } },
         )
     }
 
@@ -495,7 +524,7 @@ fun SettingsScreen(session: MatrixSession, onBack: () -> Unit, onSecurity: () ->
             title = { Text("Theme") },
             text = {
                 Column {
-                    listOf(ThemeMode.SYSTEM to "Follow system", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark").forEach { (m, label) ->
+                    listOf(ThemeMode.SYSTEM to "Follow system", ThemeMode.DARK to "Dark", ThemeMode.LIGHT to "Light", ThemeMode.BLACK to "Pure black").forEach { (m, label) ->
                         Row(Modifier.fillMaxWidth().selectable(theme == m) { prefs.setTheme(m); themeDialog = false }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(theme == m, null)
                             Spacer(Modifier.width(12.dp))

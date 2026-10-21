@@ -4,19 +4,13 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.vknxworks.elementctrl.ui.lock.AppLockViewModel
-import com.vknxworks.elementctrl.ui.lock.LockScreen
-import kotlinx.coroutines.launch
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import com.vknxworks.elementctrl.ui.lock.AppLock
+import com.vknxworks.elementctrl.ui.lock.AppLockOverlay
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -36,8 +30,7 @@ import com.vknxworks.elementctrl.ui.onboarding.OnboardingFlow
 import org.matrix.rustcomponents.sdk.MatrixId
 import org.matrix.rustcomponents.sdk.parseMatrixEntityFrom
 
-// FragmentActivity (a ComponentActivity) is needed for the fingerprint prompt of the app lock.
-class MainActivity : FragmentActivity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -46,51 +39,37 @@ class MainActivity : FragmentActivity() {
         handleIntent(intent)
         setContent {
             ElementCtrlTheme {
-                val lock = ElementCtrlApp.graph.lock
-                // Screens holding secrets (recovery key, password sign-in) force it on whatever the setting says.
-                val secure = (lock.pinSet && lock.hideContent) || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
+                val graph = ElementCtrlApp.graph
+                val lock = graph.lock
+                // The old PIN lock is still set: unlock with it once, then choose the app PIN.
+                val legacyLock = lock.legacyPinSet
+                val locked = (legacyLock && !graph.vault.enabled) || (graph.vault.enabled && !AppLock.unlocked)
+                // "Hide in screenshots and recent apps", screens holding secrets (recovery key, password sign-in)
+                // and the lock and PIN screens keep the window out of screenshots and recordings.
+                val secure = lock.hideScreens || locked || AppLock.request != null || com.vknxworks.elementctrl.ui.ScreenPrivacy.forced > 0
                 LaunchedEffect(secure) {
                     if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 }
-                Surface(Modifier.fillMaxSize()) {
-                    val state by ElementCtrlApp.graph.state.collectAsStateWithLifecycle()
-                    val lockVm: AppLockViewModel = viewModel()
-                    val owner = LocalLifecycleOwner.current
-                    DisposableEffect(owner) {
-                        val obs = LifecycleEventObserver { _, e ->
-                            when (e) {
-                                Lifecycle.Event.ON_STOP -> if (!isChangingConfigurations) lockVm.onBackground()
-                                Lifecycle.Event.ON_START -> lockVm.onForeground()
-                                else -> Unit
-                            }
-                        }
-                        owner.lifecycle.addObserver(obs)
-                        onDispose { owner.lifecycle.removeObserver(obs) }
-                    }
-                    val scope = rememberCoroutineScope()
-                    // While locked the chats aren't composed at all (so nothing is readable through accessibility
-                    // services); their saved state, including the navigation back stack, is kept here so
-                    // unlocking returns to the same screen.
-                    val savedMain = rememberSaveableStateHolder()
-                    when (val s = state) {
-                        AppState.Loading -> CenteredLoading()
-                        is AppState.SignedOut -> OnboardingFlow(s.message)
-                        is AppState.SignedIn -> if (lockVm.locked) {
-                            LockScreen(lockVm, onForgot = {
-                                scope.launch {
-                                    lock.clearPin()
-                                    lockVm.unlock()
-                                    ElementCtrlApp.graph.signOut()
+                Box(Modifier.fillMaxSize()) {
+                    Surface(Modifier.fillMaxSize()) {
+                        val state by graph.state.collectAsStateWithLifecycle()
+                        // While locked the chats aren't composed at all (so nothing is readable through accessibility
+                        // services); their saved state, including the navigation back stack, is kept here so
+                        // unlocking returns to the same screen.
+                        val savedMain = rememberSaveableStateHolder()
+                        if (!locked) {
+                            when (val s = state) {
+                                AppState.Loading, AppState.Locked -> CenteredLoading()
+                                is AppState.SignedOut -> OnboardingFlow(s.message)
+                                is AppState.SignedIn -> savedMain.SaveableStateProvider("main:${s.session.userId}") {
+                                    // Unverified devices are asked to confirm it's you before the chats appear.
+                                    com.vknxworks.elementctrl.ui.onboarding.VerifyGate(s.session) { MainNav(s.session) }
                                 }
-                            })
-                        } else {
-                            savedMain.SaveableStateProvider("main:${s.session.userId}") {
-                                // Unverified devices are asked to confirm it's you before the chats appear.
-                                com.vknxworks.elementctrl.ui.onboarding.VerifyGate(s.session) { MainNav(s.session) }
                             }
                         }
                     }
+                    AppLockOverlay(legacyLock)
                 }
             }
         }

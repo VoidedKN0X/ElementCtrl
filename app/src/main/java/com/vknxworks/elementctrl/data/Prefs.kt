@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
+/** Stored by position: new choices go at the end. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK, BLACK }
 
 /** How messages are drawn in a chat. */
 enum class BubbleStyle(val label: String, val description: String) {

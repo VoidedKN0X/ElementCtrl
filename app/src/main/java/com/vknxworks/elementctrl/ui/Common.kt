@@ -123,6 +123,7 @@ fun formatDuration(ms: Long): String {
 }
 
 fun openUrl(context: Context, url: String) {
+    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn()
     runCatching { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, Uri.parse(url)) }
         .onFailure { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
 }
@@ -166,7 +167,7 @@ fun SecureScreen() {
 val SecureDialog = androidx.compose.ui.window.DialogProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn)
 
 fun shareText(context: Context, text: String) {
-    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null))
+    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null))
 }
 
 @Composable

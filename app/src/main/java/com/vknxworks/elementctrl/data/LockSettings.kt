@@ -4,92 +4,123 @@ import android.content.Context
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Base64
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.vknxworks.elementctrl.R
 import java.security.MessageDigest
-import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
+/** How long the app can be in the background before the app lock asks again. -1: only after a restart. */
+enum class LockTimeout(@StringRes val label: Int, val millis: Long) {
+    IMMEDIATELY(R.string.lock_again_immediately, 0L),
+    MINUTE_1(R.string.lock_again_1m, 60_000L),
+    MINUTES_5(R.string.lock_again_5m, 5 * 60_000L),
+    MINUTES_15(R.string.lock_again_15m, 15 * 60_000L),
+    HOUR_1(R.string.lock_again_1h, 60 * 60_000L),
+    RESTART(R.string.lock_again_restart, -1L),
+}
+
 /**
- * App lock preferences. Only a salted PBKDF2 hash of the PIN is stored, never the PIN itself.
- * Same design as SeerrCtrl's and CraftyCtrl's lock.
+ * App lock preferences. The PIN, fingerprint key and sealing key live in LockVault (the shared Ctrl
+ * series lock); [lockOn] says whether it's set up.
+ *
+ * Also reads what ElementCtrl's older PIN lock (before 1.4.0) left behind, only so people updating can
+ * unlock once with their old PIN before choosing the new app PIN. That old PIN was stored as a salted
+ * PBKDF2 hash, never in plain text, and the hash is deleted as soon as the new PIN is set.
  */
-class LockSettings(context: Context) {
+class LockSettings(context: Context, private val lockOn: () -> Boolean) {
     private val appContext = context.applicationContext
     private val prefs = context.applicationContext.getSharedPreferences("app_lock", Context.MODE_PRIVATE)
 
-    private var _pinSet by mutableStateOf(prefs.contains(KEY_PIN_HASH))
-    val pinSet: Boolean get() = _pinSet
+    // ---------------------------------------------------------------- settings
 
-    private var _bio by mutableStateOf(prefs.getBoolean(KEY_BIOMETRIC, false))
-    var biometricEnabled: Boolean
-        get() = _pinSet && _bio
-        set(v) { _bio = v; prefs.edit().putBoolean(KEY_BIOMETRIC, v).apply() }
+    private var _timeout by mutableStateOf(readTimeout())
 
-    /** How long the app may sit in the background before it locks again. 0 = immediately. */
-    private var _after by mutableIntStateOf(prefs.getInt(KEY_LOCK_AFTER, 0))
-    var lockAfterSeconds: Int
-        get() = _after
-        set(v) { _after = v; prefs.edit().putInt(KEY_LOCK_AFTER, v).apply() }
+    /** When the app lock asks again after you leave the app. */
+    var lockTimeout: LockTimeout
+        get() = _timeout
+        set(v) { _timeout = v; prefs.edit().putString(KEY_TIMEOUT, v.name).apply() }
 
-    /** Hide the app in the recent-apps screen and block screenshots/screen recording. */
-    private var _hide by mutableStateOf(prefs.getBoolean(KEY_HIDE, true))
-    var hideContent: Boolean
+    /** The old "Lock again after leaving" (seconds) becomes the closest of the new choices. */
+    private fun readTimeout(): LockTimeout {
+        prefs.getString(KEY_TIMEOUT, null)?.let { n -> LockTimeout.entries.firstOrNull { it.name == n } }?.let { return it }
+        if (!prefs.contains(KEY_LOCK_AFTER)) return LockTimeout.IMMEDIATELY
+        return when (prefs.getInt(KEY_LOCK_AFTER, 0)) {
+            0 -> LockTimeout.IMMEDIATELY
+            in 1..60 -> LockTimeout.MINUTE_1
+            else -> LockTimeout.MINUTES_5
+        }
+    }
+
+    /**
+     * Hide in screenshots and recent apps: blocks screenshots and screen recording. The old setting only
+     * applied with a PIN set, so it carries over as it worked: on if the old lock was on with it.
+     */
+    private var _hide by mutableStateOf(
+        if (prefs.contains(KEY_HIDE_SCREENS)) prefs.getBoolean(KEY_HIDE_SCREENS, false)
+        else prefs.contains(KEY_PIN_HASH) && prefs.getBoolean(KEY_HIDE, true),
+    )
+    var hideScreens: Boolean
         get() = _hide
-        set(v) { _hide = v; prefs.edit().putBoolean(KEY_HIDE, v).apply() }
+        set(v) { _hide = v; prefs.edit().putBoolean(KEY_HIDE_SCREENS, v).apply() }
 
     /**
      * Show who wrote what in message notifications. Until the user picks, it follows the app lock: shown without
-     * a PIN, hidden with one (otherwise the lock screen would leak what the app lock protects).
+     * it, hidden with it (otherwise the lock screen would leak what the app lock protects).
      */
     private var _showContent by mutableStateOf(if (prefs.contains(KEY_NOTIF_CONTENT)) prefs.getBoolean(KEY_NOTIF_CONTENT, true) else null)
     var showNotificationContent: Boolean
-        get() = _showContent ?: !_pinSet
+        get() = _showContent ?: !(lockOn() || _legacy)
         set(v) { _showContent = v; prefs.edit().putBoolean(KEY_NOTIF_CONTENT, v).apply() }
 
-    /** Lets the lock screen submit as soon as enough digits are entered. */
-    val pinLength: Int get() = prefs.getInt(KEY_PIN_LENGTH, 0)
+    /** Whether the user picked [showNotificationContent] themselves. */
+    val notificationContentChosen: Boolean get() = _showContent != null
 
-    fun setPin(pin: String) {
-        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-        prefs.edit()
-            .putString(KEY_PIN_SALT, b64(salt))
-            .putString(KEY_PIN_HASH, b64(hash(pin, salt)))
-            .putInt(KEY_PIN_LENGTH, pin.length)
-            .putInt(KEY_FAILED, 0)
-            .apply()
-        _pinSet = true
+    // ---------------------------------------------------------------- the old PIN lock (before 1.4.0)
+
+    private var _legacy by mutableStateOf(prefs.contains(KEY_PIN_HASH))
+
+    /** The old PIN lock is still set: unlock with it once, then choose an app PIN. */
+    val legacyPinSet: Boolean get() = _legacy
+
+    /** The old lock also unlocked with a fingerprint. */
+    val legacyBiometric: Boolean get() = _legacy && prefs.getBoolean(KEY_BIOMETRIC, false)
+
+    /** Lets the old-PIN screen submit as soon as enough digits are entered. */
+    val legacyPinLength: Int get() = prefs.getInt(KEY_PIN_LENGTH, 0)
+
+    fun checkLegacyPin(pin: String): Boolean {
+        val salt = prefs.getString(KEY_PIN_SALT, null)?.let(::unb64) ?: return false
+        val expected = prefs.getString(KEY_PIN_HASH, null)?.let(::unb64) ?: return false
+        return MessageDigest.isEqual(expected, legacyHash(pin, salt))
     }
 
-    fun clearPin() {
+    /** The new app PIN is set (or the lock was reset): forget the old PIN, its fingerprint key and counters. */
+    fun clearLegacyPin() {
         prefs.edit()
+            // What the old settings carried over to stays as it is.
+            .putString(KEY_TIMEOUT, _timeout.name)
+            .putBoolean(KEY_HIDE_SCREENS, _hide)
             .remove(KEY_PIN_LENGTH).remove(KEY_PIN_HASH).remove(KEY_PIN_SALT)
             .remove(KEY_BIOMETRIC).remove(KEY_FAILED).remove(KEY_LOCKOUT_UNTIL)
             .remove(KEY_LOCKOUT_REMAINING).remove(KEY_LOCKOUT_BASE).remove(KEY_LOCKOUT_BOOT)
+            .remove(KEY_LOCK_AFTER).remove(KEY_HIDE)
             .apply()
-        _pinSet = false
-        _bio = false
-        com.vknxworks.elementctrl.ui.lock.clearBiometricKey()
+        _legacy = false
+        com.vknxworks.elementctrl.ui.lock.LegacyBiometric.delete()
     }
 
-    fun checkPin(pin: String): Boolean {
-        val salt = prefs.getString(KEY_PIN_SALT, null)?.let(::unb64) ?: return false
-        val expected = prefs.getString(KEY_PIN_HASH, null)?.let(::unb64) ?: return false
-        return MessageDigest.isEqual(expected, hash(pin, salt))
-    }
-
-    /** Wrong-PIN counter that survives restarts, so killing the app doesn't reset the lockout. */
+    /** Wrong old-PIN counter that survives restarts, so killing the app doesn't reset the lockout. */
     var failedAttempts: Int
         get() = prefs.getInt(KEY_FAILED, 0)
         set(v) { prefs.edit().putInt(KEY_FAILED, v).commit() }
 
     /**
-     * Wrong-PIN lockout, measured with the monotonic clock so changing the date/time can't end it. The remaining
-     * time is persisted with the elapsedRealtime and boot count it was measured at; after a reboot (boot count
-     * changed, or elapsedRealtime went backwards) the remaining time simply continues from the last checkpoint.
+     * Wrong old-PIN lockout, measured with the monotonic clock so changing the date/time can't end it. After a
+     * reboot (boot count changed, or elapsedRealtime went backwards) the remaining time continues.
      */
     fun startLockout(durationMs: Long) {
         prefs.edit()
@@ -100,7 +131,7 @@ class LockSettings(context: Context) {
             .commit()
     }
 
-    /** Milliseconds of lockout left (0 when none); also checkpoints the remaining time for reboots. */
+    /** Milliseconds of old-PIN lockout left (0 when none); also checkpoints the remaining time for reboots. */
     fun lockoutRemaining(): Long {
         migrateWallClockLockout()
         val remaining = prefs.getLong(KEY_LOCKOUT_REMAINING, 0L)
@@ -116,7 +147,7 @@ class LockSettings(context: Context) {
         return left
     }
 
-    /** Older versions stored the lockout end as wall-clock time; carry over what's left of it. */
+    /** Even older versions stored the lockout end as wall-clock time; carry over what's left of it. */
     private fun migrateWallClockLockout() {
         if (!prefs.contains(KEY_LOCKOUT_UNTIL)) return
         val left = (prefs.getLong(KEY_LOCKOUT_UNTIL, 0L) - System.currentTimeMillis()).coerceIn(0L, 900_000L)
@@ -127,15 +158,18 @@ class LockSettings(context: Context) {
     private fun bootCount(): Int =
         runCatching { Settings.Global.getInt(appContext.contentResolver, Settings.Global.BOOT_COUNT) }.getOrDefault(-1)
 
-    private fun hash(pin: String, salt: ByteArray): ByteArray {
+    private fun legacyHash(pin: String, salt: ByteArray): ByteArray {
         val spec = PBEKeySpec(pin.toCharArray(), salt, 120_000, 256)
         return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
     }
 
-    private fun b64(bytes: ByteArray) = Base64.encodeToString(bytes, Base64.NO_WRAP)
     private fun unb64(s: String): ByteArray = Base64.decode(s, Base64.NO_WRAP)
 
     private companion object {
+        const val KEY_TIMEOUT = "lock_timeout"
+        const val KEY_HIDE_SCREENS = "hide_screens"
+        const val KEY_NOTIF_CONTENT = "notification_content"
+        // The old PIN lock
         const val KEY_PIN_HASH = "pin_hash"
         const val KEY_PIN_SALT = "pin_salt"
         const val KEY_PIN_LENGTH = "pin_length"
@@ -147,6 +181,5 @@ class LockSettings(context: Context) {
         const val KEY_LOCKOUT_REMAINING = "pin_lockout_remaining"
         const val KEY_LOCKOUT_BASE = "pin_lockout_base_elapsed"
         const val KEY_LOCKOUT_BOOT = "pin_lockout_boot"
-        const val KEY_NOTIF_CONTENT = "notification_content"
     }
 }

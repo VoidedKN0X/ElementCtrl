@@ -130,7 +130,7 @@ fun RoomDetailsScreen(
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState())) {
             Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.clickable(enabled = permissions.canEditAvatar && !h.isDm) {
-                    pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }) {
                     Avatar(h.name, h.avatarUrl, h.dmUserId ?: h.id, size = 96.dp)
                 }
@@ -189,7 +189,7 @@ fun RoomDetailsScreen(
                 if (permissions.canEditName) SettingRow(Icons.Default.Edit, "Room name", h.name) { editName = true }
                 if (permissions.canEditTopic) SettingRow(Icons.Default.Edit, "Topic", h.topic ?: "Add a topic") { editTopic = true }
                 if (permissions.canEditAvatar) SettingRow(Icons.Default.Image, "Room picture", "Change the room's picture") {
-                    pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }
                 SettingRow(Icons.Default.Search, "Who can join", h.joinRule)
                 SettingRow(Icons.Default.History, "Who can read history", h.historyVisibility)

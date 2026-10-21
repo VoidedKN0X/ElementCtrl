@@ -72,7 +72,7 @@ object Battery {
     }
 
     private fun launch(context: Context, intent: Intent): Boolean = try {
-        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
     } catch (_: ActivityNotFoundException) {
         false

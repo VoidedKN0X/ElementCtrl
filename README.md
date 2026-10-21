@@ -25,7 +25,8 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Create rooms**, start direct chats, explore public rooms, and manage members and moderation
 - **Share to ElementCtrl** from other apps
 - **Device list**: rename your signed-in sessions or sign them out
-- **App lock** with PIN and fingerprint, and hiding chats from Recents and screenshots
+- **App lock** with its own PIN and optional fingerprint unlock; your saved sign-in stays encrypted while the app is locked (with notifications off)
+- **Hide in screenshots and recent apps**; the recent-apps screen never shows your chats
 - Two-pane layout on tablets and foldables
 
 ## Screenshots
@@ -68,6 +69,21 @@ If the Obtainium button doesn't open the app, add `https://github.com/VoidedKN0X
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
 - **Not included yet:** voice and video calls, spaces, live location and multiple accounts at once.
 
+## App lock
+
+Turn it on under **Settings > Privacy and security > App lock**. It's off until you turn it on.
+
+- **Its own app PIN** of at least 6 digits, separate from your phone's screen lock. Very obvious PINs such as 111111 or 123456 are refused.
+- **Unlock with fingerprint** (optional) only accepts strong biometrics, such as the fingerprint sensor, checked by the phone's secure hardware. Face unlock that only uses the camera isn't accepted. The PIN is still needed after the phone restarts and at least every 72 hours, and adding a new fingerprint to the phone turns fingerprint unlock off until you turn it on again.
+- **Your saved sign-in is encrypted with the PIN while ElementCtrl is locked**, with the key to its encrypted message store, and the running client is shut down. The unlocking key only exists in memory while the app is unlocked and is wiped the moment it locks. The PIN itself is never stored: it's stretched with 600,000 rounds of PBKDF2 and mixed with a key held in the phone's secure hardware, so a copy of the app's files isn't enough to guess it on a computer.
+- **Wrong PINs:** after 5 tries you wait 30 seconds, doubling up to 15 minutes. Restarting the app or the phone, or changing the clock, doesn't skip the wait.
+- **Lock again:** as soon as you leave the app (the default), after 1, 5 or 15 minutes or 1 hour away, or only when the app restarts. Picking photos or files, recording a voice message for the first time, sharing, opening a file or link, and the notification and battery settings don't count as leaving, unless you stay away for more than 5 minutes.
+- **Change app PIN** asks for your current PIN first, and turning the app lock off asks for the PIN too.
+- **Forgot your PIN?** It can't be recovered, because it encrypts your saved sign-in. The lock screen offers to sign out on this phone and delete its copy of your chats and keys. With recovery set up, your message history comes back after you sign in again.
+- **With the app lock on**, the connection to your homeserver is closed while ElementCtrl is locked (with notifications off), and message text is hidden in notifications until you choose to show it (**Settings > Notifications**). With notifications on, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock, and the connection stays available to them; Settings says so. The recent-apps screen never shows your chats.
+
+**Hide in screenshots and recent apps** (in the same section, also without the app lock) keeps ElementCtrl out of screenshots, screen recordings and the recent-apps view. Recovery key, password and lock screens are always hidden.
+
 ## Privacy
 
 **Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser) and, if you turn on push, your ntfy server.
@@ -106,6 +122,7 @@ Native Android apps for self-hosted services and everyday tools, all with the sa
 
 | App | What it's for |
 | --- | --- |
+| [AdCtrl](https://github.com/VoidedKN0X/AdCtrl) | Control your AdGuard Home DNS server |
 | [ArrCtrl](https://github.com/VoidedKN0X/ArrCtrl) | Radarr, Sonarr, Prowlarr, Bazarr, qBittorrent, autobrr and Cleanuparr in one app |
 | [BeamCtrl](https://github.com/VoidedKN0X/BeamCtrl) | TV remote for phones with an IR blaster |
 | [CraftyCtrl](https://github.com/VoidedKN0X/CraftyCtrl) | Manage Minecraft servers on Crafty Controller |
@@ -114,6 +131,7 @@ Native Android apps for self-hosted services and everyday tools, all with the sa
 | [FrigateCtrl](https://github.com/VoidedKN0X/FrigateCtrl) | Watch and review your Frigate NVR cameras |
 | [ImmichCtrl](https://github.com/VoidedKN0X/ImmichCtrl) | Photos and backup for your Immich server |
 | [JellyCtrl](https://github.com/VoidedKN0X/JellyCtrl) | Movies, shows, music and Live TV from Jellyfin |
+| [MemoCtrl](https://github.com/VoidedKN0X/MemoCtrl) | Notes on your Memos server |
 | [NaviCtrl](https://github.com/VoidedKN0X/NaviCtrl) | Music player for Navidrome servers |
 | [PaperCtrl](https://github.com/VoidedKN0X/PaperCtrl) | Scan and browse documents on Paperless-ngx |
 | [PrintCtrl](https://github.com/VoidedKN0X/PrintCtrl) | Bambu Lab printers through Bambuddy, and Spoolman spools |

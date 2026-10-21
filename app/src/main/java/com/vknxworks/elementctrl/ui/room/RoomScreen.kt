@@ -593,8 +593,8 @@ fun RoomScreen(
                         onAttach = { attachMenu = true },
                         attachMenu = attachMenu,
                         onDismissAttach = { attachMenu = false },
-                        onPickMedia = { attachMenu = false; pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
-                        onPickFile = { attachMenu = false; pickFile.launch(arrayOf("*/*")) },
+                        onPickMedia = { attachMenu = false; com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
+                        onPickFile = { attachMenu = false; com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickFile.launch(arrayOf("*/*")) },
                         onPoll = { attachMenu = false; creatingPoll = true },
                         recording = recording,
                         levels = levels,
@@ -603,7 +603,7 @@ fun RoomScreen(
                             if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                 recording = recorder.start()
                                 if (!recording) scope.launch { snackbar.showSnackbar("Couldn't start the microphone") }
-                            } else micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+                            } else { com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); micPermission.launch(android.Manifest.permission.RECORD_AUDIO) }
                         },
                         onCancelRecording = { recorder.cancel(); recording = false },
                         onSendRecording = {
@@ -1138,7 +1138,7 @@ internal fun openMedia(
             if (geo == null) {
                 scope.launch { snackbar.showSnackbar("This location can't be opened") }
             } else runCatching {
-                context.startActivity(Intent(Intent.ACTION_VIEW, geo).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); context.startActivity(Intent(Intent.ACTION_VIEW, geo).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }.onFailure { scope.launch { snackbar.showSnackbar("No maps app to open this location") } }
         }
         else -> {

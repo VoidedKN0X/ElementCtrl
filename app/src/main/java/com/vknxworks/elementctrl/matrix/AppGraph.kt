@@ -6,6 +6,10 @@ import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.data.Prefs
 import com.vknxworks.elementctrl.data.SessionStore
 import com.vknxworks.elementctrl.data.StoredSession
+import com.vknxworks.elementctrl.data.lock.LockVault
+import com.vknxworks.elementctrl.ui.lock.AppLock
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +23,8 @@ import kotlinx.coroutines.withContext
 
 sealed interface AppState {
     data object Loading : AppState
+    /** The saved session is sealed by the app lock: it opens again after unlocking. */
+    data object Locked : AppState
     data class SignedOut(val message: String? = null) : AppState
     data class SignedIn(val session: MatrixSession) : AppState
 }
@@ -27,8 +33,19 @@ sealed interface AppState {
 class AppGraph(val context: Context) {
     val prefs = Prefs(context)
     val drafts = com.vknxworks.elementctrl.data.Drafts(context)
-    val lock = com.vknxworks.elementctrl.data.LockSettings(context)
-    val store = SessionStore(context)
+
+    /** The app lock's PIN, fingerprint key and the key that seals the saved sign-in while locked. */
+    val vault = LockVault(context, "elementctrl")
+    val lock = com.vknxworks.elementctrl.data.LockSettings(context) { vault.enabled }
+
+    /**
+     * The saved sign-in is sealed with the app PIN: the lock is on and notifications are off. With
+     * notifications on, the background check and push open the account while the app is locked, so
+     * the sign-in then stays encrypted with the Keystore only (as without the app lock).
+     */
+    fun sealing(): Boolean = vault.enabled && !prefs.notifications.value
+
+    val store = SessionStore(context, vault, ::sealing)
     val factory = ClientFactory(context, store)
     val auth = AuthService(this)
     val redirectScheme: String = context.getString(R.string.login_redirect_scheme)
@@ -59,10 +76,102 @@ class AppGraph(val context: Context) {
                     Unit
                 }
             }
-            if (stored == null) {
+            if (stored == null && store.isSealedNow()) {
+                // Sealed by the app lock: it's opened after unlocking (onUnlocked).
+                _state.value = AppState.Locked
+            } else if (stored == null) {
                 _state.value = AppState.SignedOut()
             } else if (restore(stored) == null) {
                 _state.value = AppState.SignedOut("Couldn't open your saved session. Please sign in again.")
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- app lock
+
+    /** Read once at start, so the app never shows unlocked for a moment. */
+    val lockAtStart: Boolean = vault.enabled || lock.legacyPinSet
+
+    /** The app lock is on, either with the app PIN or still the old PIN waiting for a new one. */
+    val lockEnabled: Boolean get() = vault.enabled || lock.legacyPinSet
+
+    /** Turns the app lock on with [pin] (also the last step of updating from the old PIN lock). */
+    suspend fun enableLock(pin: String) {
+        // Unlocked first, so the lock screen doesn't flash up while the PIN is being saved.
+        AppLock.markUnlocked()
+        withContext(Dispatchers.Default) { vault.setUp(pin) }
+        lock.clearLegacyPin()
+        withContext(Dispatchers.IO) { runCatching { store.reseal() } }
+    }
+
+    /** Turns the app lock off (after the PIN was confirmed): the sign-in goes back to Keystore-only encryption. */
+    suspend fun disableLock() {
+        withContext(Dispatchers.IO) { runCatching { store.reseal(seal = false) } }
+        vault.disable()
+    }
+
+    /**
+     * "Forgot PIN?": the sealed sign-in can't be opened any more, so this phone's copy of the account goes.
+     * If the session is running (notifications were on), it signs out on the server too.
+     */
+    suspend fun forgetEverything() {
+        val s = session
+        if (s != null) {
+            runCatching { signOut() }.onFailure { runCatching { forgetSession(null) } }
+        } else {
+            runCatching { com.vknxworks.elementctrl.notify.Push.disable(context, null) }
+            withContext(Dispatchers.IO) {
+                store.clear()
+                runCatching { removeOrphanSessions(keep = null) }
+                wipeLocalLeftovers()
+                runCatching { com.vknxworks.elementctrl.notify.Notifier.schedule(context, false) }
+            }
+            _state.value = AppState.SignedOut()
+        }
+        lock.clearLegacyPin()
+        AppLock.markUnlocked()
+        vault.disable()
+    }
+
+    /**
+     * Locked: wipe the key from memory. With the sign-in sealed (notifications off), the client is shut
+     * down too, so the tokens and database key aren't kept in memory; unlocking opens it again.
+     */
+    fun onLocked() {
+        vault.close()
+        if (!sealing()) return
+        scope.launch {
+            mutex.withLock {
+                val s = session ?: return@withLock
+                if (vault.isOpen) return@withLock // unlocked again meanwhile
+                _state.value = AppState.Locked
+                withContext(Dispatchers.Main) { runCatching { com.vknxworks.elementctrl.ui.room.AudioPlayer.stop() } }
+                s.shutdown()
+                withContext(Dispatchers.Main) { runCatching { coil3.SingletonImageLoader.get(context).memoryCache?.clear() } }
+            }
+        }
+    }
+
+    fun onUnlocked() {
+        AppLock.markUnlocked()
+        scope.launch {
+            // Notifications may have been turned on or off since the sign-in was last sealed.
+            withContext(Dispatchers.IO) { runCatching { store.reseal() } }
+            if (_state.value != AppState.Locked) return@launch
+            val stored = withContext(Dispatchers.IO) { store.load() }
+            if (stored == null || restore(stored) == null) {
+                _state.value = AppState.SignedOut("Couldn't open your saved session. Please sign in again.")
+            }
+        }
+    }
+
+    init {
+        AppLock.onLocked = { onLocked() }
+        // Turning notifications on unseals the saved sign-in (the background check needs it while locked),
+        // turning them off seals it again. Only possible while unlocked.
+        scope.launch {
+            prefs.notifications.drop(1).distinctUntilChanged().collect {
+                if (vault.isOpen) withContext(Dispatchers.IO) { runCatching { store.reseal() } }
             }
         }
     }
@@ -138,7 +247,7 @@ class AppGraph(val context: Context) {
         _state.value = AppState.SignedOut()
     }
 
-    private suspend fun forgetSession(message: String) {
+    private suspend fun forgetSession(message: String?) {
         val s = session ?: return
         // The token is already dead, so the pusher can't be removed on the server; drop the local registration.
         runCatching { com.vknxworks.elementctrl.notify.Push.disable(context, null) }

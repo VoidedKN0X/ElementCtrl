@@ -2,11 +2,37 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
-## Unreleased
+## 1.4.0
+
+ElementCtrl's app lock is now the one every Ctrl app shares, with its own app PIN that also encrypts your saved sign-in.
 
 ### Changed
 
+- **Updating with the app lock on:** the first time you open ElementCtrl, enter your old PIN (or use your fingerprint) one last time, then choose your new app PIN. You can't skip this step. The old PIN's hash and its fingerprint key are deleted as soon as the new PIN is set.
+- **The app PIN needs at least 6 digits** (the old lock accepted 4), and very obvious ones like 111111 or 123456 are refused. It's chosen and changed on a full-screen PIN pad instead of a dialog, and turning the lock off asks for it too.
+- **Settings > Privacy and security** replaces the App lock section, with the same rows as the other Ctrl apps: **App lock**, **Change app PIN**, **Unlock with fingerprint**, **Lock again** and **Hide in screenshots and recent apps**.
+- **Lock again** has the series' choices: as soon as you leave the app (the default), after 1, 5 or 15 minutes or 1 hour away, or only when the app restarts. Your old choice carries over (30 seconds becomes 1 minute). Picking photos or files, sharing, opening a file or link, and the notification and battery settings no longer count as leaving the app, unless you stay away for more than 5 minutes.
+- **Unlock with fingerprint** has to be turned on again after you choose the new PIN (**Settings > Privacy and security > Unlock with fingerprint**), because it now unlocks the key that opens your sign-in. The PIN is also needed after the phone restarts and at least every 72 hours.
+- **Hide in screenshots and recent apps** now works without the app lock too, and keeps your old setting. The recent-apps screen still never shows your chats.
+- **Settings are in the same order as in the other Ctrl apps**: Appearance, Notifications, Privacy and security, then Account, Chats, Ignored people and Troubleshooting, with About last.
+- **Pure black theme**: **Settings > Appearance > Theme** now also has Pure black, as in the other Ctrl apps. **Material You colours** is now called **Use wallpaper colours**.
+- **Forgot your PIN?** now signs out on this phone and deletes its copy of your chats and keys, even when the app can't reach your homeserver. With recovery set up, your message history comes back after you sign in again.
 - **Removed the store listing files** (`fastlane/metadata/android/en-US`) that 1.3.1 added to the repo. Nothing changes in the app.
+
+### Security
+
+- **Your saved sign-in is encrypted with your PIN while ElementCtrl is locked** (with notifications off): the access and refresh tokens and the key to the encrypted message store can only be opened after unlocking, and the connection to your homeserver is closed while the app is locked. The key that decrypts them only exists in memory while the app is unlocked and is wiped the moment it locks.
+- **With notifications on**, the background check and push still need your account while ElementCtrl is locked, so your saved sign-in then stays encrypted with the Android Keystore only, as without the app lock. Settings > Privacy and security says so, and message text stays hidden in notifications unless you choose to show it.
+- **The PIN can't be guessed off the phone.** It's never stored. It's stretched with 600,000 rounds of PBKDF2 and mixed with a secret held in the phone's secure hardware (StrongBox where available). The old lock only stored a PBKDF2 hash with 120,000 rounds.
+- **Wrong PINs lock the screen**: after 5 tries you wait 30 seconds, doubling with every further 5 wrong tries up to 15 minutes. Restarting the app or the phone, or changing the clock, doesn't reset the wait.
+- **Fingerprint unlock can't be faked**: the fingerprint has to unlock the key that opens your sign-in, so a tampered "success" on a rooted phone doesn't open the app. Adding a new fingerprint turns fingerprint unlock off until you turn it on again with your PIN.
+- **The lock and PIN screens are never in screenshots** or screen recordings, whatever "Hide in screenshots and recent apps" is set to.
+- **No logs at all in release builds**: error logs, which could name a server or user, are now removed from the app too, like the other logs before.
+- **One library fewer**: the app lock no longer needs the AndroidX Biometric (alpha) and Fragment libraries; it uses Android's own fingerprint prompt.
+
+### Fixed
+
+- **README**: describes the new app lock, and the Ctrl series table lists AdCtrl and MemoCtrl.
 
 ## 1.3.1
 
