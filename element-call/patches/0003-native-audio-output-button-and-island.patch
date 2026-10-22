@@ -1,0 +1,123 @@
+diff --git a/src/button/Button.tsx b/src/button/Button.tsx
+index b8d052d..cabe136 100644
+--- a/src/button/Button.tsx
++++ b/src/button/Button.tsx
+@@ -145,6 +145,26 @@ export const EndCallButton: FC<EndCallButtonProps> = (props) => {
+   );
+ };
+ 
++interface AudioOutputButtonProps extends ComponentPropsWithoutRef<"button"> {
++  size?: "md" | "lg";
++}
++
++/**
++ * ElementCtrl: opens the app's own audio output picker (earpiece, speaker, Bluetooth, wired…), so the output can be
++ * changed in one tap instead of through the settings.
++ */
++export const AudioOutputButton: FC<AudioOutputButtonProps> = (props) => (
++  <Tooltip label="Audio output">
++    <CpdButton
++      iconOnly
++      Icon={VolumeOnSolidIcon}
++      kind="secondary"
++      aria-label="Audio output"
++      {...props}
++    />
++  </Tooltip>
++);
++
+ interface LoudspeakerButtonProps extends ComponentPropsWithoutRef<"button"> {
+   size?: "md" | "lg";
+   loudspeakerModeEnabled: boolean;
+diff --git a/src/components/CallFooter.module.css b/src/components/CallFooter.module.css
+index 01c1ac9..d067762 100644
+--- a/src/components/CallFooter.module.css
++++ b/src/components/CallFooter.module.css
+@@ -162,3 +162,30 @@ Once we exceed 500 we hide everything except the buttons.
+     gap: var(--cpd-space-4x);
+   }
+ }
++
++/*
++ElementCtrl: the call's buttons sit in a floating frosted-glass island, the same
++look as ElementCtrl's message box and tab bar: whatever is behind it is blurred and
++tinted, with a light rim along the top edge and a soft shadow so it floats.
++*/
++.buttons {
++  align-items: center;
++  padding: var(--cpd-space-2x) var(--cpd-space-3x);
++  border-radius: 999px;
++  background: rgba(27, 30, 36, 0.62);
++  -webkit-backdrop-filter: blur(26px) saturate(1.3);
++  backdrop-filter: blur(26px) saturate(1.3);
++  border: 1px solid rgba(255, 255, 255, 0.1);
++  box-shadow:
++    inset 0 1px 0 rgba(255, 255, 255, 0.14),
++    0 10px 30px rgba(0, 0, 0, 0.38);
++}
++
++/* The island already gives the buttons their space: keep the bar off the screen edge without extra height
++   (not in picture-in-picture, which has its own spacing above). */
++@container element-call (min-height: 401px) {
++  .footer {
++    padding-block: var(--cpd-space-4x)
++      calc(env(safe-area-inset-bottom) + var(--cpd-space-5x));
++  }
++}
+diff --git a/src/components/CallFooter.tsx b/src/components/CallFooter.tsx
+index 6fdf13d..ffc1061 100644
+--- a/src/components/CallFooter.tsx
++++ b/src/components/CallFooter.tsx
+@@ -18,6 +18,7 @@ import {
+   SettingsButton,
+   ReactionToggleButton,
+   LoudspeakerButton,
++  AudioOutputButton,
+   SettingsIconButton,
+   type ReactionData,
+ } from "../button";
+@@ -270,7 +271,19 @@ export const CallFooter: FC<FooterProps> = ({
+     );
+   }, [audioOutputSwitcher, buttonSize]);
+ 
+-  if (audioOutputButton) buttons.push(audioOutputButton);
++  // ElementCtrl: when the app offers its own audio output picker, show a button for it in the bar (it replaces
++  // the loudspeaker toggle, which only switches between two of the outputs).
++  const nativeOutputPicker = window.controls?.showNativeAudioDevicePicker;
++  if (nativeOutputPicker !== undefined) {
++    buttons.push(
++      <AudioOutputButton
++        size={buttonSize}
++        key="audio_output"
++        onClick={() => window.controls.showNativeAudioDevicePicker?.()}
++        data-testid="incall_audio_output"
++      />,
++    );
++  } else if (audioOutputButton) buttons.push(audioOutputButton);
+ 
+   if (hangup)
+     buttons.push(
+diff --git a/src/state/AndroidControlledAudioOutput.ts b/src/state/AndroidControlledAudioOutput.ts
+index 65ce20a..59190f6 100644
+--- a/src/state/AndroidControlledAudioOutput.ts
++++ b/src/state/AndroidControlledAudioOutput.ts
+@@ -23,7 +23,7 @@ import {
+ } from "./MediaDevices.ts";
+ import type { ObservableScope } from "./ObservableScope.ts";
+ import type { RTCCallIntent } from "matrix-js-sdk/lib/matrixrtc";
+-import { type Controls, type OutputDevice } from "../controls.ts";
++import { type Controls, type OutputDevice, outputDevice$ } from "../controls.ts";
+ import { type Behavior } from "./Behavior.ts";
+ 
+ type ControllerState = {
+@@ -130,6 +130,10 @@ export class AndroidControlledAudioOutput implements MediaDevice<
+     );
+ 
+     // Effect 1: notify host when effective selection changes
++    // ElementCtrl: the app's own audio output picker selects through controls.setAudioDevice; treat that like a
++    // choice made in Element Call's menu, so both stay in step.
++    outputDevice$.pipe(scope.bind()).subscribe((id) => this.select(id));
++
+     this.selected$
+       // It is a behavior so it has built-in distinct until change
+       .pipe(scope.bind())

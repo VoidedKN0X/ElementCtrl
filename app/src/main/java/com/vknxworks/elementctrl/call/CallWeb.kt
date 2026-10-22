@@ -189,7 +189,17 @@ internal object WidgetMessages {
  * it, switches to the one picked, puts the phone in call mode so the volume keys control the call, and turns the
  * screen off with the proximity sensor while the earpiece is used.
  */
-internal class CallAudio(private val context: Context, private val webView: WebView) {
+/** One choice in the call's audio output picker. */
+internal data class AudioOutput(val id: String, val name: String, val kind: Kind, val selected: Boolean) {
+    enum class Kind { EARPIECE, SPEAKER, BLUETOOTH, WIRED, USB, OTHER }
+}
+
+internal class CallAudio(
+    private val context: Context,
+    private val webView: WebView,
+    /** Shows the app's audio output picker (from the button in the call's bar). */
+    private val onShowPicker: (List<AudioOutput>) -> Unit = {},
+) {
     private val audio = context.getSystemService(AudioManager::class.java)
     private val main = Handler(Looper.getMainLooper())
     private var started = false
@@ -264,6 +274,41 @@ internal class CallAudio(private val context: Context, private val webView: WebV
         }
     }
 
+    /** The audio output button in the call's bar was tapped. */
+    @JavascriptInterface
+    fun showPicker() {
+        main.post { if (started) onShowPicker(outputs()) }
+    }
+
+    /** What the picker lists: the same devices Element Call gets, with the one in use marked. */
+    fun outputs(): List<AudioOutput> {
+        val current = audio.communicationDevice?.id?.toString() ?: wanted
+        return devices().map { d ->
+            AudioOutput(
+                id = d.id.toString(),
+                name = name(d),
+                kind = when (d.type) {
+                    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> AudioOutput.Kind.EARPIECE
+                    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> AudioOutput.Kind.SPEAKER
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO, AudioDeviceInfo.TYPE_BLE_HEADSET -> AudioOutput.Kind.BLUETOOTH
+                    AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> AudioOutput.Kind.WIRED
+                    AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> AudioOutput.Kind.USB
+                    else -> AudioOutput.Kind.OTHER
+                },
+                selected = d.id.toString() == current,
+            )
+        }
+    }
+
+    /** Picked in the app's picker: switch now, and tell Element Call so its own menu agrees. */
+    fun choose(id: String) {
+        log("picked #$id in the app's picker")
+        wanted = id
+        select(id)
+        val safe = JSONObject.quote(id)
+        webView.evaluateJavascript("if (window.controls && controls.setAudioDevice) controls.setAudioDevice($safe);", null)
+    }
+
     @JavascriptInterface
     fun onTrackReady() {
         // Element Call's audio has started: give the WebView a moment, then offer the devices.
@@ -286,7 +331,9 @@ internal class CallAudio(private val context: Context, private val webView: WebV
         log("call started, mode ${audio.mode}, devices: ${devices().joinToString { describe(it) }}")
         webView.evaluateJavascript(
             "if (window.controls) { controls.onAudioPlaybackStarted = () => { elementCtrlAudio.onTrackReady(); };" +
-                " controls.onAudioDeviceSelect = (id) => { elementCtrlAudio.setAudioDevice(id); }; }",
+                " controls.onAudioDeviceSelect = (id) => { elementCtrlAudio.setAudioDevice(id); };" +
+                // The audio output button in the call's bar opens the app's own picker.
+                " controls.showNativeAudioDevicePicker = () => { elementCtrlAudio.showPicker(); }; }",
             null,
         )
     }

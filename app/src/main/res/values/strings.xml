@@ -300,6 +300,9 @@
     <string name="call_locked_pip">Locked</string>
     <string name="channel_calls_incoming">Incoming calls</string>
     <string name="channel_calls_ongoing">Ongoing calls</string>
+    <string name="call_audio_output">Audio output</string>
+    <string name="call_audio_output_none">No audio outputs found.</string>
+    <string name="call_audio_output_in_use">In use</string>
     <string name="audio_bluetooth">Bluetooth</string>
     <string name="audio_usb">USB</string>
     <string name="audio_wired">Headphones</string>

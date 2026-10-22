@@ -137,6 +137,8 @@ class CallActivity : ComponentActivity() {
     private var phase by mutableStateOf<Phase>(Phase.Idle)
     private var pendingJoin by mutableStateOf<Target?>(null)
     private var inPip by mutableStateOf(false)
+    /** The audio output picker, while it's open. */
+    private var outputPicker by mutableStateOf<List<AudioOutput>?>(null)
     private var webView: WebView? = null
     private var bridge: WidgetBridge? = null
     private var audio: CallAudio? = null
@@ -251,6 +253,15 @@ class CallActivity : ComponentActivity() {
                             link = stringResource(R.string.call_not_set_up_link),
                         )
                         is Phase.Failed -> Message(stringResource(R.string.call_error_title), p.message)
+                    }
+                    // The audio output picker only belongs to a call on screen (not picture-in-picture).
+                    LaunchedEffect(phase, inPip) { if (phase != Phase.InCall || inPip) outputPicker = null }
+                    outputPicker?.let { options ->
+                        AudioOutputSheet(
+                            options,
+                            onPick = { id -> audio?.choose(id); outputPicker = null },
+                            onDismiss = { outputPicker = null },
+                        )
                     }
                     val coverCall = phase != Phase.Ringing || pendingJoin != null
                     if (locked && inPip) {
@@ -417,7 +428,7 @@ class CallActivity : ComponentActivity() {
         wv.setBackgroundColor(android.graphics.Color.BLACK)
         val b = WidgetBridge(wv) { json -> onFromWidget(json) }
         bridge = b
-        audio = CallAudio(this, wv)
+        audio = CallAudio(this, wv, onShowPicker = { outputPicker = it })
         controls = CallControls(wv, onBack = { onBack() }, onPipOrientation = { portrait -> portraitPip = portrait; updatePip() })
         wv.webViewClient = CallWebClient(
             this,

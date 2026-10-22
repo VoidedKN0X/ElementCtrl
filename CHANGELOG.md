@@ -2,6 +2,16 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.12
+
+### New
+
+- **Audio output button in calls.** The call's button bar now has an audio output button (the speaker icon, next to hang up). Tap it to choose where the call plays: earpiece, speaker, Bluetooth earphones, or a wired or USB headset. The one in use is marked. Before, this was only reachable through the call's settings. Your choice is passed on to the call itself, so its own menu always agrees.
+
+### Changed
+
+- **The call's buttons sit in a floating island**, the same frosted-glass look as the message box and tab bar in the rest of ElementCtrl: rounded, slightly see-through with a soft blur of the video behind it, a light edge along the top and a shadow so it floats. The bar takes up a little less height at the bottom of the screen, leaving more room for video. Picture-in-picture keeps its compact layout.
+
 ## 1.6.11
 
 ### Fixed
