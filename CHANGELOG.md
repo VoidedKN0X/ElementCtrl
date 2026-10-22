@@ -2,6 +2,17 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.9
+
+### Fixed
+
+- **ElementCtrl now asks for permission to show notifications.** On Android 13 and newer an app has to ask before it can show any notification. ElementCtrl only asked when you turned "Notifications on this device" on, but that switch starts out on, so on a fresh install the question never came and messages arrived without any notification (seen on Samsung phones). The app now asks once, right after you sign in.
+- **The notifications switch tells the truth.** Settings › Notifications › "Notifications on this device" now only shows as on when Android actually lets ElementCtrl show notifications. Turning it on asks for the permission, or, if you said no before or turned notifications off in Android's settings, opens ElementCtrl's notification settings in Android.
+
+### New
+
+- A **"Notifications are off"** banner on the chat list when notifications are on in ElementCtrl but Android isn't letting it show them (permission not given, notifications turned off for the app, or the Messages category switched off). **Allow** asks for the permission or opens the right Android settings page. It disappears as soon as notifications work.
+
 ## 1.6.8
 
 ### Fixed

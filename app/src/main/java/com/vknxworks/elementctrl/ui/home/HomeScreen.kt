@@ -240,7 +240,47 @@ fun HomeScreen(
                 com.vknxworks.elementctrl.notify.Battery.shouldShowBanner(ctx, notificationsOn)
             }
             val appHeldBack = !health.appUnrestricted || health.appBackgroundRestricted
+            // Android 13+ only shows an app's notifications once it has asked for permission. Ask once, right after
+            // sign-in; after that a banner explains it and opens the prompt (or Android's settings if it's been denied).
+            val access = com.vknxworks.elementctrl.notify.NotificationAccess
+            var notificationsAllowed by remember { mutableStateOf(health.notificationsAllowed) }
+            var autoAsk by remember { mutableStateOf(false) }
+            LaunchedEffect(health) { notificationsAllowed = health.notificationsAllowed }
+            val askNotifications = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                notificationsAllowed = access.allowed(ctx)
+                // Allow tapped but Android won't show the prompt any more (denied before): open the app's notification
+                // settings instead. Not after the automatic first ask: "Don't allow" there is respected.
+                if (!granted && !autoAsk) access.openSettings(ctx)
+                autoAsk = false
+            }
+            fun requestNotifications() {
+                if (!access.hasPermission(ctx)) {
+                    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn()
+                    askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else access.openSettings(ctx)
+            }
+            LaunchedEffect(notificationsOn) {
+                if (notificationsOn && !access.hasPermission(ctx) && !access.askedAutomatically(ctx)) {
+                    access.markAskedAutomatically(ctx)
+                    autoAsk = true
+                    com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn()
+                    askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp + LocalBottomClearance.current)) {
+                if (notificationsOn && !notificationsAllowed) {
+                    item("notifications-blocked") {
+                        Banner(
+                            icon = Icons.Default.NotificationsOff,
+                            title = stringResource(R.string.banner_notifications_blocked_title),
+                            body = stringResource(R.string.banner_notifications_blocked_body),
+                            action = stringResource(R.string.warn_allow),
+                            onClick = { requestNotifications() },
+                        )
+                    }
+                }
                 if (showBattery) {
                     item("battery") {
                         Banner(

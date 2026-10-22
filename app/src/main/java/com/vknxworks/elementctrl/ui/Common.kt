@@ -344,6 +344,8 @@ data class PushHealth(
     val ntfyInstalled: Boolean,
     /** ntfy is exempt from battery optimisation (only meaningful when installed). */
     val ntfyUnrestricted: Boolean,
+    /** Android lets ElementCtrl show notifications (permission granted, app and Messages channel not turned off). */
+    val notificationsAllowed: Boolean = true,
 )
 
 private fun readPushHealth(context: android.content.Context) = PushHealth(
@@ -351,6 +353,7 @@ private fun readPushHealth(context: android.content.Context) = PushHealth(
     appBackgroundRestricted = com.vknxworks.elementctrl.notify.Battery.isBackgroundRestricted(context),
     ntfyInstalled = com.vknxworks.elementctrl.notify.UnifiedPush.isNtfyInstalled(context),
     ntfyUnrestricted = com.vknxworks.elementctrl.notify.Battery.isNtfyUnrestricted(context),
+    notificationsAllowed = com.vknxworks.elementctrl.notify.NotificationAccess.allowed(context),
 )
 
 @Composable

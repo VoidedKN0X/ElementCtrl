@@ -137,7 +137,11 @@ fun SettingsScreen(
     val permissionNeeded = stringResource(R.string.notifications_permission_needed)
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         prefs.setNotifications(granted)
-        if (!granted) scope.launch { snackbar.showSnackbar(permissionNeeded) }
+        if (!granted) {
+            // Android won't show the prompt again after a denial: open the app's notification settings instead.
+            scope.launch { snackbar.showSnackbar(permissionNeeded) }
+            com.vknxworks.elementctrl.notify.NotificationAccess.openSettings(context)
+        }
     }
 
     val modeOptions = listOf(
@@ -192,12 +196,17 @@ fun SettingsScreen(
                 GroupSwitch(
                     stringResource(R.string.notifications_device),
                     stringResource(R.string.notifications_device_subtitle),
-                    checked = notifications,
+                    // Shown as on only when Android actually lets the app show notifications.
+                    checked = notifications && health.notificationsAllowed,
                     icon = Icons.Filled.Notifications,
                 ) { on ->
                     if (on && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                         AppLock.expectReturn()
                         askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else if (on && !health.notificationsAllowed) {
+                        // Permission granted, but notifications (or the Messages channel) are off in Android's settings.
+                        prefs.setNotifications(true)
+                        com.vknxworks.elementctrl.notify.NotificationAccess.openSettings(context)
                     } else {
                         prefs.setNotifications(on)
                     }

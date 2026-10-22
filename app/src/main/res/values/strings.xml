@@ -219,6 +219,8 @@
     <string name="chats_reconnect">Reconnect</string>
     <string name="chats_share_to">Choose a chat to share to</string>
     <string name="chats_cancel_share">Cancel sharing</string>
+    <string name="banner_notifications_blocked_title">Notifications are off</string>
+    <string name="banner_notifications_blocked_body">Android isn\'t letting ElementCtrl show notifications, so new messages arrive without telling you. Allow notifications to get them.</string>
     <string name="banner_battery_title">Notifications may be missed</string>
     <string name="banner_battery_app">Battery optimisation cuts ElementCtrl off from the network while the phone sleeps, so messages can\'t be fetched. Let it run in the background.</string>
     <string name="banner_battery_ntfy">ntfy is battery-optimised, so Android can cut its connection while the phone sleeps and messages arrive late or not at all. Set ntfy\'s battery usage to Unrestricted.</string>
