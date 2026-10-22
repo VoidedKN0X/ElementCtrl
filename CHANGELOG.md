@@ -2,6 +2,21 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.10
+
+### Fixed
+
+- **Calls with Bluetooth earphones are more reliable.** Several things could leave a call silent on Bluetooth earphones, and they're now handled:
+  - Earphones that offer both classic Bluetooth and Bluetooth LE Audio were listed twice, and the call could pick the LE Audio route that not every phone can use for calls. They're now listed once, using the classic call route when it's there.
+  - When Android refuses to send the call to the earphones, the app now tries the earphones' other Bluetooth mode, and otherwise falls back to the phone's earpiece or speaker, instead of leaving the call without sound.
+  - Bluetooth call audio takes a moment to connect: two seconds after switching, the app checks the call really is on the earphones and asks Android again if it isn't.
+  - Earphones re-announce themselves with a new ID when they switch from music to call mode. A call that had picked them now follows them instead of losing its sound.
+  - Earphones connected during a call show up in the call's audio menu straight away (and are switched to), instead of only after another change.
+
+### New
+
+- What the call's audio routing does (which devices were found, what Element Call picked, whether Android accepted it, where the sound actually goes) is now written to **Settings › About › Connection log**, so if a call is still silent, the log shows why. It names only the kind of device (earpiece, speaker, Bluetooth…), not its name.
+
 ## 1.6.9
 
 ### Fixed
