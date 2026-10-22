@@ -18,6 +18,8 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- "Nearby devices": the call screen's audio engine only uses Bluetooth earphones for calls with it. Not used to scan. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- The ongoing-call notification keeps the call running while you use other apps or the screen is off. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />

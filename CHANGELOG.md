@@ -2,6 +2,15 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.6.11
+
+### Fixed
+
+- **Calls work with Bluetooth earphones.** With earphones connected, a call could be completely silent: you couldn't hear the other person and they couldn't hear you. The call screen's audio engine (the one inside Android's WebView) only uses Bluetooth earphones for calls when the app has Android's **Nearby devices** permission. ElementCtrl didn't have it, so the engine kept moving the call back to the phone's speaker while ElementCtrl moved it to the earphones, and the sound got lost both ways.
+  - ElementCtrl now asks for **Nearby devices** before a call starts (once; Android remembers your answer). It's only used to send call audio to your earphones; it doesn't scan for or connect to devices.
+  - If you don't allow it, calls stay on the phone's earpiece or speaker, so you can always hear each other, and the earphones aren't offered in the call's audio menu.
+  - If you allow it during a call, it takes effect from the next time ElementCtrl starts.
+
 ## 1.6.10
 
 ### Fixed

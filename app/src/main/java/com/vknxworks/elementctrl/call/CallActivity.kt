@@ -168,6 +168,26 @@ class CallActivity : ComponentActivity() {
 
     private fun has(permission: String) = checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
+    /**
+     * The call screen is a WebView, and its audio engine (Chromium's) only treats Bluetooth earphones as a call device
+     * when the app holds the "Nearby devices" (BLUETOOTH_CONNECT) permission, checked once when it starts its audio.
+     * Without it, it keeps moving the call back to the phone's speaker while ElementCtrl moves it to the earphones, and
+     * the call ends up silent both ways. So it's asked for before the call loads; the call goes ahead either way.
+     */
+    private var afterBluetoothAnswer: (() -> Unit)? = null
+    private val askBluetooth = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        com.vknxworks.elementctrl.matrix.ConnectionLog.log("call audio: nearby devices permission ${if (granted) "granted" else "not granted"}")
+        afterBluetoothAnswer?.invoke()
+        afterBluetoothAnswer = null
+    }
+
+    private fun withBluetoothPermission(then: () -> Unit) {
+        if (has(Manifest.permission.BLUETOOTH_CONNECT)) return then()
+        afterBluetoothAnswer = then
+        com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn()
+        runCatching { askBluetooth.launch(Manifest.permission.BLUETOOTH_CONNECT) }.onFailure { afterBluetoothAnswer = null; then() }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -436,10 +456,13 @@ class CallActivity : ComponentActivity() {
             override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean = true
         }
         webView = wv
-        wv.loadUrl(prepared.url)
-        timeoutJob = callScope.launch {
-            delay(LOAD_TIMEOUT_MS)
-            if (!loaded && !ending) phase = Phase.Failed(getString(R.string.call_error_generic))
+        withBluetoothPermission {
+            if (ending || isDestroyed) return@withBluetoothPermission
+            wv.loadUrl(prepared.url)
+            timeoutJob = callScope.launch {
+                delay(LOAD_TIMEOUT_MS)
+                if (!loaded && !ending) phase = Phase.Failed(getString(R.string.call_error_generic))
+            }
         }
     }
 

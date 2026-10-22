@@ -312,7 +312,12 @@ internal class CallAudio(private val context: Context, private val webView: WebV
         // Earphones can show up twice, as a classic Bluetooth call device and as a Bluetooth LE Audio device. Offer
         // them once: the classic one (it works with every phone), the LE one only when that's all there is.
         val classicNames = all.filter { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO }.map { it.productName?.toString().orEmpty() }.toSet()
-        return all.filterNot { it.type == AudioDeviceInfo.TYPE_BLE_HEADSET && it.productName?.toString().orEmpty() in classicNames }
+        val listed = all.filterNot { it.type == AudioDeviceInfo.TYPE_BLE_HEADSET && it.productName?.toString().orEmpty() in classicNames }
+        // Without "Nearby devices" the call's audio engine won't use Bluetooth and keeps pulling the call back to the
+        // phone; offering the earphones then only makes the call go silent. Leave them out in that case.
+        val bluetoothAllowed = context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        return if (bluetoothAllowed) listed else listed.filterNot { isBluetooth(it) }
     }
 
     private fun name(d: AudioDeviceInfo): String {
