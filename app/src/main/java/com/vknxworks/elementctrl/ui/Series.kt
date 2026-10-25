@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.ui.components.CtrlBottomBar
 import com.vknxworks.elementctrl.ui.components.CtrlLabel
 import com.vknxworks.elementctrl.ui.components.CtrlSheet
 import com.vknxworks.elementctrl.ui.components.CtrlSquareButton
