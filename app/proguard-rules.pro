@@ -16,6 +16,11 @@
 # Background sync worker and notification receivers are created by the system from their class names.
 -keep class com.vknxworks.elementctrl.notify.** { *; }
 
+# osmdroid (the OpenStreetMap map for sending and viewing locations) and the zxing-cpp QR decoder (JNI).
+-keep class org.osmdroid.** { *; }
+-dontwarn org.osmdroid.**
+-keep class zxingcpp.** { *; }
+
 -dontwarn androidx.window.extensions.**
 -dontwarn androidx.window.sidecar.**
 

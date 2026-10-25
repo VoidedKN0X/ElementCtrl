@@ -3,6 +3,8 @@ package com.vknxworks.elementctrl.ui.room
 import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.vknxworks.elementctrl.ui.formatDuration
+import com.vknxworks.elementctrl.ui.location.display
+import com.vknxworks.elementctrl.ui.location.toGeoUri
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Search
@@ -89,6 +91,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Stop
@@ -241,6 +244,8 @@ fun RoomScreen(
     var source by remember { mutableStateOf<String?>(null) }
     var attachMenu by remember { mutableStateOf(false) }
     var creatingPoll by remember { mutableStateOf(false) }
+    var pickingLocation by remember { mutableStateOf(false) }
+    var viewingLocation by remember { mutableStateOf<UiContent.Location?>(null) }
     var pendingAttachment by remember { mutableStateOf<Uri?>(null) }
     var suspiciousLink by remember { mutableStateOf<Pair<String, String>?>(null) }
     var highlighted by remember { mutableStateOf<String?>(null) }
@@ -408,7 +413,7 @@ fun RoomScreen(
         MessageActions(
             onLongPress = { sheetFor = it },
             onReact = { item, key -> timeline.toggleReaction(item, key) },
-            onOpenMedia = { item -> openMedia(context, session, item, onOpenImage, scope, snackbar) },
+            onOpenMedia = { item -> openMedia(context, session, item, onOpenImage, scope, snackbar, onOpenLocation = { viewingLocation = it }) },
             onOpenUser = onOpenUser,
             onOpenThread = { item -> item.eventId?.let(onOpenThread) },
             onJumpToReply = { jumpTo(it) },
@@ -629,6 +634,7 @@ fun RoomScreen(
                         onPickMedia = { attachMenu = false; com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
                         onPickFile = { attachMenu = false; com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickFile.launch(arrayOf("*/*")) },
                         onPoll = { attachMenu = false; creatingPoll = true },
+                        onLocation = { attachMenu = false; pickingLocation = true },
                         recording = recording,
                         levels = levels,
                         elapsed = elapsed,
@@ -875,6 +881,33 @@ fun RoomScreen(
         )
     }
 
+    if (pickingLocation) {
+        com.vknxworks.elementctrl.ui.location.LocationPickerDialog(
+            onDismiss = { pickingLocation = false },
+            onSend = { loc ->
+                pickingLocation = false
+                timeline.sendLocation(
+                    geoUri = loc.spot.toGeoUri(),
+                    coordinates = loc.spot.display(),
+                    description = loc.description,
+                    mine = loc.mine,
+                    zoom = loc.zoom,
+                    replyTo = (mode as? ComposerMode.Reply)?.item?.eventId,
+                )
+                mode = ComposerMode.Normal
+                followLatest = true
+            },
+        )
+    }
+
+    viewingLocation?.let { loc ->
+        com.vknxworks.elementctrl.ui.location.LocationViewerDialog(
+            title = loc.description ?: stringResource(R.string.location_3),
+            geoUri = loc.geoUri,
+            onDismiss = { viewingLocation = null },
+        )
+    }
+
     if (creatingPoll) {
         PollDialog(onDismiss = { creatingPoll = false }, onCreate = { q, answers, disclosed -> timeline.createPoll(q, answers, disclosed); creatingPoll = false })
     }
@@ -936,6 +969,7 @@ private fun Composer(
     onPickMedia: () -> Unit,
     onPickFile: () -> Unit,
     onPoll: () -> Unit,
+    onLocation: () -> Unit = {},
     recording: Boolean = false,
     levels: List<Float> = emptyList(),
     elapsed: Long = 0,
@@ -1015,6 +1049,7 @@ private fun Composer(
                     DropdownMenuItem(text = { Text(stringResource(R.string.photo_or_video)) }, leadingIcon = { Icon(Icons.Outlined.Image, null) }, onClick = onPickMedia)
                     DropdownMenuItem(text = { Text(stringResource(R.string.file_2)) }, leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, onClick = onPickFile)
                     DropdownMenuItem(text = { Text(stringResource(R.string.poll)) }, leadingIcon = { Icon(Icons.Outlined.BarChart, null) }, onClick = onPoll)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.location_3)) }, leadingIcon = { Icon(Icons.Outlined.Place, null) }, onClick = onLocation)
                 }
             }
             TextField(
@@ -1171,10 +1206,12 @@ internal fun openMedia(
     onOpenImage: (MediaRequest) -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
     snackbar: SnackbarHostState,
+    onOpenLocation: ((UiContent.Location) -> Unit)? = null,
 ) {
     when (val c = item.content) {
         is UiContent.Image -> onOpenImage(MediaRequest(c.sourceJson, c.filename, c.mime, c.caption))
-        is UiContent.Location -> {
+        // Shown on an OpenStreetMap map inside the app; only coordinates are read from the sender's URI.
+        is UiContent.Location -> if (onOpenLocation != null && com.vknxworks.elementctrl.ui.location.parseGeoUri(c.geoUri) != null) onOpenLocation(c) else {
             // The URI comes from someone else's event: only ever open it as a map location.
             val geo = runCatching { Uri.parse(c.geoUri.trim()) }.getOrNull()?.takeIf { it.scheme.equals("geo", ignoreCase = true) }
             if (geo == null) {

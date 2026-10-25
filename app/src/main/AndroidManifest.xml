@@ -29,6 +29,13 @@
     <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <!-- Full-screen ringing screen for incoming calls. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- "Send my current location" in a chat, read once from Android's own location service when you ask for it.
+         Never used in the background. The camera above also scans QR codes to sign in or link a device. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.location.network" android:required="false" />
 
     <application
         android:name=".ElementCtrlApp"

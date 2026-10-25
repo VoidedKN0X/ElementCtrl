@@ -2,6 +2,36 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.9.0
+
+### New
+
+- **Sign in with a QR code.** The first screen has a new **Sign in with QR code** option at the top. On a phone or computer where you're already signed in (Element X, Element Web or ElementCtrl), choose **Link new device** and show its QR code, then scan it with ElementCtrl. The server comes from the code, so you don't pick one first.
+  - ElementCtrl shows a two-digit code to type on the other device, so both sides know they're talking to each other and nobody else; then the other device approves the sign-in (and may show a code to compare).
+  - Your encryption keys come over from the other device, so ElementCtrl is verified straight away and can read your encrypted messages without comparing emojis or entering the recovery key.
+  - It needs a server that signs in through Matrix Authentication Service (OAuth) with QR sign-in (MSC4108) turned on. Other servers, or a code that isn't a sign-in code (or is from a device that itself wants to sign in), get a clear message saying so, and you can sign in the usual way below.
+- **Link new device.** *You › Devices* has a new **Link new device** row, to sign a new phone or computer in to your account from ElementCtrl:
+  - **Show QR code**: the new device scans the code on your screen, then you type the two-digit code it shows.
+  - **Scan the new device's QR code**: for a new device that shows a code ("Sign in with QR code" there); ElementCtrl shows a two-digit code to type on it.
+  - Then ElementCtrl opens your account page to approve the new device (check that its code matches), and after **I've approved it** it sends your encryption keys over, so the new device is verified straight away.
+  - If your server can't do QR sign-in, the page says so instead. The screen is never in screenshots, screen recordings or Recents while it's open, as the QR code gives access to your account for a few minutes.
+- **Send a location.** The **+** menu in the message box has a new **Location** item. It opens an OpenStreetMap map (no Google Maps) with a pin in the middle:
+  - **Send my current location** reads where you are once from Android's own location service (no Google Play services, never in the background) and shows it on the map before sending.
+  - **Send the pinned location** sends wherever the pin is: move the map, or tap a spot to move it there. The round button on the map jumps to where you are.
+  - Before anything is sent, a preview shows the spot on a small map, its coordinates (and how accurate your location is), with an optional **Description**.
+  - The first time, Android asks for location access. ElementCtrl asks for precise location; if you only allow approximate, it says the spot may be a few kilometres off. If you say no, or location is off, you can still drop a pin.
+  - It's sent as a standard Matrix location (`m.location` with a `geo:` link, your description, the map's zoom and whether it's your own location or a pin), so Element X, Element Web and other apps show it on their maps. A reply that was being written is sent as a reply.
+  - The map is dimmed in dark mode, and map tiles come from tile.openstreetmap.org and are cached on the phone.
+- **Locations open on a map in the app.** Tapping a location someone sent now opens it full screen on an OpenStreetMap map with a pin, the description, the coordinates (with **Copy**) and the accuracy when it's known, plus **Open in maps app** for directions in another app (only the coordinates are passed on). Location messages in the chat show their description and coordinates. Locations from the media gallery still open in your maps app.
+
+### Changed
+
+- The app now asks for the **location** permission (only when you send your current location) and uses the **camera** for scanning QR codes as well as for video calls.
+
+### Not included
+
+- **QR code verification** (scanning or showing a QR code instead of comparing emojis) isn't possible yet: the Matrix Rust SDK that ElementCtrl (and Element X) is built on only offers emoji and number comparison for verification so far. A device signed in with a QR code is already verified, so it doesn't need it.
+
 ## 1.8.0
 
 ### New

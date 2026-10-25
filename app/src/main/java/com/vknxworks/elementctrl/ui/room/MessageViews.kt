@@ -61,6 +61,7 @@ import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Place
+import com.vknxworks.elementctrl.ui.location.display
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
@@ -537,7 +538,14 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
             onBubble = onBubble,
             caption = c.caption,
         )
-        is UiContent.Location -> AttachmentRow(Icons.Outlined.Place, stringResource(R.string.location_3), c.geoUri.removePrefix("geo:").substringBefore(';'), onBubble, null)
+        is UiContent.Location -> AttachmentRow(
+            Icons.Outlined.Place,
+            c.description ?: stringResource(R.string.location_3),
+            com.vknxworks.elementctrl.ui.location.parseGeoUri(c.geoUri)?.let { "${it.display()} · ${stringResource(R.string.location_tap_to_view)}" }
+                ?: c.geoUri.removePrefix("geo:").substringBefore(';'),
+            onBubble,
+            null,
+        )
         is UiContent.Poll -> PollView(c, onBubble) { answer -> actions.onVote(item, answer) }
         is UiContent.Redacted -> Row(pad, verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Block, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))

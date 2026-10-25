@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.matrix.rustcomponents.sdk.AssetType
 import org.matrix.rustcomponents.sdk.AudioInfo
 import org.matrix.rustcomponents.sdk.DateDividerMode
 import org.matrix.rustcomponents.sdk.EditedContent
@@ -361,7 +362,7 @@ class TimelineController(
             size = type.content.info?.size?.toLong() ?: 0L,
             caption = type.content.caption,
         )
-        is MessageType.Location -> UiContent.Location(type.content.body, type.content.geoUri)
+        is MessageType.Location -> UiContent.Location(type.content.body, type.content.geoUri, type.content.description?.takeIf { it.isNotBlank() })
         is MessageType.Gallery -> UiContent.Text(type.content.body.ifBlank { Strings.str(R.string.gallery) }, type.content.formatted.html())
         is MessageType.Other -> UiContent.Text(body, null)
     }
@@ -496,9 +497,14 @@ class TimelineController(
         launchAction { it.markAsRead(ReceiptType.FULLY_READ) }
     }
 
-    fun sendLocation(lat: Double, lon: Double) = launchAction {
-        val geo = "geo:$lat,$lon"
-        it.sendLocation(Strings.str(R.string.location_2, lat, lon), geo, null, 15u, null, null)
+    /**
+     * Sends an m.location message: [geoUri] (`geo:lat,lon;u=…`), a text body for apps that can't show maps, an
+     * optional [description], and whether it's where you are ([mine], shown as your own location) or a dropped pin.
+     */
+    fun sendLocation(geoUri: String, coordinates: String, description: String?, mine: Boolean, zoom: Int, replyTo: String?) = launchAction {
+        val body = description?.let { Strings.str(R.string.location_body_described, it, geoUri) }
+            ?: Strings.str(if (mine) R.string.location_body_mine else R.string.location_body_pin, coordinates, geoUri)
+        it.sendLocation(body, geoUri, description, zoom.coerceIn(3, 20).toUByte(), if (mine) AssetType.SENDER else AssetType.PIN, replyTo)
     }
 
     /** Sends a recorded voice message (shown with a waveform in Element and other clients). */

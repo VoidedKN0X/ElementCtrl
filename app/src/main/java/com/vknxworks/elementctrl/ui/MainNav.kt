@@ -426,7 +426,8 @@ private fun MainHost(
                 onOpen = { eventId -> nav.go("room/${enc(roomId)}?focus=${enc(eventId)}") },
             )
         }
-        composable("devices") { DevicesScreen(session, onBack = { nav.back() }) }
+        composable("devices") { DevicesScreen(session, onBack = { nav.back() }, onLinkDevice = { nav.go("linkdevice") }) }
+        composable("linkdevice") { com.vknxworks.elementctrl.ui.settings.LinkDeviceScreen(session, onBack = { nav.back() }) }
         composable("thread/{roomId}/{rootId}") { entry ->
             val roomId = entry.arguments?.getString("roomId").orEmpty()
             val rootId = entry.arguments?.getString("rootId").orEmpty()

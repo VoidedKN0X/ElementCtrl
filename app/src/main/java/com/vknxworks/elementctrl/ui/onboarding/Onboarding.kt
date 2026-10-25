@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
@@ -93,9 +94,14 @@ import com.vknxworks.elementctrl.ui.ScreenTopBar
 fun OnboardingFlow(signedOutMessage: String?) {
     val graph = ElementCtrlApp.graph
     var server by remember { mutableStateOf<ServerDetails?>(null) }
+    var qr by rememberSaveable { mutableStateOf(false) }
+    if (qr) {
+        QrSignInScreen(onBack = { qr = false })
+        return
+    }
     AnimatedContent(targetState = server, label = "onboarding") { details ->
         if (details == null) {
-            ServerPickerScreen(message = signedOutMessage, onServerReady = { server = it })
+            ServerPickerScreen(message = signedOutMessage, onServerReady = { server = it }, onQrSignIn = { qr = true })
         } else {
             BackHandler { graph.auth.reset(); server = null }
             LoginScreen(details, onBack = { graph.auth.reset(); server = null })
@@ -104,7 +110,7 @@ fun OnboardingFlow(signedOutMessage: String?) {
 }
 
 @Composable
-fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit) {
+fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit, onQrSignIn: () -> Unit = {}) {
     val graph = ElementCtrlApp.graph
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
@@ -200,6 +206,13 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                         Text(e, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
+            }
+            item {
+                // Sign in from a phone or computer that's already signed in: the server comes from its QR code.
+                ServerCard(
+                    ServerOption(stringResource(R.string.qr_sign_in_title), "qr", stringResource(R.string.qr_sign_in_card_subtitle)),
+                    Icons.Outlined.QrCodeScanner, loading = false, enabled = busy == null, onClick = onQrSignIn,
+                )
             }
             item { Text(stringResource(R.string.popular_servers), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
             items(Servers.standard, key = { it.address }) { option ->

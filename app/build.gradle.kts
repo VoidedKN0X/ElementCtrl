@@ -14,8 +14,8 @@ android {
         targetSdk = 35
         // CI passes the run number so every build installs over the previous one.
         // Bump both to publish a new release (see CHANGELOG.md).
-        versionCode = 56
-        versionName = "1.8.0"
+        versionCode = 57
+        versionName = "1.9.0"
 
         // The Rust SDK ships a native library per CPU type (~60 MB each). Phones running Android 13+
         // are 64-bit ARM, so only that one is packaged; add "x86_64" here to run on an emulator.
@@ -125,6 +125,18 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:$coil")
     // Plays animated GIFs and stickers other people send.
     implementation("io.coil-kt.coil3:coil-gif:$coil")
+
+    // Sign in and link devices with a QR code: the camera (CameraX) and the open-source zxing-cpp decoder read the
+    // code on the phone, and Nayuki's small QR Code generator draws ours. Nothing is sent anywhere to read or make them.
+    val camerax = "1.4.2"
+    implementation("androidx.camera:camera-camera2:$camerax")
+    implementation("androidx.camera:camera-lifecycle:$camerax")
+    implementation("androidx.camera:camera-view:$camerax")
+    implementation("io.github.zxing-cpp:android:2.3.0")
+    implementation("io.nayuki:qrcodegen:1.8.0")
+
+    // Sending and viewing locations on an OpenStreetMap map (no Google Maps).
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
 }
 
 // Voice and video calls need Element Call, built from source (Element Call 0.28.0, the release Element X bundles,

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -62,7 +63,7 @@ import com.vknxworks.elementctrl.ui.ScreenTopBar
 
 /** Every session signed in to your account: rename them or sign them out. */
 @Composable
-fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
+fun DevicesScreen(session: MatrixSession, onBack: () -> Unit, onLinkDevice: () -> Unit = {}) {
     val service = remember { DeviceService(session) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -113,6 +114,17 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
         Column(Modifier.fillMaxSize().padding(pad)) {
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = com.vknxworks.elementctrl.ui.Gutter).height(6.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)), color = MaterialTheme.colorScheme.primary, trackColor = com.vknxworks.elementctrl.ui.CtrlColors.ProgressTrack)
             LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                item {
+                    Group {
+                        GroupRow(
+                            stringResource(R.string.link_device_title),
+                            stringResource(R.string.link_device_row_subtitle),
+                            icon = Icons.Outlined.QrCode2,
+                            showChevron = true,
+                            onClick = onLinkDevice,
+                        )
+                    }
+                }
                 devices.firstOrNull { it.isCurrent }?.let { me ->
                     item { Group(stringResource(R.string.this_device)) { DeviceRow(me) { selected = me } } }
                 }

@@ -461,7 +461,6 @@
     <string name="the_sender_of_this_event_doesn_t">The sender of this event doesn\'t match the device that sent it.</string>
     <string name="not_encrypted">Not encrypted.</string>
     <string name="the_poll_has_ended">The poll has ended</string>
-    <string name="location_2">Location: %1$s, %2$s</string>
     <string name="this_file_can_t_be_sent">This file can\'t be sent</string>
     <string name="couldn_t_read_the_file">Couldn\'t read the file</string>
     <string name="verification_didn_t_complete">Verification didn\'t complete.</string>
@@ -867,4 +866,76 @@
         <item quantity="one">%1$d reply · %2$s</item>
         <item quantity="other">%1$d replies · %2$s</item>
     </plurals>
+
+    <!-- Sign in with a QR code / Link new device (MSC4108) -->
+    <string name="qr_sign_in_title">Sign in with QR code</string>
+    <string name="qr_sign_in_card_subtitle">Scan a code from a phone or computer that\'s already signed in</string>
+    <string name="qr_sign_in_headline">Scan the QR code on your other device</string>
+    <string name="qr_sign_in_steps">1. On a phone or computer where you\'re signed in (Element X, Element Web or ElementCtrl), open the device settings and choose Link new device.\n2. Choose to show a QR code there.\n3. Tap Scan QR code below and point the camera at it.</string>
+    <string name="qr_sign_in_needs_mas">Your server must use Matrix Authentication Service with QR sign-in turned on. If it doesn\'t, pick your server below and sign in as usual.</string>
+    <string name="qr_scan_button">Scan QR code</string>
+    <string name="qr_scan_prompt_sign_in">Point the camera at the QR code your other device shows</string>
+    <string name="qr_scan_prompt_link">Point the camera at the QR code the new device shows</string>
+    <string name="qr_scan_no_camera">ElementCtrl needs the camera to read the QR code. Allow it in Android settings, or cancel.</string>
+    <string name="qr_connecting">Connecting securely…</string>
+    <string name="qr_enter_this_code_other_device">Enter this code on the other device</string>
+    <string name="qr_check_code_explain">This two-digit code makes sure the two devices are talking to each other and nobody else.</string>
+    <string name="qr_approve_on_other_device">Approve the sign-in on your other device</string>
+    <string name="qr_user_code_matches">Check that the other device shows this code:</string>
+    <string name="qr_getting_keys">Signed in. Getting your encryption keys from your other device…</string>
+    <string name="qr_not_a_sign_in_code">That isn\'t a Matrix sign-in QR code.</string>
+    <string name="qr_wrong_side_new_device">This QR code is from a device that wants to sign in. Scan it from a device that\'s already signed in (Link new device), or show a code there instead.</string>
+    <string name="qr_wrong_side_existing_device">This QR code is from a device that\'s already signed in. On the new device, choose to scan a code instead, or choose Show QR code here.</string>
+    <string name="qr_code_unsupported">This QR code uses a version ElementCtrl can\'t read yet.</string>
+    <string name="qr_server_unsupported">Your server doesn\'t support signing in with a QR code. It needs Matrix Authentication Service (OAuth sign-in) with QR sign-in (MSC4108) turned on.</string>
+    <string name="qr_cancelled">QR sign-in was cancelled.</string>
+    <string name="qr_declined">The sign-in was declined on the other device.</string>
+    <string name="qr_expired">The QR code expired. Start again for a new one.</string>
+    <string name="qr_insecure">A secure connection between the devices couldn\'t be made. Try again.</string>
+    <string name="qr_other_not_signed_in">The other device isn\'t signed in.</string>
+    <string name="qr_other_already_signed_in">The other device is already signed in.</string>
+    <string name="qr_wrong_check_code">That code didn\'t match. Start again.</string>
+    <string name="qr_missing_backup">Set up recovery (key storage) on this device first, so the new device can get your encryption keys.</string>
+    <string name="qr_failed">Signing in with the QR code didn\'t work. Try again.</string>
+    <string name="link_device_title">Link new device</string>
+    <string name="link_device_row_subtitle">Sign a new phone or computer in with a QR code</string>
+    <string name="link_device_headline">Sign in on a new device</string>
+    <string name="link_device_body">The new device is signed in to this account and gets your encryption keys, so it doesn\'t need to be verified separately. It works with Element X, Element Web and ElementCtrl.</string>
+    <string name="link_device_show_qr">Show QR code</string>
+    <string name="link_device_scan_qr">Scan the new device\'s QR code</string>
+    <string name="link_device_unsupported_title">Not available on your server</string>
+    <string name="link_device_scan_this">Scan this with the new device</string>
+    <string name="link_device_scan_this_body">On the new device, choose Sign in with QR code (or scan a QR code) and point its camera here. Only show this code to devices you own.</string>
+    <string name="link_device_qr_description">QR code to sign in a new device</string>
+    <string name="link_device_enter_code">Enter the code the new device shows</string>
+    <string name="link_device_code_label">Two-digit code</string>
+    <string name="link_device_approve_title">Approve the new device</string>
+    <string name="link_device_approve_body">Open your account page, check that the code there matches the one on the new device and approve it. Then come back and tap I\'ve approved it.</string>
+    <string name="link_device_open_account_page">Open account page</string>
+    <string name="link_device_approved">I\'ve approved it</string>
+    <string name="link_device_sending_keys">Sending your encryption keys to the new device…</string>
+    <string name="link_device_done">New device signed in</string>
+    <string name="link_device_done_body">It\'s signed in and verified, and can read your encrypted messages.</string>
+
+    <!-- Sending and viewing locations -->
+    <string name="location_send_title">Send location</string>
+    <string name="location_send_mine">Send my current location</string>
+    <string name="location_send_pin">Send the pinned location</string>
+    <string name="location_picker_hint">Move the map or tap a spot to put the pin somewhere else. Map © OpenStreetMap contributors.</string>
+    <string name="location_my_location">Go to my location</string>
+    <string name="location_recenter">Back to the pin</string>
+    <string name="location_preview_mine">Send your location?</string>
+    <string name="location_preview_pin">Send this location?</string>
+    <string name="location_accuracy">Accurate to about %1$d m</string>
+    <string name="location_description_optional">Description (optional)</string>
+    <string name="location_off">Location is turned off. Turn it on in quick settings, or drop a pin on the map.</string>
+    <string name="location_not_found">Couldn\'t find your location. Try again outside, or drop a pin on the map.</string>
+    <string name="location_permission_denied">ElementCtrl needs location access to send where you are. You can still drop a pin on the map.</string>
+    <string name="location_approximate_only">Only your approximate location is allowed, so it may be a few kilometres off. Allow precise location in Android settings for an exact spot.</string>
+    <string name="location_open_in_maps">Open in maps app</string>
+    <string name="location_tap_to_view">tap to view</string>
+    <string name="location_body_mine">My location: %1$s (%2$s)</string>
+    <string name="location_body_pin">Location: %1$s (%2$s)</string>
+    <string name="location_body_described">%1$s (%2$s)</string>
+    <string name="osm_credit">© OpenStreetMap contributors</string>
 </resources>

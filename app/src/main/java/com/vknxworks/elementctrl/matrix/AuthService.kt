@@ -1,8 +1,17 @@
 package com.vknxworks.elementctrl.matrix
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.matrix.rustcomponents.sdk.Client
+import org.matrix.rustcomponents.sdk.LoginWithQrCodeTask
+import org.matrix.rustcomponents.sdk.QrCodeData
+import org.matrix.rustcomponents.sdk.QrCodeDecodeException
+import org.matrix.rustcomponents.sdk.QrLoginProgress
+import org.matrix.rustcomponents.sdk.QrLoginProgressListener
+import uniffi.matrix_sdk_crypto.QrCodeIntent
 import org.matrix.rustcomponents.sdk.OAuthConfiguration
 import org.matrix.rustcomponents.sdk.OAuthPrompt
 import org.matrix.rustcomponents.sdk.SsoHandler
@@ -20,6 +29,22 @@ data class ServerDetails(
     val canRegister: Boolean,
 )
 
+/** Where signing in with a QR code from another device stands. */
+sealed interface QrSignInStep {
+    data object Idle : QrSignInStep
+    /** Talking to the server and the other device. */
+    data object Connecting : QrSignInStep
+    /** A secure channel is up: type these two digits on the other device. */
+    data class ShowCheckCode(val code: String) : QrSignInStep
+    /** The other device is approving the sign-in; it should show the same [userCode]. */
+    data class WaitingForApproval(val userCode: String) : QrSignInStep
+    /** Signed in; fetching the encryption keys from the other device. */
+    data object Syncing : QrSignInStep
+}
+
+/** A problem with QR sign-in or linking a device that already has a readable explanation. */
+class QrLoginProblem(message: String) : Exception(message)
+
 /**
  * Drives sign-in against one homeserver: discovery, password, OAuth (Matrix Authentication Service, used by
  * matrix.org) and legacy SSO. Holds a temporary client until sign-in finishes.
@@ -34,7 +59,11 @@ class AuthService(private val graph: AppGraph) {
     private val oauthRedirect get() = "$redirectScheme:/"
     private val ssoRedirect get() = "$redirectScheme://sso"
 
-    private val oauthConfig
+    private val _qrStep = MutableStateFlow<QrSignInStep>(QrSignInStep.Idle)
+    val qrStep: StateFlow<QrSignInStep> = _qrStep.asStateFlow()
+    @Volatile private var qrTask: LoginWithQrCodeTask? = null
+
+    internal val oauthConfig
         get() = OAuthConfiguration(
             clientName = "ElementCtrl",
             redirectUri = oauthRedirect,
@@ -110,6 +139,60 @@ class AuthService(private val graph: AppGraph) {
         oauth = null
         sso = null
         finish(c)
+    }
+
+    /**
+     * Signs in by scanning the QR code another signed-in device shows ("Link new device" in Element, Element X or
+     * ElementCtrl), as in MSC4108. Only works with servers that sign in through OAuth (Matrix Authentication Service)
+     * with QR sign-in turned on; otherwise this throws a [QrLoginProblem] that says so. Progress is in [qrStep].
+     */
+    suspend fun loginWithQr(bytes: ByteArray): MatrixSession = withContext(Dispatchers.IO) {
+        _qrStep.value = QrSignInStep.Connecting
+        val c = try {
+            val data = try {
+                QrCodeData.fromBytes(bytes)
+            } catch (e: QrCodeDecodeException) {
+                throw QrLoginProblem(Strings.str(R.string.qr_not_a_sign_in_code))
+            }
+            if (data.intent() != QrCodeIntent.RECIPROCATE) throw QrLoginProblem(Strings.str(R.string.qr_wrong_side_new_device))
+            val server = data.serverName() ?: data.baseUrl() ?: throw QrLoginProblem(Strings.str(R.string.qr_code_unsupported))
+            reset()
+            val newPaths = graph.factory.newPaths()
+            paths = newPaths
+            val built = graph.factory.loginBuilder(newPaths, server).build()
+            client = built
+            // QR sign-in hands over an OAuth session, so servers without Matrix Authentication Service can't do it.
+            if (!built.homeserverLoginDetails().supportsOauthLogin()) throw QrLoginProblem(Strings.str(R.string.qr_server_unsupported))
+            val task = built.newLoginWithQrCodeHandler(oauthConfig).scan(data, object : QrLoginProgressListener {
+                override fun onUpdate(state: QrLoginProgress) {
+                    when (state) {
+                        QrLoginProgress.Starting -> _qrStep.value = QrSignInStep.Connecting
+                        is QrLoginProgress.EstablishingSecureChannel -> _qrStep.value = QrSignInStep.ShowCheckCode(state.checkCodeString)
+                        is QrLoginProgress.WaitingForToken -> _qrStep.value = QrSignInStep.WaitingForApproval(state.userCode)
+                        QrLoginProgress.SyncingSecrets, QrLoginProgress.Done -> _qrStep.value = QrSignInStep.Syncing
+                    }
+                }
+            })
+            qrTask = task
+            task.wait()
+            qrTask = null
+            built
+        } catch (t: Throwable) {
+            qrTask = null
+            _qrStep.value = QrSignInStep.Idle
+            reset()
+            throw t
+        }
+        try {
+            finish(c)
+        } finally {
+            _qrStep.value = QrSignInStep.Idle
+        }
+    }
+
+    /** Stops a QR sign-in that's still going; [loginWithQr] then fails with "cancelled". */
+    fun cancelQr() {
+        runCatching { qrTask?.cancel() }
     }
 
     private suspend fun finish(c: Client): MatrixSession {

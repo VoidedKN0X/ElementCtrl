@@ -13,9 +13,10 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 ## Features
 
 - **Any server**: matrix.org, other public servers, or your own address
-- **Sign in** with OAuth (including creating an account), username and password, or single sign-on
+- **Sign in** with OAuth (including creating an account), username and password, single sign-on, or a **QR code** from a device that's already signed in
+- **Link new device**: sign a new phone or computer in with a QR code, already verified (servers with Matrix Authentication Service and QR sign-in)
 - **End-to-end encryption** by default, with device verification and key backup
-- **Messages**: replies, threads, reactions, edits, polls, voice messages, images, videos and files; stickers and GIFs other people send show in the chat
+- **Messages**: replies, threads, reactions, edits, polls, voice messages, images, videos, files and locations; stickers and GIFs other people send show in the chat
 - **Quick gestures**: swipe a message to reply, double-tap to react, and see who has read up to where
 - **Chat bubbles** in six styles, from Modern to no bubbles at all (like Element Web)
 - **Media and files** for each chat: a photo and video grid and a list of files and voice messages
@@ -23,6 +24,7 @@ Part of the [Ctrl series](#the-ctrl-series) by VKNXWorks.
 - **Push notifications through [ntfy](https://f-droid.org/packages/io.heckel.ntfy/)** only, grouped per chat with reply and Mark as read, with a background check every ~15 minutes as a fallback
 - **Voice and video calls** in direct chats and rooms, with people on Element X and Element Web: the same Element Call as Element X, bundled in the app, with incoming calls ringing on a full screen, picture-in-picture and speaker, earpiece and Bluetooth audio ([what your server needs](#calls))
 - **Link previews and drafts** for every chat
+- **Send a location** (where you are or a dropped pin) and see received locations on an **OpenStreetMap** map, using Android's own location service
 - **Create rooms**, start direct chats, explore public rooms, and manage members and moderation
 - **Share to ElementCtrl** from other apps
 - **Device list**: rename your signed-in sessions or sign them out
@@ -71,7 +73,7 @@ Your account, devices, security and recovery, **Settings**, **Sign out** and **A
 - **Self-hosted ntfy:** your ntfy server's Matrix push gateway (`https://your-ntfy/_matrix/push/v1/notify`, built into ntfy) is used for every push, so your Matrix server must be able to reach it, and the ntfy server needs `base-url` set in its config. ntfy.sh works too. If the gateway can't be found, *Settings › Notifications* shows an error; no other gateway is ever used.
 - **What a push contains:** only the room and message IDs and an unread count, never the message, sender or room name. ElementCtrl then fetches and decrypts the message itself from your homeserver. Your homeserver sends the push to the Matrix gateway of your own ntfy server, which passes it to ntfy on your phone.
 - **Just your domain doesn't work?** Make sure `https://yourdomain/.well-known/matrix/client` points to your server, or enter the full server address.
-- **Not included yet:** spaces, live location and multiple accounts at once.
+- **Not included yet:** spaces, live location, QR code verification (not in the Matrix Rust SDK yet) and multiple accounts at once.
 
 ## Calls
 
@@ -137,7 +139,7 @@ Password sign-in, the recovery key screens and the lock and PIN screens are alwa
 
 ## Privacy
 
-**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser), if you turn on push, your ntfy server, and during calls, your server's call service.
+**Telemetry-free.** ElementCtrl has no analytics, crash reporting, usage stats or tracking of any kind. It only talks to your homeserver (and its sign-in page, if your server signs in through the browser), if you turn on push, your ntfy server, during calls, your server's call service, and while a location map is open, OpenStreetMap's map tile server (tile.openstreetmap.org, which only sees which map squares are loaded).
 
 - **Push:** when you turn it on, ElementCtrl asks your ntfy server whether its Matrix gateway is there. Pushes then reach the phone through ntfy (see *What a push contains* above).
 - **Link previews** are fetched by your homeserver, never by the phone.

@@ -83,7 +83,7 @@ sealed interface UiContent {
         val waveform: List<Float> = emptyList(),
     ) : UiContent
     data class File(val sourceJson: String, val filename: String, val mime: String, val size: Long, val caption: String?) : UiContent
-    data class Location(val body: String, val geoUri: String) : UiContent
+    data class Location(val body: String, val geoUri: String, val description: String? = null) : UiContent
     data class Poll(
         val question: String,
         val answers: List<PollAnswerUi>,

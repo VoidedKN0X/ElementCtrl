@@ -3,6 +3,8 @@ package com.vknxworks.elementctrl.matrix
 import org.matrix.rustcomponents.sdk.ClientBuildException
 import org.matrix.rustcomponents.sdk.ClientException
 import org.matrix.rustcomponents.sdk.OAuthException
+import org.matrix.rustcomponents.sdk.HumanQrGrantLoginException
+import org.matrix.rustcomponents.sdk.HumanQrLoginException
 import com.vknxworks.elementctrl.Strings
 import com.vknxworks.elementctrl.R
 
@@ -16,6 +18,32 @@ fun Throwable.userMessage(): String {
             return Strings.str(R.string.couldn_t_find_a_matrix_server_at)
         is ClientBuildException.ServerUnreachable -> return Strings.str(R.string.couldn_t_reach_the_server_check_the)
         is OAuthException.Cancelled -> return Strings.str(R.string.sign_in_was_cancelled)
+        is QrLoginProblem -> return message.orEmpty()
+        is HumanQrLoginException -> return Strings.str(
+            when (this) {
+                is HumanQrLoginException.LinkingNotSupported, is HumanQrLoginException.OAuthMetadataInvalid -> R.string.qr_server_unsupported
+                is HumanQrLoginException.SlidingSyncNotAvailable -> R.string.this_server_doesn_t_support
+                is HumanQrLoginException.Cancelled -> R.string.qr_cancelled
+                is HumanQrLoginException.Declined -> R.string.qr_declined
+                is HumanQrLoginException.Expired, is HumanQrLoginException.NotFound -> R.string.qr_expired
+                is HumanQrLoginException.ConnectionInsecure -> R.string.qr_insecure
+                is HumanQrLoginException.OtherDeviceNotSignedIn -> R.string.qr_other_not_signed_in
+                is HumanQrLoginException.UnsupportedQrCodeType -> R.string.qr_code_unsupported
+                else -> R.string.qr_failed
+            },
+        )
+        is HumanQrGrantLoginException -> return Strings.str(
+            when (this) {
+                is HumanQrGrantLoginException.Cancelled -> R.string.qr_cancelled
+                is HumanQrGrantLoginException.Expired, is HumanQrGrantLoginException.NotFound -> R.string.qr_expired
+                is HumanQrGrantLoginException.InvalidCheckCode -> R.string.qr_wrong_check_code
+                is HumanQrGrantLoginException.ConnectionInsecure -> R.string.qr_insecure
+                is HumanQrGrantLoginException.MissingSecretsBackup -> R.string.qr_missing_backup
+                is HumanQrGrantLoginException.OtherDeviceAlreadySignedIn -> R.string.qr_other_already_signed_in
+                is HumanQrGrantLoginException.UnsupportedQrCodeType, is HumanQrGrantLoginException.UnsupportedProtocol -> R.string.qr_code_unsupported
+                else -> R.string.qr_failed
+            },
+        )
         else -> Unit
     }
     val raw = when (this) {
