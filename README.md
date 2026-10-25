@@ -187,7 +187,7 @@ ElementCtrl is free and open source. If it's useful to you, you can support deve
 
 ## The Ctrl series
 
-Native Android apps for self-hosted services and everyday tools, all with the same dark "Ctrl / Signal" design.
+Native Android apps for self-hosted services and everyday tools, all with the same "Ctrl / Signal" design, in dark and light.
 
 | App | What it's for |
 | --- | --- |

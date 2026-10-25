@@ -240,7 +240,7 @@ fun HomeScreen(
                     }) { Text(stringResource(R.string.chats_reconnect), color = MaterialTheme.colorScheme.onErrorContainer) }
                 }
             }
-            if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = Gutter).height(6.dp).clip(RoundedCornerShape(3.dp)), color = CtrlColors.Accent, trackColor = CtrlColors.ProgressTrack)
+            if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = Gutter).height(6.dp).clip(RoundedCornerShape(3.dp)), color = CtrlColors.AccentText, trackColor = CtrlColors.ProgressTrack)
             val sharing by com.vknxworks.elementctrl.ui.DeepLinks.share.collectAsStateWithLifecycle()
             if (sharing != null) {
                 Row(
@@ -482,7 +482,7 @@ private fun Banner(
         padding = PaddingValues(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, Modifier.size(22.dp), tint = CtrlColors.Accent)
+            Icon(icon, null, Modifier.size(22.dp), tint = CtrlColors.AccentText)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
@@ -539,7 +539,7 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
                         Text(
                             shortTime(it).uppercase(),
                             style = CtrlType.Status,
-                            color = if (room.hasUnread && !room.isMuted) CtrlColors.Accent else CtrlColors.Disabled,
+                            color = if (room.hasUnread && !room.isMuted) CtrlColors.AccentText else CtrlColors.Disabled,
                             maxLines = 1,
                             softWrap = false,
                         )

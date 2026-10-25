@@ -156,7 +156,7 @@ fun SettingsScreen(
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             // ---------- Appearance ----------
             Group(stringResource(R.string.group_appearance)) {
-                // The Ctrl look is dark only: no theme picker and no wallpaper colours.
+                // Light or dark follows the device setting: no theme picker and no wallpaper colours.
                 GroupRow(
                     stringResource(R.string.bubbles),
                     stringResource(R.string.bubble_style_summary, bubbleStyle.label, bubbleStyle.description),

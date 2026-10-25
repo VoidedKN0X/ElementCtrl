@@ -772,7 +772,7 @@ private fun PinPadScreen(
             Spacer(Modifier.height(28.dp))
             // PIN cells: 14 dp squares, filled in the accent, empty ones outlined.
             Box(Modifier.height(20.dp).offset { IntOffset(shake.roundToInt(), 0) }, contentAlignment = Alignment.Center) {
-                if (checking) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = CtrlColors.Accent)
+                if (checking) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = CtrlColors.AccentText)
                 else Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     repeat(maxOf(pin.length, LockVault.PIN_MIN)) { i ->
                         val cell = RoundedCornerShape(5.dp)
@@ -807,21 +807,21 @@ private fun PinPadScreen(
                     if (biometric != null && !showConfirm) {
                         val label = stringResource(R.string.lock_use_fingerprint)
                         Box(
-                            keyMod.clip(KeyShape).border(1.dp, CtrlColors.Accent, KeyShape)
+                            keyMod.clip(KeyShape).border(1.dp, CtrlColors.AccentText, KeyShape)
                                 .clickable(role = Role.Button, onClickLabel = label, onClick = biometric)
                                 .semantics { contentDescription = label },
                             contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Outlined.Fingerprint, null, Modifier.size(26.dp), tint = CtrlColors.Accent) }
+                        ) { Icon(Icons.Outlined.Fingerprint, null, Modifier.size(26.dp), tint = CtrlColors.AccentText) }
                     } else {
                         Box(
-                            keyMod.clip(KeyShape).border(1.dp, if (enabled && showConfirm) CtrlColors.Accent else CtrlColors.Border, KeyShape)
+                            keyMod.clip(KeyShape).border(1.dp, if (enabled && showConfirm) CtrlColors.AccentText else CtrlColors.Border, KeyShape)
                                 .clickable(enabled = enabled && showConfirm, role = Role.Button, onClick = onConfirm),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 confirmLabel,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = if (enabled && showConfirm) CtrlColors.Accent else CtrlColors.Disabled,
+                                color = if (enabled && showConfirm) CtrlColors.AccentText else CtrlColors.Disabled,
                             )
                         }
                     }

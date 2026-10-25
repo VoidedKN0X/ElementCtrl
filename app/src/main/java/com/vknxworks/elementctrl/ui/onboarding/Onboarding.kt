@@ -245,7 +245,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             if (busy != null && busy == Servers.normalise(custom)) {
-                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = com.vknxworks.elementctrl.ui.CtrlColors.OnAccent)
                             } else {
                                 Text(stringResource(R.string.continue_text))
                             }
@@ -416,7 +416,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { passwordLogin() }, enabled = !busy && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = com.vknxworks.elementctrl.ui.CtrlColors.OnAccent)
                     else Text(stringResource(R.string.sign_in))
                 }
                 Text(

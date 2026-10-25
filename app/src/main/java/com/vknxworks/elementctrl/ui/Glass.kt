@@ -18,7 +18,7 @@ import dev.chrisbanes.haze.hazeEffect
 
 /**
  * The floating Ctrl island (composer, notes above the keyboard): the surface colour at ~92 % over a light blur of
- * whatever scrolls behind, a 1 dp #2A2A2F border, no glow. [elevation] is kept for callers but no longer drawn.
+ * whatever scrolls behind, a 1 dp control border, no glow. [elevation] is kept for callers but no longer drawn.
  */
 @Composable
 fun Modifier.glassIsland(haze: HazeState, shape: Shape, @Suppress("UNUSED_PARAMETER") elevation: Int = 14): Modifier {

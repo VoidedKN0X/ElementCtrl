@@ -55,6 +55,19 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var chrome by remember { mutableStateOf(true) }
+    // The viewer is black in both modes: keep the status and navigation bar icons light while it's open.
+    val view = androidx.compose.ui.platform.LocalView.current
+    val lightTheme = !com.vknxworks.elementctrl.ui.isDarkTheme()
+    androidx.compose.runtime.DisposableEffect(view, lightTheme) {
+        val window = (view.context as? android.app.Activity)?.window
+        val bars = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, view) }
+        bars?.isAppearanceLightStatusBars = false
+        bars?.isAppearanceLightNavigationBars = false
+        onDispose {
+            bars?.isAppearanceLightStatusBars = lightTheme
+            bars?.isAppearanceLightNavigationBars = lightTheme
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         SubcomposeAsyncImage(

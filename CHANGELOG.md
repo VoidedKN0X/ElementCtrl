@@ -2,6 +2,27 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.8.0
+
+### New
+
+- **Light mode that follows the device theme.** ElementCtrl now switches between the dark Ctrl look and a new light one ("Signal Light") on its own, following your phone's dark/light setting (including scheduled or automatic dark mode). There's no setting for it in the app and wallpaper (Material You) colours are still not used.
+  - **Light colours:** a warm off-white background (#F5F5F1), white cards, sheets and dialogs with thin #DEDED7 borders, near-black text (#0B0B0D) and grey secondary text (#5C5C64). Thin dividers between rows (#E6E6E0) and slightly darker borders around buttons, fields, the profile picture and the bottom bar (#D2D2CA).
+  - **Accent:** fills stay the same violet (#B48CFF) with near-black text in both modes: the unread hero card, main buttons, the selected tab, switches that are on, PIN dots, your own message bubbles and the send button. Violet *text and icons* (the slash in the ELEMENT/CTRL wordmark, unread times, links in previews, focused text field borders, the fingerprint key, banner icons, text buttons) use a deeper violet (#6A3BDB) in light mode so they're readable on white.
+  - **Chats:** your own bubbles stay violet with near-black text; other people's bubbles are white with a thin #DEDED7 border. Names in group chats use darker versions of each person's colour so they're readable on light backgrounds.
+  - **Switches:** off is a light grey track (#DCDCD5) with a grey knob; on is violet with a dark knob.
+  - **Progress bars** use a light grey track with a near-black fill (violet for the main ones).
+  - **Lock screen:** white keypad keys with thin borders, empty PIN cells outlined in #C9C9C1, the fingerprint key outlined in the deeper violet.
+  - **Bottom bar:** white at about 92 % with a thin border, floating over the list as before.
+  - **Errors** are shown in a deeper red (#D93636) in light mode.
+  - **Status and navigation bars** use the app's background colour, with dark icons in light mode and light icons in dark mode.
+- Switching the phone between dark and light while ElementCtrl is open changes the app straight away.
+
+### Changed
+
+- The call screen, the photo and video viewer and video thumbnails stay dark in both modes, so pictures and video come first.
+- In dark mode nothing changes from 1.7.0.
+
 ## 1.7.0
 
 ElementCtrl gets the new **Ctrl / Signal** look shared by the whole Ctrl series: near-black, high-contrast, one violet accent (#B48CFF), new fonts and squarer shapes. Every feature, setting and screen works as before; only the look has changed.

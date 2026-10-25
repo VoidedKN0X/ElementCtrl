@@ -142,7 +142,9 @@ class MessageActions(
 )
 
 /** The accent for details inside a bubble: the accent itself, or the bubble's text colour on an accent bubble. */
-private fun accentOn(onBubble: Color): Color = if (onBubble == CtrlColors.OnAccent) onBubble else CtrlColors.Accent
+@Composable
+@androidx.compose.runtime.ReadOnlyComposable
+private fun accentOn(onBubble: Color): Color = if (onBubble == CtrlColors.OnAccent) onBubble else CtrlColors.AccentText
 
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
 val LocalBubbleStyle = androidx.compose.runtime.staticCompositionLocalOf { BubbleStyle.MODERN }
@@ -204,7 +206,7 @@ fun MessageRow(
     }
     val border = when {
         highlighted || flat -> null
-        style == BubbleStyle.OUTLINED -> androidx.compose.foundation.BorderStroke(1.dp, if (own) CtrlColors.Accent else CtrlColors.Border)
+        style == BubbleStyle.OUTLINED -> androidx.compose.foundation.BorderStroke(1.dp, if (own) CtrlColors.AccentText else CtrlColors.Border)
         !own -> androidx.compose.foundation.BorderStroke(1.dp, CtrlColors.Border)
         else -> null
     }
@@ -252,10 +254,10 @@ fun MessageRow(
                     .padding(start = 16.dp)
                     .size(34.dp)
                     .graphicsLayer { alpha = progress; scaleX = 0.5f + 0.5f * progress; scaleY = scaleX }
-                    .background(if (armed) cs.primary else cs.surfaceContainerHigh, RoundedCornerShape(12.dp)),
+                    .background(if (armed) CtrlColors.Accent else cs.surfaceContainerHigh, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(18.dp), tint = if (armed) cs.onPrimary else cs.onSurfaceVariant)
+                Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(18.dp), tint = if (armed) CtrlColors.OnAccent else cs.onSurfaceVariant)
             }
         }
         Row(
@@ -294,7 +296,7 @@ fun MessageRow(
                         Text(
                             if (flat && item.isOwn) stringResource(R.string.you_title) else item.senderName,
                             style = MaterialTheme.typography.labelLarge,
-                            color = senderColor(item.sender),
+                            color = com.vknxworks.elementctrl.ui.senderNameColor(item.sender),
                             modifier = Modifier.clickable { actions.onOpenUser(item.sender) },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -653,14 +655,14 @@ private fun ReactionsRow(reactions: List<ReactionUi>, own: Boolean, onClick: (St
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = CtrlColors.Surface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (r.mine) CtrlColors.Accent else CtrlColors.Border),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (r.mine) CtrlColors.AccentText else CtrlColors.Border),
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { onClick(r.key) },
             ) {
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(r.key, fontSize = 15.sp)
                     if (r.count > 1) {
                         Spacer(Modifier.width(4.dp))
-                        Text(r.count.toString(), style = CtrlType.Meta, color = if (r.mine) CtrlColors.Accent else CtrlColors.Muted)
+                        Text(r.count.toString(), style = CtrlType.Meta, color = if (r.mine) CtrlColors.AccentText else CtrlColors.Muted)
                     }
                 }
             }

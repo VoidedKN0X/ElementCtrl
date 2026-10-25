@@ -1032,7 +1032,7 @@ private fun Composer(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    cursorColor = CtrlColors.Accent,
+                    cursorColor = CtrlColors.AccentText,
                     unfocusedPlaceholderColor = CtrlColors.Muted,
                     focusedPlaceholderColor = CtrlColors.Muted,
                 ),
@@ -1041,7 +1041,7 @@ private fun Composer(
             )
             // With nothing typed the button records a voice message instead.
             val voiceMode = !canSend && mode !is ComposerMode.Edit
-            val sendColor by animateColorAsState(if (canSend || voiceMode) cs.primary else cs.surfaceContainerHighest, label = "send")
+            val sendColor by animateColorAsState(if (canSend || voiceMode) CtrlColors.Accent else cs.surfaceContainerHighest, label = "send")
             Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
@@ -1054,7 +1054,7 @@ private fun Composer(
                     Icon(
                         if (voiceMode) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
                         if (voiceMode) stringResource(R.string.record_voice_message) else stringResource(R.string.send),
-                        tint = cs.onPrimary,
+                        tint = CtrlColors.OnAccent,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -1087,9 +1087,9 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
         }
         Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
             Box(
-                Modifier.size(48.dp).clip(CtrlShapes.Control).background(cs.primary).clickable(onClick = onSend),
+                Modifier.size(48.dp).clip(CtrlShapes.Control).background(CtrlColors.Accent).clickable(onClick = onSend),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.send_voice_message), tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.send_voice_message), tint = CtrlColors.OnAccent, modifier = Modifier.size(20.dp)) }
         }
     }
 }

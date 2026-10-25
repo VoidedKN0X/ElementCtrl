@@ -191,11 +191,13 @@ class CallActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Dark only: light status and navigation bar icons over the #08080A background, whatever the system theme.
+        // The call screen stays dark in both modes: light status and navigation bar icons over #08080A.
         enableEdgeToEdge(
             statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
+        // Dark in both modes (see setContent below): its window background too.
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0xFF08080A.toInt()))
         super.onCreate(savedInstanceState)
         // Calls ring over the phone's lock screen, like a phone call. The app lock still applies on top.
         setShowWhenLocked(true)
@@ -215,7 +217,8 @@ class CallActivity : ComponentActivity() {
         }
 
         setContent {
-            ElementCtrlTheme {
+            // The call screen is mostly video and Element Call's own dark interface, so it stays dark in light mode.
+            ElementCtrlTheme(forceDark = true) {
                 val graph = ElementCtrlApp.graph
                 val lock = graph.lock
                 val legacyLock = lock.legacyPinSet

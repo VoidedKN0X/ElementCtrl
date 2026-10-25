@@ -92,7 +92,7 @@ fun CtrlWordmark(name: String, modifier: Modifier = Modifier) {
     Text(
         buildAnnotatedString {
             append(name.uppercase())
-            withStyle(SpanStyle(color = CtrlColors.Accent)) { append("/") }
+            withStyle(SpanStyle(color = CtrlColors.AccentText)) { append("/") }
             append("CTRL")
         },
         style = CtrlType.Wordmark,
@@ -315,7 +315,7 @@ fun CtrlBottomBar(
 
 /**
  * The Ctrl switch: a 52×32 dp rounded rect (10 dp corners, 4 dp padding) with a 24 dp knob (7 dp corners).
- * On: accent track, dark knob. Off: #2A2A30 track, grey knob. Announced as a switch.
+ * On: accent track, dark knob. Off: the palette's off track and grey knob. Announced as a switch.
  */
 @Composable
 fun CtrlSwitch(
@@ -325,7 +325,7 @@ fun CtrlSwitch(
     enabled: Boolean = true,
 ) {
     val track by animateColorAsState(if (checked) CtrlColors.Accent else CtrlColors.SwitchTrackOff, label = "switch-track")
-    val knob by animateColorAsState(if (checked) CtrlColors.OnAccent else CtrlColors.Disabled, label = "switch-knob")
+    val knob by animateColorAsState(if (checked) CtrlColors.OnAccent else CtrlColors.SwitchKnobOff, label = "switch-knob")
     val knobX by animateDpAsState(if (checked) 20.dp else 0.dp, label = "switch-x")
     val toggle = if (onCheckedChange != null) {
         Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
@@ -401,13 +401,13 @@ fun ctrlFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = CtrlColors.Surface,
     disabledContainerColor = CtrlColors.Surface,
     errorContainerColor = CtrlColors.Surface,
-    focusedBorderColor = CtrlColors.Accent,
+    focusedBorderColor = CtrlColors.AccentText,
     unfocusedBorderColor = CtrlColors.ControlBorder,
     disabledBorderColor = CtrlColors.Border,
-    cursorColor = CtrlColors.Accent,
-    focusedLabelColor = CtrlColors.Accent,
+    cursorColor = CtrlColors.AccentText,
+    focusedLabelColor = CtrlColors.AccentText,
     unfocusedLabelColor = CtrlColors.Muted,
-    focusedLeadingIconColor = CtrlColors.Accent,
+    focusedLeadingIconColor = CtrlColors.AccentText,
     unfocusedLeadingIconColor = CtrlColors.Muted,
     focusedTextColor = CtrlColors.Text,
     unfocusedTextColor = CtrlColors.Text,
@@ -415,7 +415,7 @@ fun ctrlFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedPlaceholderColor = CtrlColors.Muted,
 )
 
-/** Text field: surface fill, 1 dp #2A2A2F border, 16 dp corners; accent border and cursor when focused. */
+/** Text field: surface fill, 1 dp control border, 16 dp corners; accent border and cursor when focused. */
 @Composable
 fun CtrlTextField(
     value: String,
@@ -471,7 +471,7 @@ fun CtrlTextField(
 fun CtrlProgress(
     progress: () -> Float,
     modifier: Modifier = Modifier,
-    color: Color = CtrlColors.Text,
+    color: Color = CtrlColors.ProgressFill,
     trackColor: Color = CtrlColors.ProgressTrack,
 ) {
     LinearProgressIndicator(
@@ -509,7 +509,7 @@ fun CtrlDialog(
         text = text,
         shape = CtrlShapes.Dialog,
         containerColor = CtrlColors.Surface,
-        iconContentColor = CtrlColors.Accent,
+        iconContentColor = CtrlColors.AccentText,
         titleContentColor = CtrlColors.Text,
         textContentColor = CtrlColors.Muted,
         tonalElevation = 0.dp,
@@ -575,6 +575,6 @@ fun CtrlIconTile(icon: ImageVector, modifier: Modifier = Modifier, filled: Boole
             .then(if (filled) Modifier else Modifier.border(1.dp, CtrlColors.Border, RoundedCornerShape(24.dp))),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, null, Modifier.size(30.dp), tint = if (filled) CtrlColors.OnAccent else CtrlColors.Accent)
+        Icon(icon, null, Modifier.size(30.dp), tint = if (filled) CtrlColors.OnAccent else CtrlColors.AccentText)
     }
 }

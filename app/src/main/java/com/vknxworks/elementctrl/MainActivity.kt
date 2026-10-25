@@ -33,10 +33,10 @@ import org.matrix.rustcomponents.sdk.parseMatrixEntityFrom
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Dark only: light status and navigation bar icons over the #08080A background, whatever the system theme.
+        // Bars show the app's background; their icons follow the device theme (light icons in dark, dark in light).
         enableEdgeToEdge(
-            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            statusBarStyle = androidx.activity.SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
         // Recents shows a blank card until the settings are read (then "Hide in recent apps" decides).

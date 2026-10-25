@@ -323,7 +323,7 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
             com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { submit() }, enabled = key.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = com.vknxworks.elementctrl.ui.CtrlColors.OnAccent)
                 else Text(stringResource(R.string.banner_verify))
             }
         }

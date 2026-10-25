@@ -180,7 +180,7 @@ fun shareText(context: Context, text: String) {
 
 @Composable
 fun CenteredLoading(modifier: Modifier = Modifier.fillMaxSize()) {
-    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CtrlColors.Accent, trackColor = CtrlColors.ProgressTrack) }
+    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CtrlColors.AccentText, trackColor = CtrlColors.ProgressTrack) }
 }
 
 @Composable
@@ -298,7 +298,11 @@ fun UnreadBadge(count: Long, highlight: Boolean, muted: Boolean) {
         highlight -> MaterialTheme.colorScheme.error
         else -> CtrlColors.Accent
     }
-    val fg = CtrlColors.OnAccent
+    val fg = when {
+        highlight -> MaterialTheme.colorScheme.onError
+        muted -> CtrlColors.Background
+        else -> CtrlColors.OnAccent
+    }
     if (count <= 0) {
         com.vknxworks.elementctrl.ui.components.CtrlStatusDot(bg)
     } else {
