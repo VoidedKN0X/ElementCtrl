@@ -2,6 +2,29 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.9.1
+
+### Fixed
+
+- **No more crash when closing the app with the app lock set to lock straight away.** Pressing Back on the chat list or swiping ElementCtrl away from Recents could crash it, because the lock screen (and its fingerprint prompt) tried to open on a screen that was already closing. The app still locks, and opens on the lock screen next time.
+- **The fingerprint prompt no longer crashes the app** when Android refuses to show it, for example while you're leaving the app. You can unlock with your PIN instead.
+- **Closing the QR scanner right after opening it** no longer leaves the camera switched on in the background (the camera indicator could stay on until you left the screen).
+- **Calls:** audio switches that were still pending when a call ended (Bluetooth earphones reconnecting, a device picked at the last moment) no longer run after the call, so the phone's audio is left in its normal mode and the earpiece screen-off sensor isn't turned on again. The call screen also no longer crashes when it's closed while it's asking for the camera or microphone.
+- **Fewer crashes in the background:** an unexpected error in background work (syncing, the chat list, a chat, search, voice messages, calls) while the app is closing or a chat goes away is now ignored instead of closing the whole app.
+- **Signing in with a QR code** stops when you leave the screen or the app is closed, instead of carrying on in the background.
+
+### Security
+
+- **QR sign-in only accepts servers with an encrypted (https) connection.** A QR code pointing at a plain http server is refused with a message, as the server list asks you to confirm such servers first and a QR code skips that step.
+- **Link new device** only opens the account page from your server when it's an https address.
+- **Call screen hardening:** messages to the call page are always passed as data and can never run as code there, the page can't load any unencrypted (http) content, only the bundled call page over https can ask for the camera and microphone, and the call page's web cache is cleared when a call ends.
+- **The audio output picker can't open on top of the lock screen** during a call while the app is locked.
+
+### Changed
+
+- **Signing out also deletes the cached map tiles** from location maps, which show which places you looked at.
+- Internal cleanup: removed unused text.
+
 ## 1.9.0
 
 ### New

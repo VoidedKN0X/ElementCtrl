@@ -50,7 +50,7 @@ class AppGraph(val context: Context) {
     val factory = ClientFactory(context, store)
     val auth = AuthService(this)
     val redirectScheme: String = context.getString(R.string.login_redirect_scheme)
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + com.vknxworks.elementctrl.matrix.LogAndContinue)
 
     private val _state = MutableStateFlow<AppState>(AppState.Loading)
     val state: StateFlow<AppState> = _state.asStateFlow()
@@ -295,6 +295,8 @@ class AppGraph(val context: Context) {
         runCatching { com.vknxworks.elementctrl.notify.PushNotifications.clearAll(context) }
         runCatching { com.vknxworks.elementctrl.notify.PushQueue.clear(context) }
         runCatching { ConnectionLog.clear() }
+        // Cached map tiles show which places were looked at on a location map.
+        runCatching { java.io.File(context.cacheDir, "osmdroid").deleteRecursively() }
     }
 
     /** Deletes every account folder under files/sessions and cache/sessions except [keep]. */

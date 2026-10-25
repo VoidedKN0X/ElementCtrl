@@ -157,7 +157,10 @@ internal class WidgetBridge(private val webView: WebView, private val onFromWidg
 
     /** Sends a message from the widget driver to Element Call. [json] is the driver's JSON object. */
     fun toWidget(json: String) {
-        main.post { runCatching { webView.evaluateJavascript("window.postMessage($json, '$CALL_ORIGIN');", null) } }
+        // Passed in as a quoted string and parsed in the page, so the driver's message can only ever be data there,
+        // never code (it carries other people's call events and the call's encryption keys).
+        val quoted = JSONObject.quote(json)
+        main.post { runCatching { webView.evaluateJavascript("window.postMessage(JSON.parse($quoted), '$CALL_ORIGIN');", null) } }
     }
 
     companion object {
@@ -203,6 +206,8 @@ internal class CallAudio(
     private val audio = context.getSystemService(AudioManager::class.java)
     private val main = Handler(Looper.getMainLooper())
     private var started = false
+    /** The call has ended: the page finishing a load (about:blank on close) must not turn call mode back on. */
+    private var ended = false
     private var registered = false
     private var wanted: String? = null
     private val proximity: PowerManager.WakeLock? by lazy {
@@ -237,11 +242,14 @@ internal class CallAudio(
         }
     }
 
+    /** Runs the communication-device listener; one per call, shut down when the call ends. */
+    private val listenerExecutor = Executors.newSingleThreadExecutor()
+
     private val commsListener = AudioManager.OnCommunicationDeviceChangedListener { device ->
         log("now playing through ${device?.let { describe(it) } ?: "nothing"}")
         // Keep the device picked in the call, even if something else switched it.
         val w = wanted
-        if (w != null && device?.id?.toString() != w) main.post { select(w) }
+        if (w != null && device?.id?.toString() != w) main.post { if (started) select(w) }
     }
 
     private fun log(message: String) = com.vknxworks.elementctrl.matrix.ConnectionLog.log("call audio: $message")
@@ -268,6 +276,7 @@ internal class CallAudio(
     @JavascriptInterface
     fun setAudioDevice(id: String?) {
         if (id != null) main.post {
+            if (!started) return@post
             log("Element Call picked #$id")
             wanted = id
             select(id)
@@ -317,7 +326,7 @@ internal class CallAudio(
             publish()
             if (!registered) {
                 audio.registerAudioDeviceCallback(deviceCallback, main)
-                audio.addOnCommunicationDeviceChangedListener(Executors.newSingleThreadExecutor(), commsListener)
+                audio.addOnCommunicationDeviceChangedListener(listenerExecutor, commsListener)
                 registered = true
             }
         }, 2_000)
@@ -325,7 +334,7 @@ internal class CallAudio(
 
     /** The page has loaded: call mode on, and Element Call's audio hooks pointed at this class. */
     fun start() {
-        if (started) return
+        if (started || ended) return
         started = true
         audio.mode = AudioManager.MODE_IN_COMMUNICATION
         log("call started, mode ${audio.mode}, devices: ${devices().joinToString { describe(it) }}")
@@ -339,8 +348,15 @@ internal class CallAudio(
     }
 
     fun stop() {
-        if (!started) return
+        ended = true
+        if (!started) {
+            listenerExecutor.shutdown()
+            return
+        }
         started = false
+        wanted = null
+        // Delayed Bluetooth re-checks and device switches posted during the call mustn't run after it.
+        main.removeCallbacksAndMessages(null)
         runCatching { if (proximity?.isHeld == true) proximity?.release() }
         if (registered) {
             runCatching { audio.unregisterAudioDeviceCallback(deviceCallback) }
@@ -348,7 +364,8 @@ internal class CallAudio(
             registered = false
         }
         runCatching { audio.clearCommunicationDevice() }
-        audio.mode = AudioManager.MODE_NORMAL
+        runCatching { audio.mode = AudioManager.MODE_NORMAL }
+        listenerExecutor.shutdown()
     }
 
     private fun devices(extra: List<AudioDeviceInfo> = emptyList()): List<AudioDeviceInfo> {
@@ -401,6 +418,7 @@ internal class CallAudio(
 
     @SuppressLint("WakelockTimeout")
     private fun select(id: String) {
+        if (!started) return
         val available = audio.availableCommunicationDevices
         // If the picked device isn't there any more (Bluetooth earphones re-announce themselves with a new ID when
         // they switch between music and call mode), use the best one there is.
@@ -492,6 +510,8 @@ internal fun WebView.setUpForCall() {
         javaScriptEnabled = true
         domStorageEnabled = true
         mediaPlaybackRequiresUserGesture = false
+        // The call page is https only: never load http content into it.
+        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
         allowFileAccess = false
         allowContentAccess = false
         @Suppress("DEPRECATION")

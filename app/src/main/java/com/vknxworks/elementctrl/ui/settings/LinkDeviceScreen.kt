@@ -164,7 +164,11 @@ fun LinkDeviceScreen(session: MatrixSession, onBack: () -> Unit) {
                 is LinkStep.Approve -> {
                     Text(stringResource(R.string.link_device_approve_title), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
                     Text(stringResource(R.string.link_device_approve_body), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                    CtrlButton(onClick = { openUrl(context, s.url) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.link_device_open_account_page)) }
+                    CtrlButton(
+                        // The account page comes from the server: only ever opened as an https page in the browser.
+                        onClick = { if (s.url.startsWith("https://", ignoreCase = true)) openUrl(context, s.url) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.link_device_open_account_page)) }
                     CtrlSecondaryButton(onClick = { scope.launch { runCatching { service.approved(s.continuation) }.onFailure { error = it.userMessage() } } }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.link_device_approved))
                     }

@@ -149,7 +149,7 @@ class CallActivity : ComponentActivity() {
     private var loaded = false
     private var ending = false
     private var portraitPip = true
-    private val callScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val callScope = CoroutineScope(SupervisorJob() + Dispatchers.Main + com.vknxworks.elementctrl.matrix.LogAndContinue)
     private var timeoutJob: Job? = null
 
     private var permissionRequest: PermissionRequest? = null
@@ -262,8 +262,9 @@ class CallActivity : ComponentActivity() {
                         is Phase.Failed -> Message(stringResource(R.string.call_error_title), p.message)
                     }
                     // The audio output picker only belongs to a call on screen (not picture-in-picture).
-                    LaunchedEffect(phase, inPip) { if (phase != Phase.InCall || inPip) outputPicker = null }
-                    outputPicker?.let { options ->
+                    // Nor on top of the lock screen: the sheet is its own window, above the lock.
+                    LaunchedEffect(phase, inPip, locked) { if (phase != Phase.InCall || inPip || locked) outputPicker = null }
+                    outputPicker?.takeIf { !locked }?.let { options ->
                         AudioOutputSheet(
                             options,
                             onPick = { id -> audio?.choose(id); outputPicker = null },
@@ -449,7 +450,8 @@ class CallActivity : ComponentActivity() {
         )
         wv.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
-                if (request.origin?.host != "appassets.androidplatform.net") return request.deny()
+                // Only the bundled call page (served over https from the app) gets the camera and microphone.
+                if (request.origin?.scheme != "https" || request.origin?.host != "appassets.androidplatform.net") return request.deny()
                 val needed = request.resources.mapNotNull {
                     when (it) {
                         PermissionRequest.RESOURCE_AUDIO_CAPTURE -> Manifest.permission.RECORD_AUDIO
@@ -466,7 +468,11 @@ class CallActivity : ComponentActivity() {
                 } else {
                     permissionRequest?.deny()
                     permissionRequest = request
-                    askPermissions.launch(needed.toTypedArray())
+                    // The call screen may be closing: then there's nobody to ask, so the page is refused.
+                    runCatching { askPermissions.launch(needed.toTypedArray()) }.onFailure {
+                        permissionRequest = null
+                        request.deny()
+                    }
                 }
             }
 
@@ -583,6 +589,8 @@ class CallActivity : ComponentActivity() {
         webView?.let { wv ->
             runCatching {
                 wv.stopLoading()
+                // Nothing the call page fetched stays in the WebView's cache after the call.
+                wv.clearCache(true)
                 wv.loadUrl("about:blank")
                 wv.destroy()
             }

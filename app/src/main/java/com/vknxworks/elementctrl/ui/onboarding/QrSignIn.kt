@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,8 @@ fun QrSignInScreen(onBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     // The check code and the code the other device shows are part of the secure sign-in: keep them off screenshots.
     SecureScreen()
+    // Leaving the screen in any way (including the app being closed) stops a sign-in that's still going.
+    DisposableEffect(Unit) { onDispose { auth.cancelQr() } }
 
     fun back() {
         if (running) auth.cancelQr()

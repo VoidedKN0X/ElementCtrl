@@ -74,7 +74,7 @@ class TimelineController(
     /** Only photos, videos, files and audio, newest first in pages: for the media and files gallery. */
     val mediaOnly: Boolean = false,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + com.vknxworks.elementctrl.matrix.LogAndContinue)
     private var timeline: Timeline? = null
     private val handles = mutableListOf<TaskHandle>()
     private val diffs = Channel<List<TimelineDiff>>(Channel.UNLIMITED)

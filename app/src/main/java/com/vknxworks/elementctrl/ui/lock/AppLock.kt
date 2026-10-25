@@ -218,6 +218,11 @@ object AppLock {
             promptSignal = null
             return true
         }
+        // No prompt for an activity that is closing: the system would refuse it (or crash showing it).
+        if (activity.isFinishing || activity.isDestroyed) {
+            if (finish()) onError(null)
+            return
+        }
         try {
             val prompt = BiometricPrompt.Builder(activity)
                 .setTitle(title)
@@ -281,6 +286,11 @@ fun lockCovering(lockSetting: Boolean, vault: LockVault): Boolean =
  */
 @Composable
 fun AppLockOverlay(lockSetting: Boolean) {
+    // Leaving the app (Back on the first screen, swiped from Recents) can lock it while the activity is already
+    // finishing; the lock screen (and its fingerprint prompt or dialogs) then has no window to open in. The app is
+    // locked either way and the next start opens on the lock screen.
+    val host = LocalContext.current.findActivity()
+    if (host != null && (host.isFinishing || host.isDestroyed)) return
     val c = LocalContext.current.container
     val vault = c.vault
     when {

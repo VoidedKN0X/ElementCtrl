@@ -39,7 +39,7 @@ data class ActiveCall(val roomId: String, val audioOnly: Boolean, val roomName: 
  * app lock doesn't shut the session down until the call has ended.
  */
 object CallManager {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + com.vknxworks.elementctrl.matrix.LogAndContinue)
 
     private val _ringing = MutableStateFlow<IncomingCall?>(null)
     val ringing: StateFlow<IncomingCall?> = _ringing.asStateFlow()

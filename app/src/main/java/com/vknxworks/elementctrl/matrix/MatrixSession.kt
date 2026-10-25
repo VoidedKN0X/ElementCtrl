@@ -54,7 +54,7 @@ class MatrixSession(
     private val syncService: SyncService,
     val paths: SessionPaths,
 ) {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + com.vknxworks.elementctrl.matrix.LogAndContinue)
     val userId: String = client.userId()
     val deviceId: String = client.deviceId()
     val homeserver: String = client.homeserver()

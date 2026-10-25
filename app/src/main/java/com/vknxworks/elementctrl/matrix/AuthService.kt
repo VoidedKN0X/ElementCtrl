@@ -156,11 +156,15 @@ class AuthService(private val graph: AppGraph) {
             }
             if (data.intent() != QrCodeIntent.RECIPROCATE) throw QrLoginProblem(Strings.str(R.string.qr_wrong_side_new_device))
             val server = data.serverName() ?: data.baseUrl() ?: throw QrLoginProblem(Strings.str(R.string.qr_code_unsupported))
+            // The server comes from someone else's screen here, without the "not encrypted" confirmation the server
+            // list asks for, so only https servers are accepted.
+            if (server.trim().startsWith("http://", ignoreCase = true)) throw QrLoginProblem(Strings.str(R.string.qr_server_not_https))
             reset()
             val newPaths = graph.factory.newPaths()
             paths = newPaths
             val built = graph.factory.loginBuilder(newPaths, server).build()
             client = built
+            if (!built.homeserver().startsWith("https://", ignoreCase = true)) throw QrLoginProblem(Strings.str(R.string.qr_server_not_https))
             // QR sign-in hands over an OAuth session, so servers without Matrix Authentication Service can't do it.
             if (!built.homeserverLoginDetails().supportsOauthLogin()) throw QrLoginProblem(Strings.str(R.string.qr_server_unsupported))
             val task = built.newLoginWithQrCodeHandler(oauthConfig).scan(data, object : QrLoginProgressListener {

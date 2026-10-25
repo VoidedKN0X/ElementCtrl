@@ -36,9 +36,7 @@
     <string name="hide_recents">Hide in recent apps</string>
     <string name="hide_recents_subtitle">The recent apps view shows a blank card instead of the app</string>
     <string name="lock_title">Locked</string>
-    <string name="lock_legacy_body">Unlock with your fingerprint, face or screen lock one last time, then choose an app PIN.</string>
     <string name="lock_legacy_prompt_subtitle">Confirm it\'s you to choose an app PIN</string>
-    <string name="lock_unlock">Unlock</string>
     <string name="lock_prompt_title">Unlock ElementCtrl</string>
     <string name="lock_use_pin">Use PIN</string>
     <string name="lock_use_fingerprint">Use fingerprint</string>
@@ -122,13 +120,6 @@
 
     <!-- Settings -->
     <string name="group_appearance">Appearance</string>
-    <string name="theme">Theme</string>
-    <string name="theme_system">Follow system</string>
-    <string name="theme_dark">Dark</string>
-    <string name="theme_light">Light</string>
-    <string name="theme_black">Pure black</string>
-    <string name="dynamic_colour">Use wallpaper colours</string>
-    <string name="dynamic_colour_subtitle">Replaces the default colours with ones from your wallpaper</string>
     <string name="bubbles">Chat bubbles</string>
 
     <string name="group_notifications">Notifications</string>
@@ -285,12 +276,9 @@
     <string name="call_back_to_call">Back to the call</string>
     <string name="call_starting">Starting the call…</string>
     <string name="call_error_title">The call couldn\'t start</string>
-    <string name="call_error_body">%1$s</string>
     <string name="call_error_generic">Something went wrong loading the call.</string>
     <string name="call_error_no_session">You\'re not signed in.</string>
     <string name="call_error_no_room">This chat isn\'t available yet. It may still be syncing.</string>
-    <string name="call_end">End call</string>
-    <string name="call_hang_up">Hang up</string>
     <string name="call_incoming_voice">Incoming voice call</string>
     <string name="call_incoming_video">Incoming video call</string>
     <string name="call_incoming">Incoming call</string>
@@ -771,7 +759,6 @@
     </plurals>
     <string name="they_ll_need_to_sign_in_again_make">They\'ll need to sign in again. Make sure recovery is set up so you don\'t lose access to encrypted messages.</string>
     <string name="confirm_with_your_password">Confirm with your password</string>
-    <string name="active">active %1$s</string>
     <string name="device_id_active">%1$s · active %2$s</string>
     <string name="notification_delivery">Notification delivery</string>
     <string name="instant_push_with_ntfy">Instant push with ntfy</string>
@@ -896,6 +883,7 @@
     <string name="qr_other_already_signed_in">The other device is already signed in.</string>
     <string name="qr_wrong_check_code">That code didn\'t match. Start again.</string>
     <string name="qr_missing_backup">Set up recovery (key storage) on this device first, so the new device can get your encryption keys.</string>
+    <string name="qr_server_not_https">This QR code points to a server without an encrypted (https) connection. Sign in to that server from the server list instead.</string>
     <string name="qr_failed">Signing in with the QR code didn\'t work. Try again.</string>
     <string name="link_device_title">Link new device</string>
     <string name="link_device_row_subtitle">Sign a new phone or computer in with a QR code</string>

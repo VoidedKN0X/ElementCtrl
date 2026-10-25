@@ -93,7 +93,7 @@ data class Permissions(
 
 /** Live room state, typing users, members and room-level actions for an open room. */
 class RoomController(val session: MatrixSession, val room: Room) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + com.vknxworks.elementctrl.matrix.LogAndContinue)
     private val handles = mutableListOf<TaskHandle>()
     val roomId: String = room.id()
 

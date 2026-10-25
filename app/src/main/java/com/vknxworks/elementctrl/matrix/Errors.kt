@@ -89,3 +89,12 @@ fun redactSecrets(text: String): String = text
     .replace(Regex("""\b(syt|syr|mat|mar|mct|mcr)_[A-Za-z0-9_-]{8,}"""), "…")
     .replace(Regex("""(https?://)[^/@\s]+@"""), "$1")
     .replace(Regex("""(https?://[^\s?#"']+)\?[^\s#"']*"""), "$1?…")
+
+/**
+ * For the app's long-lived coroutine scopes: an unexpected error in background work (an SDK call failing while
+ * the app closes, a room going away mid-update) is dropped instead of crashing the whole app. Only the error's
+ * type is logged (release builds drop logs anyway), never its message, which can name rooms, users or servers.
+ */
+val LogAndContinue = kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+    android.util.Log.w("ElementCtrl", "background task failed: ${e.javaClass.simpleName}")
+}

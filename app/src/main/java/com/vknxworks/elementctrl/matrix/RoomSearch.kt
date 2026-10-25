@@ -33,7 +33,7 @@ data class SearchHit(
  * search screen is open, older history is fetched into the index in the background.
  */
 class RoomSearch(private val session: MatrixSession, private val roomId: String?) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + com.vknxworks.elementctrl.matrix.LogAndContinue)
     private val service: SearchService = session.client.searchService()
     private val handles = mutableListOf<TaskHandle>()
     private val updates = Channel<List<SearchServiceResultsUpdate>>(Channel.UNLIMITED)
