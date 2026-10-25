@@ -26,17 +26,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -178,7 +178,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
             item {
                 Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
-                        Modifier.size(72.dp).clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.primaryContainer),
+                        Modifier.size(72.dp).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text("[ ]", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
@@ -196,39 +196,39 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
             }
             error?.let { e ->
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                         Text(e, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
             item { Text(stringResource(R.string.popular_servers), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp)) }
             items(Servers.standard, key = { it.address }) { option ->
-                ServerCard(option, Icons.Default.Public, busy == option.address, enabled = busy == null) { connect(option.address) }
+                ServerCard(option, Icons.Outlined.Public, busy == option.address, enabled = busy == null) { connect(option.address) }
             }
             if (recent.isNotEmpty()) {
                 item { Text(stringResource(R.string.your_servers), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
                 items(recent, key = { "recent:$it" }) { address ->
-                    ServerCard(ServerOption(address, address, Strings.str(R.string.signed_in_here_before)), Icons.Default.History, busy == address, enabled = busy == null) { connect(address) }
+                    ServerCard(ServerOption(address, address, Strings.str(R.string.signed_in_here_before)), Icons.Outlined.History, busy == address, enabled = busy == null) { connect(address) }
                 }
             }
             item {
                 Text(stringResource(R.string.self_hosted_or_other_server), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
             }
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, border = androidx.compose.foundation.BorderStroke(1.dp, com.vknxworks.elementctrl.ui.CtrlColors.Border), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Outlined.Dns, null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(12.dp))
                             Text(stringResource(R.string.your_own_synapse_conduit_or_dendrite), style = MaterialTheme.typography.bodyMedium)
                         }
-                        OutlinedTextField(
+                        com.vknxworks.elementctrl.ui.components.CtrlTextField(
                             value = custom,
                             onValueChange = { custom = it },
                             label = { Text(stringResource(R.string.server_address)) },
                             placeholder = { Text(stringResource(R.string.example_com_or_https_matrix_example)) },
                             singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Language, null) },
+                            leadingIcon = { Icon(Icons.Outlined.Language, null) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false),
                             keyboardActions = KeyboardActions(onGo = { connect(custom) }),
                             enabled = busy == null,
@@ -239,7 +239,7 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Button(
+                        com.vknxworks.elementctrl.ui.components.CtrlButton(
                             onClick = { connect(custom) },
                             enabled = custom.isNotBlank() && busy == null,
                             modifier = Modifier.fillMaxWidth(),
@@ -259,12 +259,12 @@ fun ServerPickerScreen(message: String?, onServerReady: (ServerDetails) -> Unit)
 
 @Composable
 private fun ServerCard(option: ServerOption, icon: androidx.compose.ui.graphics.vector.ImageVector, loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Card(
+    Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, border = androidx.compose.foundation.BorderStroke(1.dp, com.vknxworks.elementctrl.ui.CtrlColors.Border), 
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = Modifier.fillMaxWidth().clip(CardDefaults.shape).clickable(enabled = enabled, onClick = onClick),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             Spacer(Modifier.width(14.dp))
@@ -274,7 +274,7 @@ private fun ServerCard(option: ServerOption, icon: androidx.compose.ui.graphics.
             }
             Spacer(Modifier.width(8.dp))
             if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            else Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            else Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -341,9 +341,9 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
             Modifier.fillMaxSize().padding(pad).imePadding().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+            Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, border = androidx.compose.foundation.BorderStroke(1.dp, com.vknxworks.elementctrl.ui.CtrlColors.Border), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Icon(Icons.Outlined.Dns, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(server.address, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
@@ -355,7 +355,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
             }
 
             error?.let {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Text(it, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
@@ -374,38 +374,38 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = { browser { graph.auth.oauthUrl(register = false) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Icon(Icons.Default.Lock, null)
+                com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { browser { graph.auth.oauthUrl(register = false) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Icon(Icons.Outlined.Lock, null)
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.continue_to_sign_in))
                 }
                 if (server.canRegister) {
-                    OutlinedButton(onClick = { browser { graph.auth.oauthUrl(register = true) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { browser { graph.auth.oauthUrl(register = true) } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                         Text(stringResource(R.string.create_an_account))
                     }
                 }
             }
 
             if (server.supportsPassword && !server.supportsOAuth) {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.username_or_matrix_id)) },
                     placeholder = { Text(stringResource(R.string.alice_or_alice, server.address)) },
-                    leadingIcon = { Icon(Icons.Default.Person, null) },
+                    leadingIcon = { Icon(Icons.Outlined.Person, null) },
                     singleLine = true,
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.password)) },
-                    leadingIcon = { Icon(Icons.Default.Key, null) },
+                    leadingIcon = { Icon(Icons.Outlined.Key, null) },
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (showPassword) stringResource(R.string.hide) else stringResource(R.string.show))
+                            Icon(if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (showPassword) stringResource(R.string.hide) else stringResource(R.string.show))
                         }
                     },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -415,7 +415,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
                     keyboardActions = KeyboardActions(onDone = { passwordLogin() }),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(onClick = { passwordLogin() }, enabled = !busy && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { passwordLogin() }, enabled = !busy && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     else Text(stringResource(R.string.sign_in))
                 }
@@ -428,7 +428,7 @@ fun LoginScreen(server: ServerDetails, onBack: () -> Unit) {
 
             if (server.supportsSso && !server.supportsOAuth) {
                 if (server.supportsPassword) HorizontalDivider()
-                OutlinedButton(onClick = { browser { graph.auth.ssoUrl() } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { browser { graph.auth.ssoUrl() } }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(stringResource(R.string.continue_with_single_sign_on))
                 }
             }

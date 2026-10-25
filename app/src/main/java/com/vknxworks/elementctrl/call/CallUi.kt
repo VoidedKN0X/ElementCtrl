@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -53,7 +53,7 @@ fun rememberCallStarter(session: MatrixSession): (roomId: String, audioOnly: Boo
     val busy = stringResource(R.string.call_already_in_call)
 
     if (notSetUp) {
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { notSetUp = false },
             title = { Text(stringResource(R.string.call_not_set_up_title)) },
             text = { Text(stringResource(R.string.call_not_set_up_body, server)) },
@@ -64,7 +64,7 @@ fun rememberCallStarter(session: MatrixSession): (roomId: String, audioOnly: Boo
         )
     }
     failed?.let { msg ->
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { failed = null },
             title = { Text(stringResource(R.string.call_error_title)) },
             text = { Text(stringResource(R.string.call_check_failed, msg)) },
@@ -97,9 +97,9 @@ fun rememberCallStarter(session: MatrixSession): (roomId: String, audioOnly: Boo
 @Composable
 fun CallButtons(isDm: Boolean, onCall: (audioOnly: Boolean) -> Unit) {
     if (isDm) {
-        IconButton(onClick = { onCall(true) }) { Icon(Icons.Filled.Call, stringResource(R.string.call_voice)) }
+        IconButton(onClick = { onCall(true) }) { Icon(Icons.Outlined.Call, stringResource(R.string.call_voice)) }
     }
-    IconButton(onClick = { onCall(false) }) { Icon(Icons.Filled.Videocam, stringResource(R.string.call_video)) }
+    IconButton(onClick = { onCall(false) }) { Icon(Icons.Outlined.Videocam, stringResource(R.string.call_video)) }
 }
 
 /** "Call in progress" with a Join button, shown at the top of a chat while a call is going on in it. */
@@ -113,7 +113,7 @@ fun CallBanner(roomId: String, members: Int, isDm: Boolean, modifier: Modifier =
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(Modifier.padding(start = 16.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Videocam, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(Icons.Outlined.Videocam, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.call_ongoing_banner), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -124,10 +124,17 @@ fun CallBanner(roomId: String, members: Int, isDm: Boolean, modifier: Modifier =
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!here && isDm) {
                     IconButton(onClick = { onJoin(true) }) {
-                        Icon(Icons.Filled.Call, stringResource(R.string.call_join_voice), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Icon(Icons.Outlined.Call, stringResource(R.string.call_join_voice), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
-                Button(onClick = { onJoin(false) }) {
+                // Dark button on the accent banner.
+                com.vknxworks.elementctrl.ui.components.CtrlButton(
+                    onClick = { onJoin(false) },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = com.vknxworks.elementctrl.ui.CtrlColors.OnAccent,
+                        contentColor = com.vknxworks.elementctrl.ui.CtrlColors.Accent,
+                    ),
+                ) {
                     Text(stringResource(if (here) R.string.call_back_to_call else R.string.call_join))
                 }
             }

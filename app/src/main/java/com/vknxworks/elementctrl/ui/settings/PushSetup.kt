@@ -43,7 +43,7 @@ fun PushSetupDialog(session: MatrixSession, ntfyInstalled: Boolean, onDismiss: (
     val scope = rememberCoroutineScope()
     val pushOn = Push.isEnabled(context)
 
-    AlertDialog(
+    com.vknxworks.elementctrl.ui.components.CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.notification_delivery)) },
         text = {
@@ -81,7 +81,7 @@ fun PushSetupDialog(session: MatrixSession, ntfyInstalled: Boolean, onDismiss: (
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp),
                     )
-                    OutlinedButton(onClick = { openUrl(context, UnifiedPush.NTFY_DOWNLOAD) }) { Text(stringResource(R.string.warn_install_ntfy)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { openUrl(context, UnifiedPush.NTFY_DOWNLOAD) }) { Text(stringResource(R.string.warn_install_ntfy)) }
                 }
             }
         },
@@ -127,7 +127,7 @@ fun PushWarning(icon: ImageVector, title: String, body: String, actions: List<Pa
             if (actions.isNotEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     actions.forEach { (label, onClick) ->
-                        OutlinedButton(onClick = onClick) { Text(label, color = MaterialTheme.colorScheme.onErrorContainer) }
+                        com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = onClick) { Text(label, color = MaterialTheme.colorScheme.onErrorContainer) }
                     }
                 }
             }

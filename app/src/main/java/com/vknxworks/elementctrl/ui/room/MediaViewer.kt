@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
@@ -83,7 +83,7 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
         if (chrome) {
             TopAppBar(
                 title = { Text(request.filename, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.back)) } },
                 actions = {
                     IconButton(onClick = {
                         scope.launch {
@@ -92,7 +92,7 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
                                 MediaFiles.saveToDownloads(context, f, request.filename, request.mime)
                             }.onSuccess { snackbar.showSnackbar(if (it) Strings.str(R.string.saved_to_downloads_elementctrl) else Strings.str(R.string.couldn_t_save)) }
                         }
-                    }) { Icon(Icons.Default.Download, stringResource(R.string.save)) }
+                    }) { Icon(Icons.Outlined.Download, stringResource(R.string.save)) }
                     IconButton(onClick = {
                         scope.launch {
                             runCatching {
@@ -100,7 +100,7 @@ fun MediaViewer(session: MatrixSession, request: MediaRequest, onBack: () -> Uni
                                 MediaFiles.share(context, f, request.mime)
                             }
                         }
-                    }) { Icon(Icons.Default.Share, stringResource(R.string.share)) }
+                    }) { Icon(Icons.Outlined.Share, stringResource(R.string.share)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black.copy(alpha = 0.5f),

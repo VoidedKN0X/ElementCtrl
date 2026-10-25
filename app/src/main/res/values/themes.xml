@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ElementCtrl" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#F7FAF8</item>
+    <!-- Dark only (the Ctrl / Signal look): #08080A behind everything, light status and navigation bar icons. -->
+    <style name="Theme.ElementCtrl" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#08080A</item>
+        <item name="android:colorBackground">#08080A</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:colorAccent">#B48CFF</item>
     </style>
 </resources>

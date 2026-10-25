@@ -5,8 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.PhoneInTalk
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,7 +45,7 @@ fun CallSettingsGroup(session: MatrixSession) {
                 CallSupport.Result.NotSetUp -> stringResource(R.string.calls_server_missing)
                 is CallSupport.Result.Failed -> stringResource(R.string.call_check_failed, s.message)
             },
-            icon = Icons.Filled.Dns,
+            icon = Icons.Outlined.Dns,
             iconTint = if (support == CallSupport.Result.NotSetUp) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
             showChevron = support !is CallSupport.Result.Ready,
             onClick = if (support is CallSupport.Result.Ready) null else ({ openUrl(context, CALLS_HELP_URL) }),
@@ -53,7 +53,7 @@ fun CallSettingsGroup(session: MatrixSession) {
         GroupRow(
             stringResource(R.string.calls_full_screen),
             stringResource(if (fullScreen) R.string.calls_full_screen_on else R.string.calls_full_screen_off),
-            icon = Icons.Filled.PhoneInTalk,
+            icon = Icons.Outlined.PhoneInTalk,
             iconTint = if (fullScreen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             showChevron = !fullScreen,
             onClick = if (fullScreen) null else ({

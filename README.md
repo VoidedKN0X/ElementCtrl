@@ -187,7 +187,7 @@ ElementCtrl is free and open source. If it's useful to you, you can support deve
 
 ## The Ctrl series
 
-Native Android apps for self-hosted services and everyday tools, all with the same Material You design.
+Native Android apps for self-hosted services and everyday tools, all with the same dark "Ctrl / Signal" design.
 
 | App | What it's for |
 | --- | --- |
@@ -212,6 +212,6 @@ Native Android apps for self-hosted services and everyday tools, all with the sa
 
 ElementCtrl is licensed under the [GNU General Public License v3.0](LICENSE). © VKNXWorks
 
-The Manrope font is licensed under the SIL Open Font License; see `FONT-LICENSE-Manrope.txt`.
+The bundled fonts, [Space Grotesk](https://github.com/floriankarsten/space-grotesk) and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), are licensed under the SIL Open Font License 1.1; see `FONT-LICENSE-SpaceGrotesk.txt` and `FONT-LICENSE-JetBrainsMono.txt` (also in the APK under `assets/licenses/`).
 
 Calls use [Element Call](https://github.com/element-hq/element-call) by Element (AGPL-3.0-only), built from source at release 0.28.0 (commit `9b3c3569ecefbb79cf527ea24e3756ba50553a8f`) with the changes in `element-call/` (build script, patches and replaced files, under the same licence); see [Element Call](#element-call). Its licence and a note of the source are in the APK next to it (`assets/element-call/LICENSE-AGPL-3.0` and `SOURCE.txt`). Background blur isn't available in calls.

@@ -6,42 +6,39 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.AlternateEmail
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardReturn
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material.icons.outlined.BatteryFull
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.KeyboardReturn
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -63,7 +60,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vknxworks.elementctrl.ElementCtrlApp
 import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.data.LockTimeout
-import com.vknxworks.elementctrl.data.ThemeMode
 import com.vknxworks.elementctrl.data.lock.LockVault
 import com.vknxworks.elementctrl.matrix.AccountService
 import com.vknxworks.elementctrl.matrix.MatrixSession
@@ -106,8 +102,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val theme by prefs.theme.collectAsStateWithLifecycle()
-    val dynamic by prefs.dynamicColor.collectAsStateWithLifecycle()
     val notifications by prefs.notifications.collectAsStateWithLifecycle()
     val sendOnEnter by prefs.sendOnEnter.collectAsStateWithLifecycle()
     val showState by prefs.showStateEvents.collectAsStateWithLifecycle()
@@ -162,27 +156,11 @@ fun SettingsScreen(
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
             // ---------- Appearance ----------
             Group(stringResource(R.string.group_appearance)) {
-                GroupChoice(
-                    stringResource(R.string.theme),
-                    listOf(
-                        ThemeMode.SYSTEM to stringResource(R.string.theme_system),
-                        ThemeMode.DARK to stringResource(R.string.theme_dark),
-                        ThemeMode.LIGHT to stringResource(R.string.theme_light),
-                        ThemeMode.BLACK to stringResource(R.string.theme_black),
-                    ),
-                    theme,
-                    icon = Icons.Filled.DarkMode,
-                ) { prefs.setTheme(it) }
-                GroupSwitch(
-                    stringResource(R.string.dynamic_colour),
-                    stringResource(R.string.dynamic_colour_subtitle),
-                    checked = dynamic,
-                    icon = Icons.Filled.Palette,
-                ) { prefs.setDynamicColor(it) }
+                // The Ctrl look is dark only: no theme picker and no wallpaper colours.
                 GroupRow(
                     stringResource(R.string.bubbles),
                     stringResource(R.string.bubble_style_summary, bubbleStyle.label, bubbleStyle.description),
-                    icon = Icons.Filled.ChatBubbleOutline,
+                    icon = Icons.Outlined.ChatBubbleOutline,
                     showChevron = true,
                     onClick = { bubbleDialog = true },
                 )
@@ -198,7 +176,7 @@ fun SettingsScreen(
                     stringResource(R.string.notifications_device_subtitle),
                     // Shown as on only when Android actually lets the app show notifications.
                     checked = notifications && health.notificationsAllowed,
-                    icon = Icons.Filled.Notifications,
+                    icon = Icons.Outlined.Notifications,
                 ) { on ->
                     if (on && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                         AppLock.expectReturn()
@@ -223,13 +201,13 @@ fun SettingsScreen(
                             PushStatus.Off -> R.string.delivery_off
                         },
                     ),
-                    icon = Icons.Filled.Bolt,
+                    icon = Icons.Outlined.Bolt,
                     showChevron = true,
                     onClick = { pushDialog = true },
                 )
                 if (notifications && !health.ntfyInstalled) {
                     PushWarning(
-                        Icons.Filled.NotificationsOff,
+                        Icons.Outlined.NotificationsOff,
                         stringResource(R.string.warn_no_ntfy_title),
                         stringResource(if (pushOn) R.string.warn_no_ntfy_body_on else R.string.warn_no_ntfy_body_off),
                         listOf(stringResource(R.string.warn_install_ntfy) to { openUrl(context, UnifiedPush.NTFY_DOWNLOAD) }),
@@ -237,7 +215,7 @@ fun SettingsScreen(
                 }
                 (pushStatus as? PushStatus.Failed)?.let { st ->
                     PushWarning(
-                        Icons.Filled.ErrorOutline,
+                        Icons.Outlined.ErrorOutline,
                         stringResource(R.string.warn_push_failed_title),
                         stringResource(R.string.warn_push_failed_body, st.message),
                         listOf(stringResource(R.string.warn_try_again) to { Push.enable(context); Unit }),
@@ -245,7 +223,7 @@ fun SettingsScreen(
                 }
                 if (notifications && appHeldBack) {
                     PushWarning(
-                        Icons.Filled.BatteryAlert,
+                        Icons.Outlined.BatteryAlert,
                         stringResource(R.string.warn_battery_title),
                         stringResource(if (health.appBackgroundRestricted) R.string.warn_battery_restricted else R.string.warn_battery_optimised),
                         listOf(
@@ -257,7 +235,7 @@ fun SettingsScreen(
                     GroupRow(
                         stringResource(R.string.background_run),
                         stringResource(if (appHeldBack) R.string.background_restricted else R.string.background_allowed),
-                        icon = if (appHeldBack) Icons.Filled.BatteryAlert else Icons.Filled.BatteryFull,
+                        icon = if (appHeldBack) Icons.Outlined.BatteryAlert else Icons.Outlined.BatteryFull,
                         onClick = {
                             if (appHeldBack) Battery.requestUnrestricted(context) else Battery.openAppInfo(context)
                         },
@@ -265,7 +243,7 @@ fun SettingsScreen(
                 }
                 if (notifications && pushOn && health.ntfyInstalled && !health.ntfyUnrestricted) {
                     PushWarning(
-                        Icons.Filled.BatteryAlert,
+                        Icons.Outlined.BatteryAlert,
                         stringResource(R.string.warn_ntfy_battery_title),
                         stringResource(R.string.warn_ntfy_battery_body),
                         listOf(
@@ -278,7 +256,7 @@ fun SettingsScreen(
                     GroupRow(
                         stringResource(R.string.vendor_limits_title),
                         stringResource(R.string.vendor_limits_body),
-                        icon = Icons.Filled.PhoneAndroid,
+                        icon = Icons.Outlined.PhoneAndroid,
                         onClick = { Battery.openAppInfo(context) },
                     )
                 }
@@ -289,21 +267,21 @@ fun SettingsScreen(
                         else R.string.notification_content_subtitle,
                     ),
                     checked = lock.showNotificationContent,
-                    icon = Icons.Filled.Visibility,
+                    icon = Icons.Outlined.Visibility,
                 ) { lock.showNotificationContent = it }
-                GroupChoice(stringResource(R.string.mode_group_chats), modeOptions, groupMode, icon = Icons.Filled.Group) { setMode(false, it) }
-                GroupChoice(stringResource(R.string.mode_direct_chats), modeOptions, dmMode, icon = Icons.Filled.ChatBubbleOutline) { setMode(true, it) }
+                GroupChoice(stringResource(R.string.mode_group_chats), modeOptions, groupMode, icon = Icons.Outlined.Group) { setMode(false, it) }
+                GroupChoice(stringResource(R.string.mode_direct_chats), modeOptions, dmMode, icon = Icons.Outlined.ChatBubbleOutline) { setMode(true, it) }
                 GroupSwitch(
                     stringResource(R.string.mentions),
                     stringResource(R.string.mentions_subtitle),
                     checked = mentions,
-                    icon = Icons.Filled.AlternateEmail,
+                    icon = Icons.Outlined.AlternateEmail,
                 ) { on -> mentions = on; scope.launch { runCatching { account.setMentionsEnabled(on) } } }
                 GroupSwitch(
                     stringResource(R.string.invites),
                     stringResource(R.string.invites_subtitle),
                     checked = invites,
-                    icon = Icons.Filled.MailOutline,
+                    icon = Icons.Outlined.MailOutline,
                 ) { on -> invites = on; scope.launch { runCatching { account.setInvitesEnabled(on) } } }
             }
 
@@ -387,45 +365,45 @@ fun SettingsScreen(
                     stringResource(R.string.chat_avatars),
                     stringResource(R.string.chat_avatars_subtitle),
                     checked = chatAvatars,
-                    icon = Icons.Filled.AccountCircle,
+                    icon = Icons.Outlined.AccountCircle,
                 ) { prefs.setChatAvatars(it) }
                 GroupSwitch(
                     stringResource(R.string.read_receipts),
                     stringResource(R.string.read_receipts_subtitle),
                     checked = readReceipts,
-                    icon = Icons.Filled.DoneAll,
+                    icon = Icons.Outlined.DoneAll,
                 ) { prefs.setShowReadReceipts(it) }
                 GroupChoice(
                     stringResource(R.string.double_tap),
                     listOf("❤️", "👍", "😂", "🔥", "🎉", "👀").map { it to stringResource(R.string.double_tap_with, it) } +
                         ("" to stringResource(R.string.double_tap_off)),
                     doubleTap,
-                    icon = Icons.Filled.TouchApp,
+                    icon = Icons.Outlined.TouchApp,
                 ) { prefs.setDoubleTapReaction(it) }
                 GroupSwitch(
                     stringResource(R.string.room_events),
                     stringResource(R.string.room_events_subtitle),
                     checked = showState,
-                    icon = Icons.Filled.Visibility,
+                    icon = Icons.Outlined.Visibility,
                 ) { prefs.setShowStateEvents(it) }
                 GroupSwitch(
                     stringResource(R.string.enter_sends),
                     stringResource(R.string.enter_sends_subtitle),
                     checked = sendOnEnter,
-                    icon = Icons.Filled.KeyboardReturn,
+                    icon = Icons.Outlined.KeyboardReturn,
                 ) { prefs.setSendOnEnter(it) }
                 GroupSwitch(
                     stringResource(R.string.link_previews),
                     stringResource(R.string.link_previews_subtitle),
                     checked = linkPreviews,
-                    icon = Icons.Filled.Link,
+                    icon = Icons.Outlined.Link,
                 ) { prefs.setLinkPreviews(it) }
                 if (linkPreviews) {
                     GroupSwitch(
                         stringResource(R.string.link_previews_e2ee),
                         stringResource(R.string.link_previews_e2ee_subtitle),
                         checked = linkPreviewsE2ee,
-                        icon = Icons.Filled.Lock,
+                        icon = Icons.Outlined.Lock,
                     ) { prefs.setLinkPreviewsEncrypted(it) }
                 }
             }
@@ -435,7 +413,7 @@ fun SettingsScreen(
             if (ignored.isNotEmpty()) {
                 Group(stringResource(R.string.group_ignored)) {
                     ignored.forEach { id ->
-                        GroupRow(id, stringResource(R.string.ignored_unignore), icon = Icons.Filled.Block, onClick = {
+                        GroupRow(id, stringResource(R.string.ignored_unignore), icon = Icons.Outlined.Block, onClick = {
                             scope.launch { runCatching { account.unignore(id) }.onSuccess { ignored = ignored - id } }
                         })
                     }
@@ -443,32 +421,40 @@ fun SettingsScreen(
             }
 
             // ---------- Troubleshooting ----------
+
             Group(stringResource(R.string.group_troubleshooting)) {
                 GroupRow(
                     stringResource(R.string.connection_log),
                     stringResource(R.string.connection_log_subtitle),
-                    icon = Icons.Filled.Sync,
+                    icon = Icons.Outlined.Sync,
                     showChevron = true,
                     onClick = { connectionLog = com.vknxworks.elementctrl.matrix.ConnectionLog.read().lines().takeLast(400).joinToString("\n") },
                 )
                 GroupRow(
                     stringResource(R.string.sdk_version),
                     runCatching { sdkGitSha().take(8) }.getOrDefault(""),
-                    icon = Icons.Filled.Info,
+                    icon = Icons.Outlined.Info,
                 )
             }
+            Text(
+                stringResource(R.string.ctrl_footer),
+                style = com.vknxworks.elementctrl.ui.CtrlType.Label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+            )
         }
     }
 
     connectionLog?.let { text ->
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { connectionLog = null },
             title = { Text(stringResource(R.string.connection_log)) },
             text = {
                 androidx.compose.foundation.text.selection.SelectionContainer {
                     Text(
                         text.ifBlank { stringResource(R.string.connection_log_empty) },
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFamily = com.vknxworks.elementctrl.ui.JetBrainsMono,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState(Int.MAX_VALUE)),
                     )

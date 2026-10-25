@@ -4,6 +4,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import com.vknxworks.elementctrl.ui.CtrlColors
+import com.vknxworks.elementctrl.ui.CtrlType
+import com.vknxworks.elementctrl.ui.components.CtrlButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,19 +30,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -125,45 +137,46 @@ fun YouScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 24.dp)) {
-            Column(
-                Modifier.fillMaxWidth().padding(start = Gutter, end = Gutter, top = 8.dp, bottom = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // The Ctrl profile header: a 68 dp accent tile with your picture or initial, your name and, in mono,
+            // your Matrix ID and server.
+            Row(
+                Modifier.fillMaxWidth().padding(start = Gutter, end = Gutter, top = 8.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 val pictureLabel = stringResource(R.string.you_change_picture)
-                Box(Modifier.clickable(onClickLabel = pictureLabel) { changePicture() }) {
-                    ProfileAvatar(name, profile.avatarUrl, 96.dp, MaterialTheme.typography.headlineLarge)
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.BottomEnd).size(30.dp),
+                Box(Modifier.clip(RoundedCornerShape(22.dp)).clickable(onClickLabel = pictureLabel) { changePicture() }) {
+                    ProfileAvatar(name, profile.avatarUrl, 68.dp, MaterialTheme.typography.headlineSmall, shape = RoundedCornerShape(22.dp))
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).size(24.dp).clip(RoundedCornerShape(8.dp))
+                            .background(CtrlColors.Surface).border(1.dp, CtrlColors.ControlBorder, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.PhotoCamera, pictureLabel, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimary)
-                        }
+                        Icon(Icons.Outlined.PhotoCamera, pictureLabel, Modifier.size(14.dp), tint = CtrlColors.Text)
                     }
                 }
-                Spacer(Modifier.height(14.dp))
-                Text(name, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-                Text(
-                    listOf(session.userId, server).distinct().joinToString(stringResource(R.string.list_separator_wide)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(name, style = MaterialTheme.typography.headlineSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        listOf(session.userId, server).distinct().joinToString(stringResource(R.string.list_separator_wide)),
+                        style = CtrlType.Meta,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Group(stringResource(R.string.group_account)) {
                 GroupRow(
                     stringResource(R.string.account_display_name),
                     profile.displayName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.account_display_name_empty),
-                    icon = Icons.Filled.Edit,
+                    icon = Icons.Outlined.Edit,
                     showChevron = true,
                     onClick = { editName = true },
                 )
                 GroupRow(
                     stringResource(R.string.account_profile),
                     stringResource(R.string.account_profile_subtitle),
-                    icon = Icons.Filled.Person,
+                    icon = Icons.Outlined.Person,
                     showChevron = true,
                     onClick = { onOpenUser(session.userId) },
                 )
@@ -177,14 +190,14 @@ fun YouScreen(
                             RecoveryState.UNKNOWN -> R.string.account_security_unknown
                         },
                     ),
-                    icon = Icons.Filled.Security,
+                    icon = Icons.Outlined.Security,
                     showChevron = true,
                     onClick = onSecurity,
                 )
                 GroupRow(
                     stringResource(R.string.account_devices),
                     stringResource(R.string.account_devices_subtitle),
-                    icon = Icons.Filled.Devices,
+                    icon = Icons.Outlined.Devices,
                     showChevron = true,
                     onClick = onDevices,
                 )
@@ -192,7 +205,7 @@ fun YouScreen(
                     GroupRow(
                         stringResource(R.string.account_manage),
                         stringResource(R.string.account_manage_subtitle),
-                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                        icon = Icons.AutoMirrored.Outlined.OpenInNew,
                         showChevron = true,
                         onClick = { openUrl(context, url) },
                     )
@@ -200,7 +213,7 @@ fun YouScreen(
                 GroupRow(
                     stringResource(R.string.account_homeserver),
                     session.homeserver,
-                    icon = Icons.Filled.Dns,
+                    icon = Icons.Outlined.Dns,
                     onClick = {
                         copyText(context, Strings.str(R.string.account_homeserver), session.homeserver)
                         scope.launch { snackbar.showSnackbar(copied) }
@@ -213,13 +226,13 @@ fun YouScreen(
                 GroupRow(
                     stringResource(R.string.settings),
                     stringResource(R.string.settings_subtitle),
-                    icon = Icons.Filled.Settings,
+                    icon = Icons.Outlined.Settings,
                     showChevron = true,
                     onClick = onSettings,
                 )
                 GroupRow(
                     stringResource(if (signingOut) R.string.signing_out else R.string.sign_out),
-                    icon = Icons.AutoMirrored.Filled.Logout,
+                    icon = Icons.AutoMirrored.Outlined.Logout,
                     iconTint = MaterialTheme.colorScheme.error,
                     titleColor = MaterialTheme.colorScheme.error,
                     onClick = { if (!signingOut) confirmSignOut = true },
@@ -227,16 +240,38 @@ fun YouScreen(
             }
 
             Group(stringResource(R.string.group_about)) {
-                GroupRow(stringResource(R.string.support_title), stringResource(R.string.support_subtitle), icon = Icons.Filled.Favorite, showChevron = true, onClick = { openUrl(context, SPONSOR_URL) })
-                GroupRow(stringResource(R.string.bugs_title), stringResource(R.string.bugs_subtitle), icon = Icons.Filled.BugReport, showChevron = true, onClick = { openUrl(context, ISSUES_URL) })
-                GroupRow(stringResource(R.string.source_title), stringResource(R.string.source_subtitle), icon = Icons.Filled.Code, showChevron = true, onClick = { openUrl(context, REPO_URL) })
-                GroupRow(stringResource(R.string.licence_title), stringResource(R.string.licence_subtitle), icon = Icons.Filled.Gavel, showChevron = true, onClick = { openUrl(context, LICENCE_URL) })
+                GroupRow(stringResource(R.string.bugs_title), stringResource(R.string.bugs_subtitle), icon = Icons.Outlined.BugReport, showChevron = true, onClick = { openUrl(context, ISSUES_URL) })
+                GroupRow(stringResource(R.string.source_title), stringResource(R.string.source_subtitle), icon = Icons.Outlined.Code, showChevron = true, onClick = { openUrl(context, REPO_URL) })
+                GroupRow(stringResource(R.string.licence_title), stringResource(R.string.licence_subtitle), icon = Icons.Outlined.Gavel, showChevron = true, onClick = { openUrl(context, LICENCE_URL) })
+            }
+            // Support VKNXWorks: the accent button at the bottom, as in every Ctrl app.
+            CtrlButton(
+                onClick = { openUrl(context, SPONSOR_URL) },
+                modifier = Modifier.fillMaxWidth().padding(start = Gutter, end = Gutter, top = 16.dp).height(56.dp),
+            ) {
+                Icon(Icons.Outlined.FavoriteBorder, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(stringResource(R.string.support_title), style = MaterialTheme.typography.titleMedium)
             }
             Text(
-                stringResource(R.string.about_footer, BuildConfig.VERSION_NAME),
+                stringResource(R.string.support_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 8.dp),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                stringResource(R.string.ctrl_footer),
+                style = CtrlType.Label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, start = 16.dp, end = 16.dp),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                stringResource(R.string.about_footer, BuildConfig.VERSION_NAME),
+                style = CtrlType.Meta,
+                color = CtrlColors.Disabled,
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
                 textAlign = TextAlign.Center,
             )
         }

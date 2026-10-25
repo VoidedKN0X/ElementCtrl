@@ -1,6 +1,10 @@
 package com.vknxworks.elementctrl.ui.room
 
 import androidx.compose.ui.res.pluralStringResource
+import com.vknxworks.elementctrl.ui.CtrlColors
+import com.vknxworks.elementctrl.ui.CtrlShapes
+import com.vknxworks.elementctrl.ui.CtrlType
+import com.vknxworks.elementctrl.ui.components.CtrlProgress
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
@@ -16,8 +20,8 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,19 +50,19 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Done
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -137,6 +141,9 @@ class MessageActions(
     val onShowReceipts: (TimelineEntry.Message) -> Unit = {},
 )
 
+/** The accent for details inside a bubble: the accent itself, or the bubble's text colour on an accent bubble. */
+private fun accentOn(onBubble: Color): Color = if (onBubble == CtrlColors.OnAccent) onBubble else CtrlColors.Accent
+
 /** The chat bubble design picked in Settings › Appearance; provided by the room screen. */
 val LocalBubbleStyle = androidx.compose.runtime.staticCompositionLocalOf { BubbleStyle.MODERN }
 /** Profile pictures next to every message group, in DMs and next to your own messages too. */
@@ -171,34 +178,36 @@ fun MessageRow(
     val withAvatar = flat || avatars || (!own && !isDm)
     // Names are only needed where several people talk; a DM's avatar says enough.
     val withName = flat || (!own && !isDm)
+    // Ctrl bubbles: yours in the accent with #08080A text, everyone else's on the surface with a 1 dp border.
     val bubbleColor = when {
         highlighted -> cs.tertiaryContainer
         flat || style == BubbleStyle.OUTLINED -> Color.Transparent
-        style == BubbleStyle.VIVID && own -> cs.primary
-        own -> cs.primaryContainer
-        else -> cs.surfaceContainerHigh
+        own -> CtrlColors.Accent
+        else -> CtrlColors.Surface
     }
     val onBubble = when {
         highlighted -> cs.onTertiaryContainer
         flat || style == BubbleStyle.OUTLINED -> cs.onSurface
-        style == BubbleStyle.VIVID && own -> cs.onPrimary
-        own -> cs.onPrimaryContainer
-        else -> cs.onSurface
+        own -> CtrlColors.OnAccent
+        else -> CtrlColors.Text
     }
     val shape = when (style) {
-        BubbleStyle.MODERN, BubbleStyle.OUTLINED, BubbleStyle.VIVID -> RoundedCornerShape(
-            topStart = 18.dp, topEnd = 18.dp,
-            // Only the last bubble of a run keeps the tail, next to the profile picture.
-            bottomStart = if (own || !lastInGroup) 18.dp else 6.dp,
-            bottomEnd = if (!own || !lastInGroup) 18.dp else 6.dp,
+        BubbleStyle.MODERN, BubbleStyle.VIVID, BubbleStyle.OUTLINED -> RoundedCornerShape(CtrlShapes.Bubble)
+        // Round keeps the small tail on the last bubble of a run.
+        BubbleStyle.ROUND -> RoundedCornerShape(
+            topStart = 22.dp, topEnd = 22.dp,
+            bottomStart = if (own || !lastInGroup) 22.dp else 6.dp,
+            bottomEnd = if (!own || !lastInGroup) 22.dp else 6.dp,
         )
-        BubbleStyle.ROUND -> RoundedCornerShape(22.dp)
-        BubbleStyle.SHARP -> RoundedCornerShape(4.dp)
-        BubbleStyle.FLAT -> RoundedCornerShape(8.dp)
+        BubbleStyle.SHARP -> RoundedCornerShape(6.dp)
+        BubbleStyle.FLAT -> RoundedCornerShape(10.dp)
     }
-    val border = if (style == BubbleStyle.OUTLINED && !highlighted) {
-        androidx.compose.foundation.BorderStroke(1.dp, if (own) cs.primary.copy(alpha = 0.7f) else cs.outlineVariant)
-    } else null
+    val border = when {
+        highlighted || flat -> null
+        style == BubbleStyle.OUTLINED -> androidx.compose.foundation.BorderStroke(1.dp, if (own) CtrlColors.Accent else CtrlColors.Border)
+        !own -> androidx.compose.foundation.BorderStroke(1.dp, CtrlColors.Border)
+        else -> null
+    }
     val isMedia = item.content is UiContent.Image || item.content is UiContent.Video
     val bigEmoji = (item.content as? UiContent.Text)?.let { it.html == null && isOnlyEmoji(it.body) } == true
 
@@ -243,10 +252,10 @@ fun MessageRow(
                     .padding(start = 16.dp)
                     .size(34.dp)
                     .graphicsLayer { alpha = progress; scaleX = 0.5f + 0.5f * progress; scaleY = scaleX }
-                    .background(if (armed) cs.primary else cs.surfaceContainerHighest, androidx.compose.foundation.shape.CircleShape),
+                    .background(if (armed) cs.primary else cs.surfaceContainerHigh, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.AutoMirrored.Filled.Reply, null, Modifier.size(18.dp), tint = if (armed) cs.onPrimary else cs.onSurfaceVariant)
+                Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(18.dp), tint = if (armed) cs.onPrimary else cs.onSurfaceVariant)
             }
         }
         Row(
@@ -265,7 +274,7 @@ fun MessageRow(
             @Composable
             fun SenderAvatar() {
                 if (avatarHere) {
-                    Box(Modifier.clip(androidx.compose.foundation.shape.CircleShape).clickable { actions.onOpenUser(item.sender) }) {
+                    Box(Modifier.clip(com.vknxworks.elementctrl.ui.avatarShape(avatarSize)).clickable { actions.onOpenUser(item.sender) }) {
                         Avatar(item.senderName, item.senderAvatar, item.sender, size = avatarSize)
                     }
                 } else {
@@ -292,7 +301,7 @@ fun MessageRow(
                         )
                         if (flat) {
                             Spacer(Modifier.width(8.dp))
-                            Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                            Text(timeOfDay(item.timestamp), style = CtrlType.Meta.copy(fontSize = 11.sp), color = cs.onSurfaceVariant)
                         }
                     }
                 }
@@ -344,7 +353,7 @@ fun MessageRow(
                         ) {
                             item.shield?.let {
                                 Icon(
-                                    Icons.Default.Shield, it.text, Modifier.size(12.dp),
+                                    Icons.Outlined.Shield, it.text, Modifier.size(12.dp),
                                     tint = if (it.red) cs.error else onBubble.copy(alpha = 0.6f),
                                 )
                                 Spacer(Modifier.width(4.dp))
@@ -352,15 +361,15 @@ fun MessageRow(
                             if (item.edited) {
                                 Text(if (flat) stringResource(R.string.edited_2) else stringResource(R.string.edited_dot) + " ", style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
                             }
-                            if (!flat) Text(timeOfDay(item.timestamp), style = MaterialTheme.typography.labelSmall, color = onBubble.copy(alpha = 0.6f))
+                            if (!flat) Text(timeOfDay(item.timestamp), style = CtrlType.Meta.copy(fontSize = 11.sp), color = onBubble.copy(alpha = 0.6f))
                             if (item.isOwn) {
                                 Spacer(Modifier.width(4.dp))
                                 when (item.status) {
-                                    SendStatus.SENDING -> Icon(Icons.Default.AccessTime, stringResource(R.string.sending), Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
-                                    SendStatus.FAILED -> Icon(Icons.Default.ErrorOutline, stringResource(R.string.not_sent_tap_to_retry), Modifier.size(14.dp), tint = cs.error)
+                                    SendStatus.SENDING -> Icon(Icons.Outlined.AccessTime, stringResource(R.string.sending), Modifier.size(12.dp), tint = onBubble.copy(alpha = 0.6f))
+                                    SendStatus.FAILED -> Icon(Icons.Outlined.ErrorOutline, stringResource(R.string.not_sent_tap_to_retry), Modifier.size(14.dp), tint = cs.error)
                                     SendStatus.SENT -> if (!flat || item.readBy.isNotEmpty()) Icon(
-                                        Icons.Default.Done, if (item.readBy.isNotEmpty()) stringResource(R.string.read) else stringResource(R.string.sent), Modifier.size(12.dp),
-                                        tint = if (item.readBy.isNotEmpty()) (if (style == BubbleStyle.VIVID && own) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
+                                        Icons.Outlined.Done, if (item.readBy.isNotEmpty()) stringResource(R.string.read) else stringResource(R.string.sent), Modifier.size(12.dp),
+                                        tint = if (item.readBy.isNotEmpty()) (if (bubbleColor == CtrlColors.Accent) onBubble else cs.primary) else onBubble.copy(alpha = 0.6f),
                                     )
                                 }
                             }
@@ -395,11 +404,12 @@ fun MessageRow(
                 if (item.threadReplies > 0) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = CtrlColors.Surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CtrlColors.Border),
                         modifier = Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).clickable { actions.onOpenThread(item) },
                     ) {
                         Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Forum, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Outlined.Forum, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 item.threadLatest?.let { pluralStringResource(R.plurals.thread_replies_latest, item.threadReplies, item.threadReplies, it) } ?: pluralStringResource(R.plurals.thread_replies, item.threadReplies, item.threadReplies),
@@ -504,7 +514,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
                     c.thumbnailJson?.let {
                         AsyncImage(model = remember(it) { MxcImage(sourceJson = it) }, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSizeSafe())
                     }
-                    Icon(Icons.Default.PlayCircle, stringResource(R.string.play), Modifier.size(56.dp), tint = Color.White)
+                    Icon(Icons.Outlined.PlayCircle, stringResource(R.string.play), Modifier.size(56.dp), tint = Color.White)
                     if (c.durationMs > 0) {
                         Text(
                             formatDuration(c.durationMs),
@@ -519,16 +529,16 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
         }
         is UiContent.Audio -> AudioRow(item.key, c, onBubble) { actions.onToggleAudio(item) }
         is UiContent.File -> AttachmentRow(
-            icon = Icons.Default.AttachFile,
+            icon = Icons.Outlined.AttachFile,
             title = c.filename,
             subtitle = listOf(formatSize(c.size), c.mime.substringAfter('/').uppercase()).filter { it.isNotBlank() }.joinToString(stringResource(R.string.list_separator)),
             onBubble = onBubble,
             caption = c.caption,
         )
-        is UiContent.Location -> AttachmentRow(Icons.Default.Place, stringResource(R.string.location_3), c.geoUri.removePrefix("geo:").substringBefore(';'), onBubble, null)
+        is UiContent.Location -> AttachmentRow(Icons.Outlined.Place, stringResource(R.string.location_3), c.geoUri.removePrefix("geo:").substringBefore(';'), onBubble, null)
         is UiContent.Poll -> PollView(c, onBubble) { answer -> actions.onVote(item, answer) }
         is UiContent.Redacted -> Row(pad, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Block, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
+            Icon(Icons.Outlined.Block, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
             Spacer(Modifier.width(6.dp))
             Text(stringResource(R.string.message_deleted), style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
         }
@@ -541,7 +551,7 @@ private fun MessageBody(item: TimelineEntry.Message, onBubble: Color, bigEmoji: 
             }
             Column(pad) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lock, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
+                    Icon(Icons.Outlined.Lock, null, Modifier.size(16.dp), tint = onBubble.copy(alpha = 0.6f))
                     Spacer(Modifier.width(6.dp))
                     Text(text, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic), color = onBubble.copy(alpha = 0.7f))
                 }
@@ -560,7 +570,7 @@ private fun Modifier.matchParentSizeSafe(): Modifier = this.then(Modifier.fillMa
 private fun AttachmentRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onBubble: Color, caption: String?) {
     Column {
         Row(Modifier.padding(start = 10.dp, end = 12.dp, top = 10.dp, bottom = 4.dp).widthIn(min = 200.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(onBubble.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(onBubble.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = onBubble)
             }
             Spacer(Modifier.width(10.dp))
@@ -585,17 +595,17 @@ private fun PollView(poll: UiContent.Poll, onBubble: Color, onVote: (String) -> 
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, if (a.mine) MaterialTheme.colorScheme.primary else onBubble.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                    .border(1.dp, if (a.mine) accentOn(onBubble) else onBubble.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
                     .clickable(enabled = !poll.ended) { onVote(a.id) }
                     .padding(10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text((if (a.mine) "✓ " else "") + a.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    if (showResults) Text("${a.votes}", style = MaterialTheme.typography.labelMedium)
+                    if (showResults) Text("${a.votes}", style = CtrlType.Meta)
                 }
                 if (showResults) {
                     Spacer(Modifier.height(6.dp))
-                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    CtrlProgress(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = accentOn(onBubble), trackColor = onBubble.copy(alpha = 0.15f))
                 }
             }
         }
@@ -620,12 +630,12 @@ fun ReplyQuote(senderName: String?, text: String?, onBubble: Color, modifier: Mo
             .background(onBubble.copy(alpha = 0.08f))
             .height(IntrinsicSize.Min)
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+        Box(Modifier.width(3.dp).fillMaxHeight().background(accentOn(onBubble)))
         Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.AutoMirrored.Filled.Reply, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Outlined.Reply, null, Modifier.size(12.dp), tint = accentOn(onBubble))
                 Spacer(Modifier.width(4.dp))
-                Text(senderName ?: stringResource(R.string.loading), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                Text(senderName ?: stringResource(R.string.loading), style = MaterialTheme.typography.labelMedium, color = accentOn(onBubble), maxLines = 1)
             }
             Text(text ?: "", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = onBubble.copy(alpha = 0.8f))
         }
@@ -641,16 +651,16 @@ private fun ReactionsRow(reactions: List<ReactionUi>, own: Boolean, onClick: (St
     ) {
         reactions.forEach { r ->
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (r.mine) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                border = if (r.mine) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-                modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable { onClick(r.key) },
+                shape = RoundedCornerShape(10.dp),
+                color = CtrlColors.Surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (r.mine) CtrlColors.Accent else CtrlColors.Border),
+                modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { onClick(r.key) },
             ) {
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(r.key, fontSize = 15.sp)
                     if (r.count > 1) {
                         Spacer(Modifier.width(4.dp))
-                        Text(r.count.toString(), style = MaterialTheme.typography.labelMedium)
+                        Text(r.count.toString(), style = CtrlType.Meta, color = if (r.mine) CtrlColors.Accent else CtrlColors.Muted)
                     }
                 }
             }
@@ -661,13 +671,12 @@ private fun ReactionsRow(reactions: List<ReactionUi>, own: Boolean, onClick: (St
 @Composable
 fun DayDivider(ts: Long) {
     Box(Modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Text(
-                com.vknxworks.elementctrl.ui.dayLabel(ts),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            )
-        }
+        Text(
+            com.vknxworks.elementctrl.ui.dayLabel(ts).uppercase(),
+            style = CtrlType.Label,
+            color = CtrlColors.Muted,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -675,7 +684,7 @@ fun DayDivider(ts: Long) {
 fun ReadMarkerLine() {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.primary))
-        Text("  " + stringResource(R.string.new_marker) + "  ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        Text("  " + stringResource(R.string.new_marker).uppercase() + "  ", style = CtrlType.Label, color = MaterialTheme.colorScheme.primary)
         Box(Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.primary))
     }
 }
@@ -760,13 +769,13 @@ private fun AudioRow(key: String, c: UiContent.Audio, onBubble: Color, onToggle:
     Column(Modifier.padding(start = 6.dp, end = 12.dp, top = 8.dp, bottom = 2.dp).widthIn(min = 220.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(40.dp).clip(CircleShape).background(onBubble.copy(alpha = 0.14f)).clickable(onClick = onToggle),
+                Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(onBubble.copy(alpha = 0.14f)).clickable(onClick = onToggle),
                 contentAlignment = Alignment.Center,
             ) {
                 if (mine && player.loading) {
                     androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = onBubble)
                 } else {
-                    Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, if (playing) stringResource(R.string.pause) else stringResource(R.string.play), tint = onBubble)
+                    Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (playing) stringResource(R.string.pause) else stringResource(R.string.play), tint = onBubble)
                 }
             }
             Spacer(Modifier.width(8.dp))
@@ -789,7 +798,7 @@ private fun AudioRow(key: String, c: UiContent.Audio, onBubble: Color, onToggle:
             } else {
                 Column(Modifier.weight(1f)) {
                     Text(c.filename, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+                    CtrlProgress(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp), color = accentOn(onBubble), trackColor = onBubble.copy(alpha = 0.15f))
                 }
             }
             Spacer(Modifier.width(8.dp))
@@ -826,9 +835,9 @@ private fun LinkPreviewCard(
             .clickable { onOpen(url) }
             .height(IntrinsicSize.Min),
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+        Box(Modifier.width(3.dp).fillMaxHeight().background(accentOn(onBubble)))
         Column(Modifier.padding(8.dp).weight(1f, fill = false)) {
-            p.siteName?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1) }
+            p.siteName?.let { Text(it.uppercase(), style = CtrlType.Status, color = accentOn(onBubble), maxLines = 1) }
             p.title?.let { Text(it, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis) }
             p.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = onBubble.copy(alpha = 0.8f), maxLines = 3, overflow = TextOverflow.Ellipsis) }
             p.imageUrl?.let { img ->

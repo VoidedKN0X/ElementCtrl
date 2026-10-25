@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +27,6 @@ import kotlinx.coroutines.launch
 import com.vknxworks.elementctrl.ui.settings.YouScreen
 import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -219,8 +217,15 @@ fun MainNav(session: MatrixSession) {
                     NavigationRailItem(
                         selected = selected,
                         onClick = { selectTab(i) },
-                        icon = { Icon(if (selected) tab.item.selectedIcon else tab.item.icon, contentDescription = stringResource(tab.item.label)) },
+                        icon = { Icon(tab.item.icon, contentDescription = stringResource(tab.item.label)) },
                         label = { Text(stringResource(tab.item.label)) },
+                        colors = androidx.compose.material3.NavigationRailItemDefaults.colors(
+                            selectedIconColor = CtrlColors.OnAccent,
+                            selectedTextColor = CtrlColors.Text,
+                            indicatorColor = CtrlColors.Accent,
+                            unselectedIconColor = CtrlColors.Muted,
+                            unselectedTextColor = CtrlColors.Muted,
+                        ),
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -232,7 +237,7 @@ fun MainNav(session: MatrixSession) {
     }
 
     linkError?.let {
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { linkError = null },
             title = { Text(stringResource(R.string.link_error_title)) },
             text = { Text(it) },
@@ -252,7 +257,7 @@ private fun JoinLinkDialog(target: String, via: List<String>, account: AccountSe
     }
     val p = preview
     val title = p?.name ?: p?.alias ?: target
-    AlertDialog(
+    com.vknxworks.elementctrl.ui.components.CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.join_link_title, title)) },
         text = {
@@ -286,8 +291,8 @@ private fun JoinLinkDialog(target: String, via: List<String>, account: AccountSe
 private data class MainTab(val route: String, val item: TabItem)
 
 private val MainTabs = listOf(
-    MainTab("home", TabItem(R.string.tab_chats, Icons.AutoMirrored.Outlined.Chat, Icons.AutoMirrored.Filled.Chat)),
-    MainTab("explore", TabItem(R.string.tab_explore, Icons.Outlined.Explore, Icons.Filled.Explore)),
+    MainTab("home", TabItem(R.string.tab_chats, Icons.AutoMirrored.Outlined.Chat, Icons.AutoMirrored.Outlined.Chat)),
+    MainTab("explore", TabItem(R.string.tab_explore, Icons.Outlined.Explore, Icons.Outlined.Explore)),
 )
 
 /**
@@ -311,7 +316,7 @@ private fun PhoneShell(showTabs: Boolean, selectedIndex: Int, onSelect: (Int) ->
                     .fillMaxWidth()
                     .onSizeChanged { overlayHeight = with(density) { it.height.toDp() } }
                     .navigationBarsPadding()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 28.dp),
                 horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
             ) {
                 AnimatedVisibility(
@@ -358,12 +363,12 @@ private fun MainHost(
             } else {
                 Row(Modifier.fillMaxSize()) {
                     home(Modifier.width(if (LocalConfiguration.current.screenWidthDp >= 840) 380.dp else 320.dp).fillMaxHeight())
-                    VerticalDivider()
+                    VerticalDivider(color = CtrlColors.Divider)
                     androidx.compose.foundation.layout.Box(Modifier.weight(1f).fillMaxHeight()) {
                         val id = paneRoom
                         if (id == null) {
                             EmptyState(
-                                Icons.AutoMirrored.Filled.Chat,
+                                Icons.AutoMirrored.Outlined.Chat,
                                 stringResource(R.string.chats_pick),
                                 stringResource(R.string.chats_pick_body),
                                 Modifier.align(androidx.compose.ui.Alignment.Center),

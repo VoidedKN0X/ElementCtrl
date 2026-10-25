@@ -33,7 +33,11 @@ import org.matrix.rustcomponents.sdk.parseMatrixEntityFrom
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Dark only: light status and navigation bar icons over the #08080A background, whatever the system theme.
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         // Recents shows a blank card until the settings are read (then "Hide in recent apps" decides).
         setRecentsScreenshotEnabled(false)
@@ -52,7 +56,7 @@ class MainActivity : ComponentActivity() {
                 // card: a preview there would show your chats without the PIN.
                 WindowPrivacy(this@MainActivity, secure, hideRecents = lock.hideRecents || legacyLock || graph.vault.enabled)
                 Box(Modifier.fillMaxSize()) {
-                    Surface(Modifier.fillMaxSize()) {
+                    Surface(Modifier.fillMaxSize(), color = androidx.compose.material3.MaterialTheme.colorScheme.background) {
                         val state by graph.state.collectAsStateWithLifecycle()
                         // While locked the chats aren't composed at all (so nothing is readable through accessibility
                         // services); their saved state, including the navigation back stack, is kept here so

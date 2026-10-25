@@ -2,6 +2,39 @@
 
 To publish a new version: bump `versionCode` and `versionName` in `app/build.gradle.kts`, add a section here, and push to `main`. Pushes without a version bump only build; they don't make a release.
 
+## 1.7.0
+
+ElementCtrl gets the new **Ctrl / Signal** look shared by the whole Ctrl series: near-black, high-contrast, one violet accent (#B48CFF), new fonts and squarer shapes. Every feature, setting and screen works as before; only the look has changed.
+
+### Changed
+
+- **Dark only.** The app now always uses the Ctrl dark palette: a #08080A background, #141417 cards and sheets with thin #232328 borders, #F4F4F2 text, muted grey secondary text and a violet accent. The status and navigation bars use the same background with light icons, whatever the phone's own theme is.
+- **New fonts.** All text is set in **Space Grotesk**; times, IDs, server addresses, section labels and the wordmark use **JetBrains Mono**. Both are bundled in the app (nothing is downloaded) and replace Manrope.
+- **New type scale.** Big bold headlines with tight letter spacing (40 sp screen titles, 56 sp display), 18 sp titles, 16 sp body text, and small upper-case mono labels with wide spacing above each settings group.
+- **Squarer shapes.** Cards have 22 dp corners, big cards 26 dp, buttons and controls 14–16 dp, badges 9–10 dp. Status dots and unread markers are small rounded squares instead of circles. Profile pictures and chat avatars are rounded squares.
+- **Top bar.** The chat list and Explore now show an **ELEMENT/CTRL** wordmark (in JetBrains Mono, the slash in the accent colour) with the screen title below it, and your profile picture on the right as a 44 dp rounded square with a thin border. A small accent square on its corner shows you're connected. Tapping it still opens your profile and settings.
+- **Detail screens** (chats, settings, room details, search, devices…) have a square 44 dp back button with a border instead of a plain arrow, and the title in Space Grotesk. Top bars have no coloured background.
+- **Unread hero card.** The top of the chat list has a large violet card with the number of chats that have something new (unread messages or invites) and how many chats you have.
+- **Chat list rows** are plain rows separated by thin dividers. The time of the last message is shown in mono, in the accent colour when there's something unread and grey otherwise. Unread counters are small rounded rectangles.
+- **Filter chips** (All, Unread, People…) are square-cornered; the selected one is filled with the accent colour.
+- **Message bubbles.** Your own messages are in the accent colour with near-black text; other people's are on the dark surface colour with a thin border. Bubbles have 18 dp corners. Replies, link previews, poll answers and file progress inside your own bubbles use the bubble's text colour so they stay readable. Reactions are small square-cornered chips with a border (accent border for your own). Day separators and the "New" marker are small mono labels. Message times are in mono.
+- **Bubble styles** in Settings › Appearance › Bubbles are kept: Modern and Vivid now both use the Ctrl bubbles; Round keeps the small tail, Outlined keeps outlines, Sharp and No bubbles are unchanged in layout.
+- **Message box.** The floating composer is a flat dark island (surface colour with a thin border, no glow or shadow) with 22 dp corners. The send and voice buttons are accent rounded squares. The recording bar matches.
+- **Bottom bar.** The Chats/Explore bar floats 28 dp above the bottom with 20 dp side margins: a dark bar with a thin border, where the selected tab is a violet rounded rectangle with its icon and name and the other tabs are grey icons. On tablets the side rail uses the same colours.
+- **Switches.** All switches are the new Ctrl switch: a rounded rectangle with a square-ish knob, violet with a dark knob when on, dark grey with a grey knob when off. They are still announced as switches by TalkBack.
+- **Buttons and text fields.** Main buttons are filled with the accent colour with dark text; secondary buttons are dark with a thin border. Text fields are dark with a thin border and turn violet when you type in them.
+- **Dialogs and bottom sheets** are on the dark surface colour with 26 dp corners and a thin border.
+- **Lock screen.** A violet rounded-square lock icon, a small "VKNXWORKS · CTRL" label and a big "Locked" title. The PIN dots are small squares (violet when entered, outlined when empty) and the keypad keys are dark rounded rectangles with mono digits. The fingerprint button now sits on the keypad (bottom left, outlined in violet) while no PIN is typed; once you've typed enough digits that spot becomes OK. The delete key is a plain grey icon. How the lock works (PIN, fingerprint, lockout, "Forgot PIN?") is unchanged.
+- **Profile page.** Your picture or initial in a 68 dp violet rounded square, your name, and your Matrix ID and server in mono. Settings are grouped in dark cards with thin dividers between rows and mono group labels (ACCOUNT, PRIVACY AND SECURITY…). **Support ElementCtrl** is now a large violet button at the bottom of the page, followed by a "GOOGLE-FREE · TELEMETRY-FREE · ARM64" footer (also at the end of Settings).
+- **Icons** use the outlined style throughout.
+- Empty states, banners (notifications, battery, verification), the "Call in progress" banner, the onboarding and verification screens and the call screen all use the new cards, buttons and colours.
+
+### Removed
+
+- **Theme** (Follow system / Dark / Light / Pure black) and **Use wallpaper colours** are gone from Settings › Appearance: ElementCtrl is dark only and always uses the Ctrl colours. A theme or wallpaper-colour choice you made before is ignored.
+- The Manrope font.
+- The blurred glass glow and drop shadows on the tab bar and message box (they're now flat, as in the rest of the Ctrl series).
+
 ## 1.6.12
 
 ### New

@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,23 +79,19 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
     LaunchedEffect(atEnd, results.size, loading) { if (atEnd && query.isNotBlank() && !loading && !endReached) search.more() }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+            com.vknxworks.elementctrl.ui.components.CtrlSubBar(
+                onBack = onBack,
                 title = {
-                    TextField(
+                    com.vknxworks.elementctrl.ui.components.CtrlTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text(roomName?.let { stringResource(R.string.search, it) } ?: stringResource(R.string.search_this_chat)) },
+                        placeholder = { Text(roomName?.let { stringResource(R.string.search, it) } ?: stringResource(R.string.search_this_chat), maxLines = 1) },
                         singleLine = true,
-                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Default.Close, stringResource(R.string.clear)) } },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        ),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                        leadingIcon = { Icon(Icons.Outlined.Search, null, Modifier.size(20.dp)) },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Outlined.Close, stringResource(R.string.clear)) } },
+                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp).focusRequester(focus),
                     )
                 },
             )
@@ -104,10 +100,10 @@ fun SearchScreen(session: MatrixSession, roomId: String, roomName: String?, onBa
         Box(Modifier.fillMaxSize().padding(pad).imePadding()) {
             when {
                 query.isBlank() -> EmptyState(
-                    Icons.Default.Search, stringResource(R.string.search_messages),
+                    Icons.Outlined.Search, stringResource(R.string.search_messages),
                     stringResource(R.string.searches_messages_stored_on_this),
                 )
-                results.isEmpty() && !loading -> EmptyState(Icons.Default.Search, stringResource(R.string.no_results), stringResource(R.string.older_messages_may_still_be_indexing))
+                results.isEmpty() && !loading -> EmptyState(Icons.Outlined.Search, stringResource(R.string.no_results), stringResource(R.string.older_messages_may_still_be_indexing))
             }
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 items(results, key = { it.eventId }) { hit ->

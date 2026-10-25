@@ -18,12 +18,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.GroupAdd
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -113,19 +113,19 @@ fun NewChatScreen(
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad).imePadding()) {
             item {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     query, { query = it },
                     placeholder = { Text(stringResource(R.string.search_by_name_or_user_server)) },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     trailingIcon = { if (searching) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                 )
             }
             if (query.isBlank()) {
-                item { SettingRow(Icons.Default.GroupAdd, stringResource(R.string.create_a_room), stringResource(R.string.a_group_chat_for_a_team_friends_or_a), onClick = onCreateRoom) }
-                item { SettingRow(Icons.Default.Tag, stringResource(R.string.join_with_an_address), stringResource(R.string.room_server_or_a_room_id)) { joinDialog = true } }
-                item { SettingRow(Icons.Default.Explore, stringResource(R.string.explore_public_rooms), stringResource(R.string.browse_the_room_directory), onClick = onExplore) }
+                item { SettingRow(Icons.Outlined.GroupAdd, stringResource(R.string.create_a_room), stringResource(R.string.a_group_chat_for_a_team_friends_or_a), onClick = onCreateRoom) }
+                item { SettingRow(Icons.Outlined.Tag, stringResource(R.string.join_with_an_address), stringResource(R.string.room_server_or_a_room_id)) { joinDialog = true } }
+                item { SettingRow(Icons.Outlined.Explore, stringResource(R.string.explore_public_rooms), stringResource(R.string.browse_the_room_directory), onClick = onExplore) }
                 item { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
                 item {
                     Text(
@@ -206,17 +206,17 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
             Modifier.fillMaxSize().padding(pad).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.room_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(topic, { topic = it }, label = { Text(stringResource(R.string.topic_optional)) }, modifier = Modifier.fillMaxWidth())
+            com.vknxworks.elementctrl.ui.components.CtrlTextField(name, { name = it }, label = { Text(stringResource(R.string.room_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            com.vknxworks.elementctrl.ui.components.CtrlTextField(topic, { topic = it }, label = { Text(stringResource(R.string.topic_optional)) }, modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.public_room), style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.anyone_can_find_and_join_public), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(isPublic, { isPublic = it })
+                com.vknxworks.elementctrl.ui.components.CtrlSwitch(isPublic, { isPublic = it })
             }
             if (isPublic) {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     alias, { alias = it },
                     label = { Text(stringResource(R.string.address)) },
                     prefix = { Text("#") },
@@ -230,12 +230,12 @@ fun CreateRoomScreen(session: MatrixSession, onBack: () -> Unit, onCreated: (Str
                         Text(stringResource(R.string.end_to_end_encryption), style = MaterialTheme.typography.bodyLarge)
                         Text(stringResource(R.string.recommended_can_t_be_turned_off), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(encrypted, { encrypted = it })
+                    com.vknxworks.elementctrl.ui.components.CtrlSwitch(encrypted, { encrypted = it })
                 }
             }
             SectionHeader(stringResource(R.string.invite_people), Modifier.padding(0.dp))
             invites.forEach { id ->
-                InputChip(selected = false, onClick = { invites.remove(id) }, label = { Text(id, maxLines = 1, overflow = TextOverflow.Ellipsis) }, trailingIcon = { Icon(Icons.Default.Close, stringResource(R.string.remove), Modifier.size(16.dp)) })
+                InputChip(selected = false, onClick = { invites.remove(id) }, label = { Text(id, maxLines = 1, overflow = TextOverflow.Ellipsis) }, trailingIcon = { Icon(Icons.Outlined.Close, stringResource(R.string.remove), Modifier.size(16.dp)) })
             }
             TextButton(onClick = { inviteDialog = true }) { Text(stringResource(R.string.add_people)) }
         }
@@ -277,7 +277,6 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
             if (onProfile != null) {
                 com.vknxworks.elementctrl.ui.TabTitle(
                     stringResource(R.string.tab_explore), session, onProfile,
-                    Modifier.statusBarsPadding(),
                 )
             } else {
                 com.vknxworks.elementctrl.ui.ScreenTopBar(stringResource(R.string.tab_explore), onBack = onBack)
@@ -294,15 +293,15 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
                     Modifier.padding(horizontal = com.vknxworks.elementctrl.ui.Gutter, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
+                    com.vknxworks.elementctrl.ui.components.CtrlTextField(
                         query, { query = it },
                         placeholder = { Text(stringResource(R.string.explore_search)) },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, null) },
                         singleLine = true,
                         shape = MaterialTheme.shapes.large,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
+                    com.vknxworks.elementctrl.ui.components.CtrlTextField(
                         server, { server = it },
                         placeholder = { Text(stringResource(R.string.explore_server)) },
                         singleLine = true,
@@ -314,7 +313,7 @@ fun ExploreScreen(session: MatrixSession, onBack: () -> Unit, onOpenRoom: (Strin
             if (results.isEmpty() && query.isNotBlank()) {
                 item("empty") {
                     com.vknxworks.elementctrl.ui.EmptyState(
-                        Icons.Default.Explore,
+                        Icons.Outlined.Explore,
                         stringResource(R.string.explore_empty),
                         stringResource(R.string.explore_empty_body),
                     )

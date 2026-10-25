@@ -20,16 +20,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LockReset
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CloudDone
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.LockReset
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -131,7 +131,7 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 8.dp),
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (verified) Icons.Default.CheckCircle else Icons.Default.Warning, null)
+                    Icon(if (verified) Icons.Outlined.CheckCircle else Icons.Outlined.Warning, null)
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
@@ -153,12 +153,12 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
 
             if (verification == VerificationState.UNVERIFIED) {
                 Group(stringResource(R.string.verify_this_device)) {
-                    GroupRow(stringResource(R.string.use_another_device), stringResource(R.string.compare_emojis_with_a_signed_in), Icons.Default.Devices, showChevron = true, onClick = onVerifyDevice)
-                    GroupRow(stringResource(R.string.enter_recovery_key), stringResource(R.string.the_key_you_saved_when_you_set_up), Icons.Default.Key, onClick = { enterKey = true })
+                    GroupRow(stringResource(R.string.use_another_device), stringResource(R.string.compare_emojis_with_a_signed_in), Icons.Outlined.Devices, showChevron = true, onClick = onVerifyDevice)
+                    GroupRow(stringResource(R.string.enter_recovery_key), stringResource(R.string.the_key_you_saved_when_you_set_up), Icons.Outlined.Key, onClick = { enterKey = true })
                     GroupRow(
                         stringResource(R.string.can_t_confirm_reset_your_identity),
                         stringResource(R.string.last_resort_starts_fresh_you_ll_lose),
-                        Icons.Default.LockReset,
+                        Icons.Outlined.LockReset,
                         iconTint = MaterialTheme.colorScheme.error,
                         titleColor = MaterialTheme.colorScheme.error,
                         onClick = { confirmReset = true },
@@ -175,20 +175,20 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
                         RecoveryState.DISABLED -> Strings.str(R.string.off_set_up_recovery_so_you_don_t)
                         RecoveryState.UNKNOWN -> Strings.str(R.string.calls_server_checking)
                     }.let { text -> backupNote(backup)?.let { note -> stringResource(R.string.recovery_state_with_note, text, note) } ?: text },
-                    if (recovery == RecoveryState.ENABLED) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                    if (recovery == RecoveryState.ENABLED) Icons.Outlined.CloudDone else Icons.Outlined.CloudOff,
                 )
                 when (recovery) {
-                    RecoveryState.DISABLED -> GroupRow(stringResource(R.string.banner_recovery_title), stringResource(R.string.creates_a_recovery_key_and_backs_up), Icons.Default.Key, onClick = {
+                    RecoveryState.DISABLED -> GroupRow(stringResource(R.string.banner_recovery_title), stringResource(R.string.creates_a_recovery_key_and_backs_up), Icons.Outlined.Key, onClick = {
                         act("enable") { newKey = account.enableRecovery(null) { } }
                     })
-                    RecoveryState.INCOMPLETE -> GroupRow(stringResource(R.string.enter_recovery_key), icon = Icons.Default.Key, onClick = { enterKey = true })
+                    RecoveryState.INCOMPLETE -> GroupRow(stringResource(R.string.enter_recovery_key), icon = Icons.Outlined.Key, onClick = { enterKey = true })
                     RecoveryState.ENABLED -> {
-                        GroupRow(stringResource(R.string.change_recovery_key), stringResource(R.string.get_a_new_key_the_old_one_stops), Icons.Default.Password, onClick = {
+                        GroupRow(stringResource(R.string.change_recovery_key), stringResource(R.string.get_a_new_key_the_old_one_stops), Icons.Outlined.Password, onClick = {
                             act("change") { newKey = account.resetRecoveryKey() }
                         })
                         GroupRow(
                             stringResource(R.string.turn_off_key_storage),
-                            icon = Icons.Default.CloudOff,
+                            icon = Icons.Outlined.CloudOff,
                             iconTint = MaterialTheme.colorScheme.error,
                             titleColor = MaterialTheme.colorScheme.error,
                             onClick = { confirmDisable = true },
@@ -208,9 +208,9 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
             var keys by remember { mutableStateOf<String?>(null) }
             androidx.compose.runtime.LaunchedEffect(Unit) { keys = runCatching { session.client.encryption().ed25519Key() }.getOrNull() }
             Group(stringResource(R.string.this_device)) {
-                GroupRow(stringResource(R.string.session_id_2), session.deviceId, Icons.Default.Fingerprint, onClick = { copyText(context, Strings.str(R.string.session_id_2), session.deviceId) })
+                GroupRow(stringResource(R.string.session_id_2), session.deviceId, Icons.Outlined.Fingerprint, onClick = { copyText(context, Strings.str(R.string.session_id_2), session.deviceId) })
                 keys?.let { k ->
-                    GroupRow(stringResource(R.string.session_key), k.chunked(4).joinToString(" "), Icons.Default.Key, onClick = { copyText(context, Strings.str(R.string.session_key), k) })
+                    GroupRow(stringResource(R.string.session_key), k.chunked(4).joinToString(" "), Icons.Outlined.Key, onClick = { copyText(context, Strings.str(R.string.session_key), k) })
                 }
             }
             Spacer(Modifier.height(32.dp))
@@ -218,7 +218,7 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
     }
 
     newKey?.let { key ->
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = {},
             title = { Text(stringResource(R.string.save_your_recovery_key)) },
             text = {
@@ -242,11 +242,11 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
 
     if (enterKey) {
         var key by remember { mutableStateOf("") }
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { enterKey = false },
             title = { Text(stringResource(R.string.enter_recovery_key)) },
             text = {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     key, { key = it },
                     label = { Text(stringResource(R.string.recovery_key_or_passphrase)) },
                     // Password type: keyboards don't suggest, learn or remember what's typed here.
@@ -300,14 +300,14 @@ fun SecurityScreen(session: MatrixSession, onBack: () -> Unit, onVerifyDevice: (
 
     reset?.let { r ->
         var password by remember { mutableStateOf("") }
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = {},
             title = { Text(stringResource(R.string.confirm_reset)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (r.needsPassword) {
                         Text(stringResource(R.string.enter_your_account_password_to))
-                        OutlinedTextField(
+                        com.vknxworks.elementctrl.ui.components.CtrlTextField(
                             password, { password = it },
                             label = { Text(stringResource(R.string.password)) },
                             visualTransformation = PasswordVisualTransformation(),
@@ -384,8 +384,8 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
                 is VerifyStep.Incoming -> {
                     Text(stringResource(R.string.wants_to_verify, s.request.senderName), style = MaterialTheme.typography.titleMedium)
                     Text((s.request.deviceName ?: "") + " " + s.request.deviceId, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { scope.launch { service.acceptIncoming() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.start_verification)) }
-                    OutlinedButton(onClick = { scope.launch { service.cancel() }; finish() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ignore)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { scope.launch { service.acceptIncoming() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.start_verification)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { scope.launch { service.cancel() }; finish() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ignore)) }
                 }
                 VerifyStep.Accepted, VerifyStep.Starting -> {
                     CircularProgressIndicator()
@@ -406,8 +406,8 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
                     } else {
                         Text(s.decimals.joinToString("  "), style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace)
                     }
-                    Button(onClick = { scope.launch { service.confirmMatch() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.they_match)) }
-                    OutlinedButton(
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { scope.launch { service.confirmMatch() } }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.they_match)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(
                         onClick = { scope.launch { service.denyMatch() } },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth(),
@@ -419,23 +419,23 @@ fun VerifyScreen(session: MatrixSession, otherUserIdArg: String?, startOutgoing:
                 }
                 VerifyStep.Done -> {
                     Box(Modifier.size(80.dp), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Outlined.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                     Text(if (otherUserId == null) stringResource(R.string.device_verified) else stringResource(R.string.user_verified), style = MaterialTheme.typography.headlineSmall)
                     Text(
                         if (otherUserId == null) stringResource(R.string.your_encrypted_messages_will_start) else stringResource(R.string.messages_with_them_are_now_marked_as),
                         textAlign = TextAlign.Center,
                     )
-                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_done)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { finish() }) { Text(stringResource(R.string.lock_done)) }
                 }
                 VerifyStep.Cancelled -> {
                     Text(stringResource(R.string.verification_was_cancelled), style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
                 }
                 is VerifyStep.Failed -> {
-                    Icon(Icons.Default.Warning, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Outlined.Warning, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.error)
                     Text(s.message, textAlign = TextAlign.Center)
-                    Button(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { finish() }) { Text(stringResource(R.string.lock_close)) }
                 }
             }
         }

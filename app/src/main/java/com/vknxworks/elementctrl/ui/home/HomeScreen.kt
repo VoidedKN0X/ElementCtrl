@@ -19,24 +19,24 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MarkChatRead
-import androidx.compose.material.icons.filled.MarkChatUnread
-import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.SouthEast
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MarkChatRead
+import androidx.compose.material.icons.outlined.MarkChatUnread
+import androidx.compose.material.icons.outlined.NotificationsOff
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.SouthEast
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -83,6 +83,24 @@ import com.vknxworks.elementctrl.ui.shortTime
 import com.vknxworks.elementctrl.ui.TabTitle
 import com.vknxworks.elementctrl.ui.LocalBottomClearance
 import com.vknxworks.elementctrl.R
+import com.vknxworks.elementctrl.ui.CtrlColors
+import com.vknxworks.elementctrl.ui.CtrlShapes
+import com.vknxworks.elementctrl.ui.CtrlType
+import com.vknxworks.elementctrl.ui.Gutter
+import com.vknxworks.elementctrl.ui.components.CtrlButton
+import com.vknxworks.elementctrl.ui.components.CtrlCard
+import com.vknxworks.elementctrl.ui.components.CtrlHeroCard
+import com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton
+import com.vknxworks.elementctrl.ui.components.CtrlSheet
+import com.vknxworks.elementctrl.ui.components.CtrlSquareButton
+import com.vknxworks.elementctrl.ui.components.CtrlTextField
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -152,29 +170,28 @@ fun HomeScreen(
         else androidx.compose.material3.ScaffoldDefaults.contentWindowInsets,
         topBar = {
             if (searching) {
-                TopAppBar(
-                    title = {
-                        TextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            placeholder = { Text(stringResource(R.string.chats_search_hint)) },
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                    navigationIcon = { IconButton(onClick = { searching = false; query = "" }) { Icon(Icons.Default.Close, stringResource(R.string.chats_close_search)) } },
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                )
+                Row(
+                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).statusBarsPadding()
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CtrlSquareButton(onClick = { searching = false; query = "" }, contentDescription = stringResource(R.string.chats_close_search)) {
+                        Icon(Icons.Outlined.Close, null, Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    CtrlTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text(stringResource(R.string.chats_search_hint)) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, null, Modifier.size(20.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             } else {
                 // The Ctrl series tab title: big "Chats" with your profile picture at the top right.
-                TabTitle(stringResource(R.string.tab_chats), session, onProfile, Modifier.statusBarsPadding()) {
-                    IconButton(onClick = { searching = true }) { Icon(Icons.Default.Search, stringResource(R.string.chats_search)) }
+                TabTitle(stringResource(R.string.tab_chats), session, onProfile) {
+                    IconButton(onClick = { searching = true }) { Icon(Icons.Outlined.Search, stringResource(R.string.chats_search), Modifier.size(22.dp), tint = CtrlColors.Muted) }
                 }
             }
         },
@@ -183,13 +200,14 @@ fun HomeScreen(
             val clearance = LocalBottomClearance.current
             ExtendedFloatingActionButton(
                 onClick = onNewChat,
-                icon = { Icon(Icons.Default.Edit, null) },
+                icon = { Icon(Icons.Outlined.Edit, null, Modifier.size(20.dp)) },
                 text = { Text(stringResource(R.string.chats_new)) },
                 expanded = listState.firstVisibleItemIndex == 0,
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(bottom = if (clearance > 0.dp) clearance - 4.dp else 0.dp),
+                shape = CtrlShapes.Cta,
+                containerColor = CtrlColors.Accent,
+                contentColor = CtrlColors.OnAccent,
+                elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                modifier = Modifier.padding(bottom = if (clearance > 0.dp) clearance - 12.dp else 0.dp),
             )
         },
     ) { pad ->
@@ -198,10 +216,12 @@ fun HomeScreen(
             AnimatedVisibility(stuck || sync == SyncServiceState.OFFLINE || sync == SyncServiceState.ERROR) {
                 val ctx = androidx.compose.ui.platform.LocalContext.current
                 Row(
-                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 4.dp)
+                        .clip(CtrlShapes.Control).background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Default.CloudOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.CloudOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
                         when {
@@ -220,15 +240,17 @@ fun HomeScreen(
                     }) { Text(stringResource(R.string.chats_reconnect), color = MaterialTheme.colorScheme.onErrorContainer) }
                 }
             }
-            if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (!loaded && rooms.isEmpty()) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = Gutter).height(6.dp).clip(RoundedCornerShape(3.dp)), color = CtrlColors.Accent, trackColor = CtrlColors.ProgressTrack)
             val sharing by com.vknxworks.elementctrl.ui.DeepLinks.share.collectAsStateWithLifecycle()
             if (sharing != null) {
                 Row(
-                    Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer).padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 4.dp)
+                        .clip(CtrlShapes.Control).background(CtrlColors.Surface).border(1.dp, CtrlColors.Border, CtrlShapes.Control)
+                        .padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(stringResource(R.string.chats_share_to), Modifier.weight(1f), color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    IconButton(onClick = { com.vknxworks.elementctrl.ui.DeepLinks.share.value = null }) { Icon(Icons.Default.Close, stringResource(R.string.chats_cancel_share)) }
+                    IconButton(onClick = { com.vknxworks.elementctrl.ui.DeepLinks.share.value = null }) { Icon(Icons.Outlined.Close, stringResource(R.string.chats_cancel_share)) }
                 }
             }
 
@@ -273,7 +295,7 @@ fun HomeScreen(
                 if (notificationsOn && !notificationsAllowed) {
                     item("notifications-blocked") {
                         Banner(
-                            icon = Icons.Default.NotificationsOff,
+                            icon = Icons.Outlined.NotificationsOff,
                             title = stringResource(R.string.banner_notifications_blocked_title),
                             body = stringResource(R.string.banner_notifications_blocked_body),
                             action = stringResource(R.string.warn_allow),
@@ -284,7 +306,7 @@ fun HomeScreen(
                 if (showBattery) {
                     item("battery") {
                         Banner(
-                            icon = Icons.Default.BatteryAlert,
+                            icon = Icons.Outlined.BatteryAlert,
                             title = stringResource(R.string.banner_battery_title),
                             body = stringResource(if (appHeldBack) R.string.banner_battery_app else R.string.banner_battery_ntfy),
                             action = stringResource(if (appHeldBack) R.string.warn_allow else R.string.banner_fix),
@@ -299,7 +321,7 @@ fun HomeScreen(
                 if (verification == VerificationState.UNVERIFIED) {
                     item("verify") {
                         Banner(
-                            icon = Icons.Default.VerifiedUser,
+                            icon = Icons.Outlined.VerifiedUser,
                             title = stringResource(R.string.banner_verify_title),
                             body = stringResource(R.string.banner_verify_body),
                             action = stringResource(R.string.banner_verify),
@@ -309,7 +331,7 @@ fun HomeScreen(
                 } else if (verification == VerificationState.VERIFIED && (recovery == RecoveryState.DISABLED || recovery == RecoveryState.INCOMPLETE)) {
                     item("recovery") {
                         Banner(
-                            icon = Icons.Default.Security,
+                            icon = Icons.Outlined.Security,
                             title = stringResource(if (recovery == RecoveryState.INCOMPLETE) R.string.banner_recovery_incomplete_title else R.string.banner_recovery_title),
                             body = stringResource(R.string.banner_recovery_body),
                             action = stringResource(R.string.banner_set_up),
@@ -317,9 +339,22 @@ fun HomeScreen(
                         )
                     }
                 }
+                if (!searching && loaded) {
+                    item("hero") {
+                        // The one number that matters on the chat list: how many chats have something new.
+                        val unread = rooms.count { !it.isSpace && (it.hasUnread || it.isInvite) }
+                        val chats = rooms.count { !it.isSpace }
+                        CtrlHeroCard(
+                            label = stringResource(R.string.hero_unread),
+                            trailingLabel = pluralStringResource(R.plurals.hero_chats, chats, chats),
+                            value = unread.toString(),
+                            modifier = Modifier.padding(horizontal = Gutter, vertical = 8.dp),
+                        )
+                    }
+                }
                 item("filters") {
                     LazyRow(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        contentPadding = PaddingValues(horizontal = Gutter, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(RoomFilter.entries.filter { it != RoomFilter.INVITES || inviteCount > 0 }) { f ->
@@ -327,6 +362,18 @@ fun HomeScreen(
                                 selected = filter == f,
                                 onClick = { filter = if (filter == f) RoomFilter.ALL else f },
                                 label = { Text(if (f == RoomFilter.INVITES) stringResource(f.label, inviteCount) else stringResource(f.label)) },
+                                shape = CtrlShapes.Badge,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = CtrlColors.Surface,
+                                    labelColor = CtrlColors.Muted,
+                                    selectedContainerColor = CtrlColors.Accent,
+                                    selectedLabelColor = CtrlColors.OnAccent,
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true, selected = filter == f,
+                                    borderColor = CtrlColors.ControlBorder, selectedBorderColor = CtrlColors.Accent,
+                                    borderWidth = 1.dp, selectedBorderWidth = 1.dp,
+                                ),
                             )
                         }
                     }
@@ -334,7 +381,7 @@ fun HomeScreen(
                 if (loaded && visible.isEmpty()) {
                     item("empty") {
                         EmptyState(
-                            Icons.AutoMirrored.Filled.Chat,
+                            Icons.AutoMirrored.Outlined.Chat,
                             stringResource(if (query.isNotBlank() || filter != RoomFilter.ALL) R.string.chats_nothing else R.string.chats_empty),
                             stringResource(if (query.isNotBlank() || filter != RoomFilter.ALL) R.string.chats_nothing_body else R.string.chats_empty_body),
                         )
@@ -374,13 +421,13 @@ fun HomeScreen(
     }
 
     menuFor?.let { room ->
-        ModalBottomSheet(onDismissRequest = { menuFor = null }) {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        CtrlSheet(onDismissRequest = { menuFor = null }) {
+            Row(Modifier.padding(horizontal = Gutter, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Avatar(room.name, room.avatarUrl, room.roomId, size = 40.dp)
                 Spacer(Modifier.width(12.dp))
                 Text(room.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            HorizontalDivider()
+            HorizontalDivider(color = CtrlColors.Border)
             fun withRoom(block: suspend (org.matrix.rustcomponents.sdk.Room) -> Unit) {
                 menuFor = null
                 scope.launch {
@@ -389,20 +436,20 @@ fun HomeScreen(
                 }
             }
             if (room.hasUnread) {
-                SettingRow(Icons.Default.MarkChatRead, stringResource(R.string.room_mark_read)) {
+                SettingRow(Icons.Outlined.MarkChatRead, stringResource(R.string.room_mark_read)) {
                     withRoom { it.markAsRead(ReceiptType.READ); it.setUnreadFlag(false) }
                 }
             } else {
-                SettingRow(Icons.Default.MarkChatUnread, stringResource(R.string.room_mark_unread)) { withRoom { it.setUnreadFlag(true) } }
+                SettingRow(Icons.Outlined.MarkChatUnread, stringResource(R.string.room_mark_unread)) { withRoom { it.setUnreadFlag(true) } }
             }
             SettingRow(
-                if (room.isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                if (room.isFavourite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
                 stringResource(if (room.isFavourite) R.string.room_favourite_remove else R.string.room_favourite_add),
             ) { withRoom { it.setIsFavourite(!room.isFavourite, null) } }
-            SettingRow(Icons.Default.SouthEast, stringResource(if (room.isLowPriority) R.string.room_low_priority_remove else R.string.room_low_priority)) {
+            SettingRow(Icons.Outlined.SouthEast, stringResource(if (room.isLowPriority) R.string.room_low_priority_remove else R.string.room_low_priority)) {
                 withRoom { it.setIsLowPriority(!room.isLowPriority, null) }
             }
-            SettingRow(Icons.AutoMirrored.Filled.ExitToApp, stringResource(R.string.room_leave), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+            SettingRow(Icons.AutoMirrored.Outlined.ExitToApp, stringResource(R.string.room_leave), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                 leaving = room; menuFor = null
             }
             Spacer(Modifier.height(24.dp))
@@ -430,22 +477,22 @@ private fun Banner(
     onClick: () -> Unit,
     onDismiss: (() -> Unit)? = null,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+    CtrlCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 6.dp),
+        padding = PaddingValues(16.dp),
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, Modifier.size(22.dp), tint = CtrlColors.Accent)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = CtrlColors.Muted)
             }
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(onClick = onClick) { Text(action) }
+                CtrlButton(onClick = onClick) { Text(action) }
                 if (onDismiss != null) {
-                    androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.banner_not_now), color = MaterialTheme.colorScheme.onPrimaryContainer) }
+                    androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.banner_not_now), color = CtrlColors.Muted) }
                 }
             }
         }
@@ -456,82 +503,87 @@ private fun Banner(
 private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     val draftLabel = stringResource(R.string.room_draft)
     val youLabel = stringResource(R.string.room_you)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Avatar(room.name, room.avatarUrl, room.dmUserId ?: room.roomId, size = 52.dp)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Name and lock take all the room left over, so the time always sits flush against the right edge.
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        room.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (room.hasUnread && !room.isMuted) FontWeight.Bold else FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (room.isEncrypted && !room.isDm) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Default.Lock, stringResource(R.string.room_encrypted), Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    // Plain Ctrl list row with a 1 dp divider on top.
+    Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = Gutter).height(1.dp).background(CtrlColors.Divider))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(if (selected) CtrlColors.Surface else Color.Transparent)
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .heightIn(min = 52.dp)
+                .padding(horizontal = Gutter, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(room.name, room.avatarUrl, room.dmUserId ?: room.roomId, size = 48.dp)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Name and lock take all the room left over, so the time always sits flush against the right edge.
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            room.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (room.hasUnread && !room.isMuted) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (room.isEncrypted && !room.isDm) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Outlined.Lock, stringResource(R.string.room_encrypted), Modifier.size(13.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    room.lastTimestamp?.let {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            shortTime(it).uppercase(),
+                            style = CtrlType.Status,
+                            color = if (room.hasUnread && !room.isMuted) CtrlColors.Accent else CtrlColors.Disabled,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
                     }
                 }
-                room.lastTimestamp?.let {
-                    Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (room.lastFailed) {
+                        Icon(Icons.Outlined.ErrorOutline, stringResource(R.string.room_not_sent), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.width(4.dp))
+                    }
                     Text(
-                        shortTime(it),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (room.hasUnread && !room.isMuted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        softWrap = false,
+                        if (draft != null) {
+                            androidx.compose.ui.text.buildAnnotatedString {
+                                withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)) { append(draftLabel) }
+                                append(draft)
+                            }
+                        } else androidx.compose.ui.text.AnnotatedString(buildString {
+                            if (!room.isDm && room.lastSender != null) append(room.lastSender).append(": ")
+                            else if (room.isDm && room.lastIsOwn && room.lastSender != null) append(youLabel)
+                            append(room.lastMessage ?: room.topic ?: "")
+                        }),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
-                }
-            }
-            Spacer(Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (room.lastFailed) {
-                    Icon(Icons.Default.ErrorOutline, stringResource(R.string.room_not_sent), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(4.dp))
-                }
-                Text(
-                    if (draft != null) {
-                        androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium)) { append(draftLabel) }
-                            append(draft)
-                        }
-                    } else androidx.compose.ui.text.AnnotatedString(buildString {
-                        if (!room.isDm && room.lastSender != null) append(room.lastSender).append(": ")
-                        else if (room.isDm && room.lastIsOwn && room.lastSender != null) append(youLabel)
-                        append(room.lastMessage ?: room.topic ?: "")
-                    }),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (room.hasCall) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.Videocam, stringResource(R.string.call_room_icon), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                if (room.isMuted) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.NotificationsOff, stringResource(R.string.room_muted), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (room.isFavourite) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Default.Favorite, stringResource(R.string.room_favourite), Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (room.hasUnread) {
-                    Spacer(Modifier.width(8.dp))
-                    UnreadBadge(room.unreadNotifications, highlight = room.unreadMentions > 0, muted = room.isMuted)
+                    if (room.hasCall) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(Icons.Outlined.Videocam, stringResource(R.string.call_room_icon), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    if (room.isMuted) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(Icons.Outlined.NotificationsOff, stringResource(R.string.room_muted), Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (room.isFavourite) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(Icons.Outlined.Favorite, stringResource(R.string.room_favourite), Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (room.hasUnread) {
+                        Spacer(Modifier.width(8.dp))
+                        UnreadBadge(room.unreadNotifications, highlight = room.unreadMentions > 0, muted = room.isMuted)
+                    }
                 }
             }
         }
@@ -540,28 +592,32 @@ private fun RoomRow(room: RoomSummary, draft: String?, selected: Boolean, onClic
 
 @Composable
 private fun InviteRow(room: RoomSummary, onOpen: () -> Unit, onAccept: () -> Unit, onDecline: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onOpen)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(room.name, room.avatarUrl, room.roomId, size = 52.dp)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(room.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    stringResource(if (room.isDm) R.string.invite_from_dm else R.string.invite_from, room.inviterName ?: stringResource(R.string.invite_someone)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+    // Plain Ctrl list row with a 1 dp divider on top.
+    Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = Gutter).height(1.dp).background(CtrlColors.Divider))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = onOpen)
+                .padding(horizontal = Gutter, vertical = 12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Avatar(room.name, room.avatarUrl, room.roomId, size = 48.dp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(room.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        stringResource(if (room.isDm) R.string.invite_from_dm else R.string.invite_from, room.inviterName ?: stringResource(R.string.invite_someone)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                UnreadBadge(0, highlight = true, muted = false)
             }
-            UnreadBadge(0, highlight = true, muted = false)
-        }
-        Row(Modifier.padding(start = 66.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDecline) { Text(stringResource(R.string.invite_decline)) }
-            Button(onClick = onAccept) { Text(stringResource(R.string.invite_accept)) }
+            Row(Modifier.padding(start = 62.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CtrlSecondaryButton(onClick = onDecline) { Text(stringResource(R.string.invite_decline)) }
+                CtrlButton(onClick = onAccept) { Text(stringResource(R.string.invite_accept)) }
+            }
         }
     }
 }

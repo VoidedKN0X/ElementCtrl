@@ -3,16 +3,18 @@ package com.vknxworks.elementctrl.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -104,12 +106,12 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
             ScreenTopBar(
                 title = stringResource(R.string.account_devices),
                 onBack = onBack,
-                actions = { IconButton(onClick = { reload() }) { Icon(Icons.Default.Refresh, stringResource(R.string.refresh)) } },
+                actions = { IconButton(onClick = { reload() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.refresh)) } },
             )
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = com.vknxworks.elementctrl.ui.Gutter).height(6.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)), color = MaterialTheme.colorScheme.primary, trackColor = com.vknxworks.elementctrl.ui.CtrlColors.ProgressTrack)
             LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
                 devices.firstOrNull { it.isCurrent }?.let { me ->
                     item { Group(stringResource(R.string.this_device)) { DeviceRow(me) { selected = me } } }
@@ -124,7 +126,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
                         Group {
                             GroupRow(
                                 stringResource(R.string.sign_out_all_other_devices),
-                                icon = Icons.AutoMirrored.Filled.Logout,
+                                icon = Icons.AutoMirrored.Outlined.Logout,
                                 iconTint = MaterialTheme.colorScheme.error,
                                 titleColor = MaterialTheme.colorScheme.error,
                                 onClick = { confirmOut = others.map { it.deviceId } },
@@ -134,7 +136,7 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
                 }
                 item {
                     Group(footer = stringResource(R.string.for_accounts_using_an_oauth_sign_in)) {
-                        GroupRow(stringResource(R.string.manage_on_your_account_page), icon = Icons.AutoMirrored.Filled.OpenInNew, onClick = {
+                        GroupRow(stringResource(R.string.manage_on_your_account_page), icon = Icons.AutoMirrored.Outlined.OpenInNew, onClick = {
                             scope.launch { service.webPage(null)?.let { openUrl(context, it.url) } ?: snackbar.showSnackbar(Strings.str(R.string.your_server_has_no_account_page)) }
                         })
                     }
@@ -144,16 +146,16 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
     }
 
     selected?.let { d ->
-        ModalBottomSheet(onDismissRequest = { selected = null }) {
+        com.vknxworks.elementctrl.ui.components.CtrlSheet(onDismissRequest = { selected = null }) {
             Text(d.displayName ?: d.deviceId, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp))
             Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                 Text(stringResource(R.string.session_id, d.deviceId), style = MaterialTheme.typography.bodyMedium)
                 d.lastSeenTs?.let { Text(stringResource(R.string.last_active, shortTime(it)), style = MaterialTheme.typography.bodyMedium) }
                 d.lastSeenIp?.let { Text(stringResource(R.string.ip_address, it), style = MaterialTheme.typography.bodyMedium) }
             }
-            SettingRow(Icons.Default.Edit, stringResource(R.string.rename)) { renaming = d; selected = null }
+            SettingRow(Icons.Outlined.Edit, stringResource(R.string.rename)) { renaming = d; selected = null }
             if (!d.isCurrent) {
-                SettingRow(Icons.AutoMirrored.Filled.Logout, stringResource(R.string.sign_out), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+                SettingRow(Icons.AutoMirrored.Outlined.Logout, stringResource(R.string.sign_out), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                     confirmOut = listOf(d.deviceId); selected = null
                 }
             }
@@ -182,11 +184,11 @@ fun DevicesScreen(session: MatrixSession, onBack: () -> Unit) {
 
     passwordFor?.let { (ids, authSession) ->
         var password by remember { mutableStateOf("") }
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { passwordFor = null },
             title = { Text(stringResource(R.string.confirm_with_your_password)) },
             text = {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     password, { password = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     // Password type: keyboards don't suggest, learn or remember what's typed here.
@@ -207,7 +209,7 @@ private fun DeviceRow(d: DeviceInfo, onClick: () -> Unit) {
     GroupRow(
         d.displayName ?: d.deviceId,
         d.lastSeenTs?.let { stringResource(R.string.device_id_active, d.deviceId, shortTime(it)) } ?: d.deviceId,
-        icon = Icons.Default.PhoneAndroid,
+        icon = Icons.Outlined.PhoneAndroid,
         iconTint = if (d.isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         onClick = onClick,
     )

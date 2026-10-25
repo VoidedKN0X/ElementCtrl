@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,19 +56,22 @@ import androidx.compose.ui.res.stringResource
 import com.vknxworks.elementctrl.Strings
 import com.vknxworks.elementctrl.R
 
-/** Round avatar from an mxc:// URL, or coloured initials when there's no picture. */
+/** Ctrl avatar shape: a rounded square, about a third of its size for the corners (14 dp at 44 dp). */
+fun avatarShape(size: Dp) = androidx.compose.foundation.shape.RoundedCornerShape(size * 0.32f)
+
+/** Rounded-square avatar from an mxc:// URL, or coloured initials when there's no picture. */
 @Composable
 fun Avatar(name: String, url: String?, id: String, size: Dp = 40.dp, modifier: Modifier = Modifier) {
     val px = with(androidx.compose.ui.platform.LocalDensity.current) { size.roundToPx() }
     val model = remember(url, px) { mxcAvatar(url, (px * 2).coerceAtMost(512)) }
     val fallback: @Composable () -> Unit = {
         Box(
-            Modifier.size(size).clip(CircleShape).background(senderColor(id)),
+            Modifier.size(size).clip(avatarShape(size)).background(senderColor(id)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 initials(name),
-                color = Color.White,
+                color = CtrlColors.OnAccent,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = (size.value * 0.42f).sp,
                 maxLines = 1,
@@ -81,7 +85,7 @@ fun Avatar(name: String, url: String?, id: String, size: Dp = 40.dp, modifier: M
             model = model,
             contentDescription = name,
             contentScale = ContentScale.Crop,
-            modifier = modifier.size(size).clip(CircleShape),
+            modifier = modifier.size(size).clip(avatarShape(size)),
             loading = { fallback() },
             error = { fallback() },
         )
@@ -176,20 +180,17 @@ fun shareText(context: Context, text: String) {
 
 @Composable
 fun CenteredLoading(modifier: Modifier = Modifier.fillMaxSize()) {
-    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CtrlColors.Accent, trackColor = CtrlColors.ProgressTrack) }
 }
 
 @Composable
 fun EmptyState(icon: ImageVector, title: String, body: String? = null, modifier: Modifier = Modifier) {
-    // The Ctrl series empty state: the icon in a soft accent circle, a title and a short explanation.
+    // The Ctrl series empty state: the icon in a bordered square tile, a title and a short explanation.
     Column(
         modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary) }
+        com.vknxworks.elementctrl.ui.components.CtrlIconTile(icon)
         Spacer(Modifier.height(16.dp))
         Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
         body?.let {
@@ -201,11 +202,9 @@ fun EmptyState(icon: ImageVector, title: String, body: String? = null, modifier:
 
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(
+    com.vknxworks.elementctrl.ui.components.CtrlLabel(
         text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 6.dp),
+        modifier.padding(start = Gutter, end = Gutter, top = 20.dp, bottom = 8.dp),
     )
 }
 
@@ -223,11 +222,12 @@ fun SettingRow(
         Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .heightIn(min = 52.dp)
+            .padding(horizontal = Gutter, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(20.dp))
         }
         Column(Modifier.weight(1f)) {
@@ -249,7 +249,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    com.vknxworks.elementctrl.ui.components.CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text) },
@@ -273,11 +273,11 @@ fun TextInputDialog(
     onConfirm: (String) -> Unit,
 ) {
     var value by remember { mutableStateOf(initial) }
-    AlertDialog(
+    com.vknxworks.elementctrl.ui.components.CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
+            com.vknxworks.elementctrl.ui.components.CtrlTextField(
                 value = value,
                 onValueChange = { value = it },
                 label = { if (label.isNotEmpty()) Text(label) },
@@ -294,23 +294,19 @@ fun TextInputDialog(
 @Composable
 fun UnreadBadge(count: Long, highlight: Boolean, muted: Boolean) {
     val bg = when {
-        muted -> MaterialTheme.colorScheme.outline
+        muted -> CtrlColors.Disabled
         highlight -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.primary
+        else -> CtrlColors.Accent
     }
-    val fg = when {
-        highlight -> MaterialTheme.colorScheme.onError
-        muted -> MaterialTheme.colorScheme.surface
-        else -> MaterialTheme.colorScheme.onPrimary
-    }
+    val fg = CtrlColors.OnAccent
     if (count <= 0) {
-        Box(Modifier.size(10.dp).clip(CircleShape).background(bg))
+        com.vknxworks.elementctrl.ui.components.CtrlStatusDot(bg)
     } else {
         Box(
-            Modifier.clip(CircleShape).background(bg).padding(horizontal = 7.dp, vertical = 2.dp),
+            Modifier.heightIn(min = 20.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(7.dp)).background(bg).padding(horizontal = 6.dp, vertical = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(if (count > 99) "99+" else count.toString(), color = fg, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            Text(if (count > 99) "99+" else count.toString(), color = fg, style = CtrlType.Meta.copy(fontSize = 11.sp), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -323,14 +319,14 @@ fun isCleartext(url: String): Boolean = url.trim().startsWith("http://", ignoreC
 fun NotEncryptedBadge(modifier: Modifier = Modifier) {
     androidx.compose.material3.Surface(
         modifier = modifier,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(9.dp),
         color = MaterialTheme.colorScheme.errorContainer,
     ) {
         Text(
             stringResource(R.string.not_encrypted_http),
-            style = MaterialTheme.typography.labelSmall,
+            style = CtrlType.Status,
             color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
         )
     }
 }

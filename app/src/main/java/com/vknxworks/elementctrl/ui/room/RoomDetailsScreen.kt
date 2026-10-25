@@ -20,29 +20,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.PersonRemove
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.SouthEast
-import androidx.compose.material.icons.filled.Tag
-import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.SouthEast
+import androidx.compose.material.icons.outlined.Tag
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -147,19 +147,19 @@ fun RoomDetailsScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (permissions.canInvite && !h.isDm) OutlinedButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.invite)) }
-                    OutlinedButton(onClick = { scope.launch { room.permalink()?.let { shareText(context, it) } } }) {
-                        Icon(Icons.Default.Share, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.share))
+                    if (permissions.canInvite && !h.isDm) com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { inviting = true }) { Icon(Icons.Outlined.PersonAdd, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.invite)) }
+                    com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { scope.launch { room.permalink()?.let { shareText(context, it) } } }) {
+                        Icon(Icons.Outlined.Share, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.share))
                     }
                 }
             }
             HorizontalDivider()
 
             if (h.isDm && h.dmUserId != null) {
-                SettingRow(Icons.Default.Person, stringResource(R.string.view_profile), h.dmUserId) { onOpenUser(h.dmUserId) }
+                SettingRow(Icons.Outlined.Person, stringResource(R.string.view_profile), h.dmUserId) { onOpenUser(h.dmUserId) }
             }
             SettingRow(
-                Icons.Default.Notifications, stringResource(R.string.group_notifications),
+                Icons.Outlined.Notifications, stringResource(R.string.group_notifications),
                 when (h.notificationMode) {
                     null -> Strings.str(R.string.default_text)
                     RoomNotificationMode.ALL_MESSAGES -> Strings.str(R.string.mode_all)
@@ -167,22 +167,22 @@ fun RoomDetailsScreen(
                     RoomNotificationMode.MUTE -> Strings.str(R.string.mode_off)
                 },
             ) { notifDialog = true }
-            SettingRow(Icons.Default.PhotoLibrary, stringResource(R.string.media_and_files), stringResource(R.string.photos_videos_files_and_voice), onClick = onMedia)
-            SettingRow(Icons.Default.Favorite, stringResource(R.string.room_favourite), trailing = { Switch(h.isFavourite, { room.setFavourite(it) }) }) { room.setFavourite(!h.isFavourite) }
-            SettingRow(Icons.Default.SouthEast, stringResource(R.string.room_low_priority), trailing = { Switch(h.isLowPriority, { room.setLowPriority(it) }) }) { room.setLowPriority(!h.isLowPriority) }
+            SettingRow(Icons.Outlined.PhotoLibrary, stringResource(R.string.media_and_files), stringResource(R.string.photos_videos_files_and_voice), onClick = onMedia)
+            SettingRow(Icons.Outlined.Favorite, stringResource(R.string.room_favourite), trailing = { com.vknxworks.elementctrl.ui.components.CtrlSwitch(h.isFavourite, { room.setFavourite(it) }) }) { room.setFavourite(!h.isFavourite) }
+            SettingRow(Icons.Outlined.SouthEast, stringResource(R.string.room_low_priority), trailing = { com.vknxworks.elementctrl.ui.components.CtrlSwitch(h.isLowPriority, { room.setLowPriority(it) }) }) { room.setLowPriority(!h.isLowPriority) }
             if (!h.isDm) {
-                SettingRow(Icons.Default.Group, stringResource(R.string.filter_people), if (h.invitedMembers > 0) stringResource(R.string.members_joined_invited, h.joinedMembers, h.invitedMembers) else stringResource(R.string.members_joined, h.joinedMembers), onClick = onMembers)
+                SettingRow(Icons.Outlined.Group, stringResource(R.string.filter_people), if (h.invitedMembers > 0) stringResource(R.string.members_joined_invited, h.joinedMembers, h.invitedMembers) else stringResource(R.string.members_joined, h.joinedMembers), onClick = onMembers)
             }
             if (h.pinnedEventIds.isNotEmpty()) {
-                SettingRow(Icons.Default.PushPin, stringResource(R.string.pinned_messages), stringResource(R.string.pinned, h.pinnedEventIds.size))
+                SettingRow(Icons.Outlined.PushPin, stringResource(R.string.pinned_messages), stringResource(R.string.pinned, h.pinnedEventIds.size))
             }
 
             SectionHeader(stringResource(R.string.security))
             if (h.isEncrypted) {
-                SettingRow(Icons.Default.Lock, stringResource(R.string.room_encrypted), stringResource(R.string.messages_here_are_end_to_end_2))
+                SettingRow(Icons.Outlined.Lock, stringResource(R.string.room_encrypted), stringResource(R.string.messages_here_are_end_to_end_2))
             } else {
                 SettingRow(
-                    Icons.Default.LockOpen, stringResource(R.string.not_encrypted_2),
+                    Icons.Outlined.LockOpen, stringResource(R.string.not_encrypted_2),
                     if (h.isPublic) stringResource(R.string.public_rooms_aren_t_encrypted) else stringResource(R.string.turn_on_encryption_so_only_members),
                     onClick = if (!h.isPublic) ({ confirmEncrypt = true }) else null,
                 )
@@ -190,21 +190,21 @@ fun RoomDetailsScreen(
 
             if (!h.isDm) {
                 SectionHeader(stringResource(R.string.settings))
-                if (permissions.canEditName) SettingRow(Icons.Default.Edit, stringResource(R.string.room_name), h.name) { editName = true }
-                if (permissions.canEditTopic) SettingRow(Icons.Default.Edit, stringResource(R.string.topic), h.topic ?: stringResource(R.string.add_a_topic)) { editTopic = true }
-                if (permissions.canEditAvatar) SettingRow(Icons.Default.Image, stringResource(R.string.room_picture), stringResource(R.string.change_the_room_s_picture)) {
+                if (permissions.canEditName) SettingRow(Icons.Outlined.Edit, stringResource(R.string.room_name), h.name) { editName = true }
+                if (permissions.canEditTopic) SettingRow(Icons.Outlined.Edit, stringResource(R.string.topic), h.topic ?: stringResource(R.string.add_a_topic)) { editTopic = true }
+                if (permissions.canEditAvatar) SettingRow(Icons.Outlined.Image, stringResource(R.string.room_picture), stringResource(R.string.change_the_room_s_picture)) {
                     com.vknxworks.elementctrl.ui.lock.AppLock.expectReturn(); pickAvatar.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }
-                SettingRow(Icons.Default.Search, stringResource(R.string.who_can_join), h.joinRule)
-                SettingRow(Icons.Default.History, stringResource(R.string.who_can_read_history), h.historyVisibility)
-                h.alias?.let { SettingRow(Icons.Default.Tag, stringResource(R.string.address), it) { copyText(context, Strings.str(R.string.address), it) } }
+                SettingRow(Icons.Outlined.Search, stringResource(R.string.who_can_join), h.joinRule)
+                SettingRow(Icons.Outlined.History, stringResource(R.string.who_can_read_history), h.historyVisibility)
+                h.alias?.let { SettingRow(Icons.Outlined.Tag, stringResource(R.string.address), it) { copyText(context, Strings.str(R.string.address), it) } }
             }
-            SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_room_id), h.id) { copyText(context, Strings.str(R.string.room_id), h.id); scope.launch { snackbar.showSnackbar(Strings.str(R.string.room_id_copied)) } }
-            SettingRow(Icons.Default.Link, stringResource(R.string.copy_link)) { scope.launch { room.permalink()?.let { copyText(context, Strings.str(R.string.link), it); snackbar.showSnackbar(Strings.str(R.string.link_copied)) } } }
+            SettingRow(Icons.Outlined.ContentCopy, stringResource(R.string.copy_room_id), h.id) { copyText(context, Strings.str(R.string.room_id), h.id); scope.launch { snackbar.showSnackbar(Strings.str(R.string.room_id_copied)) } }
+            SettingRow(Icons.Outlined.Link, stringResource(R.string.copy_link)) { scope.launch { room.permalink()?.let { copyText(context, Strings.str(R.string.link), it); snackbar.showSnackbar(Strings.str(R.string.link_copied)) } } }
 
             HorizontalDivider(Modifier.padding(top = 12.dp))
             SettingRow(
-                Icons.AutoMirrored.Filled.ExitToApp, if (h.isDm) stringResource(R.string.leave_chat) else stringResource(R.string.leave_room),
+                Icons.AutoMirrored.Outlined.ExitToApp, if (h.isDm) stringResource(R.string.leave_chat) else stringResource(R.string.leave_room),
                 tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
             ) { confirmLeave = true }
             Spacer(Modifier.height(32.dp))
@@ -236,7 +236,7 @@ fun RoomDetailsScreen(
             RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY to Strings.str(R.string.mentions_and_keywords_only),
             RoomNotificationMode.MUTE to Strings.str(R.string.mode_off),
         )
-        AlertDialog(
+        com.vknxworks.elementctrl.ui.components.CtrlDialog(
             onDismissRequest = { notifDialog = false },
             title = { Text(stringResource(R.string.group_notifications)) },
             text = {
@@ -270,12 +270,12 @@ fun InviteDialog(session: MatrixSession, onDismiss: () -> Unit, onPick: (String)
             results = runCatching { account.searchUsers(query) }.getOrDefault(emptyList())
         } else results = emptyList()
     }
-    AlertDialog(
+    com.vknxworks.elementctrl.ui.components.CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.invite_people)) },
         text = {
             Column {
-                OutlinedTextField(query, { query = it }, label = { Text(stringResource(R.string.name_or_user_server)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(query, { query = it }, label = { Text(stringResource(R.string.name_or_user_server)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 LazyColumn(Modifier.height(260.dp)) {
                     items(results, key = { it.userId }) { p ->
@@ -320,16 +320,16 @@ fun MembersScreen(session: MatrixSession, roomId: String, onBack: () -> Unit, on
             ScreenTopBar(
                 title = stringResource(R.string.filter_people),
                 onBack = onBack,
-                actions = { if (permissions.canInvite) IconButton(onClick = { inviting = true }) { Icon(Icons.Default.PersonAdd, stringResource(R.string.invite)) } },
+                actions = { if (permissions.canInvite) IconButton(onClick = { inviting = true }) { Icon(Icons.Outlined.PersonAdd, stringResource(R.string.invite)) } },
             )
         }
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad)) {
             item {
-                OutlinedTextField(
+                com.vknxworks.elementctrl.ui.components.CtrlTextField(
                     query, { query = it },
                     placeholder = { Text(stringResource(R.string.search_people)) },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
@@ -401,14 +401,14 @@ fun UserScreen(
                 if (verified == true) {
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.VerifiedUser, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Outlined.VerifiedUser, null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.verified), color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
                 if (userId != session.userId) {
-                    Button(enabled = !busy, onClick = {
+                    com.vknxworks.elementctrl.ui.components.CtrlButton(enabled = !busy, onClick = {
                         busy = true
                         scope.launch {
                             runCatching { account.startDm(userId) }
@@ -421,15 +421,15 @@ fun UserScreen(
             }
             HorizontalDivider()
             if (userId != session.userId && verified != true) {
-                SettingRow(Icons.Default.VerifiedUser, stringResource(R.string.verify_2, profile?.displayName ?: userId), stringResource(R.string.compare_emojis_to_make_sure_you_re)) { onVerify(userId) }
+                SettingRow(Icons.Outlined.VerifiedUser, stringResource(R.string.verify_2, profile?.displayName ?: userId), stringResource(R.string.compare_emojis_to_make_sure_you_re)) { onVerify(userId) }
             }
-            SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_matrix_id), userId) { copyText(context, Strings.str(R.string.matrix_id), userId) }
-            SettingRow(Icons.Default.Share, stringResource(R.string.share_profile_link)) {
+            SettingRow(Icons.Outlined.ContentCopy, stringResource(R.string.copy_matrix_id), userId) { copyText(context, Strings.str(R.string.matrix_id), userId) }
+            SettingRow(Icons.Outlined.Share, stringResource(R.string.share_profile_link)) {
                 shareText(context, "https://matrix.to/#/$userId")
             }
             if (userId != session.userId) {
                 SettingRow(
-                    Icons.Default.Block, if (ignored) stringResource(R.string.unignore) else stringResource(R.string.ignore),
+                    Icons.Outlined.Block, if (ignored) stringResource(R.string.unignore) else stringResource(R.string.ignore),
                     if (ignored) stringResource(R.string.you_ll_see_their_messages_again) else stringResource(R.string.hide_their_messages_and_invites),
                     tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error,
                 ) {
@@ -442,8 +442,8 @@ fun UserScreen(
             }
             if (permissions != null && userId != session.userId && (permissions.canKick || permissions.canBan)) {
                 SectionHeader(stringResource(R.string.in_this_room))
-                if (permissions.canKick) SettingRow(Icons.Default.PersonRemove, stringResource(R.string.remove_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "kick" }
-                if (permissions.canBan) SettingRow(Icons.Default.Block, stringResource(R.string.ban_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "ban" }
+                if (permissions.canKick) SettingRow(Icons.Outlined.PersonRemove, stringResource(R.string.remove_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "kick" }
+                if (permissions.canBan) SettingRow(Icons.Outlined.Block, stringResource(R.string.ban_from_room), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) { moderate = "ban" }
             }
         }
     }

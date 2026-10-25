@@ -32,11 +32,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.CallEnd
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
@@ -191,7 +191,11 @@ class CallActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Dark only: light status and navigation bar icons over the #08080A background, whatever the system theme.
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         // Calls ring over the phone's lock screen, like a phone call. The app lock still applies on top.
         setShowWhenLocked(true)
@@ -609,9 +613,9 @@ class CallActivity : ComponentActivity() {
             if (show && session != null) {
                 Avatar(call.senderName, call.avatarUrl, call.senderId, size = 120.dp)
             } else {
-                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), modifier = Modifier.size(120.dp)) {
+                Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(36.dp), color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(120.dp)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(if (call.audioOnly) Icons.Filled.Phone else Icons.Filled.Videocam, null, Modifier.size(52.dp), tint = MaterialTheme.colorScheme.primary)
+                        Icon(if (call.audioOnly) Icons.Outlined.Phone else Icons.Outlined.Videocam, null, Modifier.size(52.dp), tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -633,18 +637,18 @@ class CallActivity : ComponentActivity() {
             if (locked) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Lock, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Outlined.Lock, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.size(6.dp))
                     Text(stringResource(R.string.call_unlock_to_answer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.weight(1f))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                RoundAction(Icons.Filled.CallEnd, stringResource(R.string.call_decline), Color(0xFFE5484D)) {
+                RoundAction(Icons.Outlined.CallEnd, stringResource(R.string.call_decline), Color(0xFFE5484D)) {
                     CallManager.decline(this@CallActivity)
                     finishAndRemoveTask()
                 }
-                RoundAction(if (call.audioOnly) Icons.Filled.Call else Icons.Filled.Videocam, stringResource(R.string.call_answer), Color(0xFF30A46C)) {
+                RoundAction(if (call.audioOnly) Icons.Outlined.Call else Icons.Outlined.Videocam, stringResource(R.string.call_answer), Color(0xFF30A46C)) {
                     // With the app locked, the lock screen comes first; the call starts once unlocked.
                     pendingJoin = Target(call.roomId, call.audioOnly)
                 }
@@ -683,7 +687,7 @@ class CallActivity : ComponentActivity() {
     private fun LockedPip() {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.call_locked_pip), style = MaterialTheme.typography.labelMedium)
             }
         }
@@ -701,10 +705,10 @@ class CallActivity : ComponentActivity() {
             Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             Spacer(Modifier.height(24.dp))
             if (link != null) {
-                OutlinedButton(onClick = { openUrl(this@CallActivity, CALLS_HELP_URL) }) { Text(link) }
+                com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton(onClick = { openUrl(this@CallActivity, CALLS_HELP_URL) }) { Text(link) }
                 Spacer(Modifier.height(8.dp))
             }
-            Button(onClick = { cleanUpAndFinish() }) { Text(stringResource(R.string.close)) }
+            com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { cleanUpAndFinish() }) { Text(stringResource(R.string.close)) }
         }
     }
 }

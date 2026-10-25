@@ -3,9 +3,9 @@ package com.vknxworks.elementctrl.ui.room
 import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.vknxworks.elementctrl.ui.formatDuration
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.DisposableEffect
 import com.vknxworks.elementctrl.notify.OpenRoom
 import com.vknxworks.elementctrl.notify.PushNotifications
@@ -23,6 +23,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import com.vknxworks.elementctrl.ui.glassIsland
+import com.vknxworks.elementctrl.ui.CtrlColors
+import com.vknxworks.elementctrl.ui.CtrlShapes
+import com.vknxworks.elementctrl.ui.CtrlType
+import com.vknxworks.elementctrl.ui.components.CtrlButton
+import com.vknxworks.elementctrl.ui.components.CtrlCard
+import com.vknxworks.elementctrl.ui.components.CtrlDialog
+import com.vknxworks.elementctrl.ui.components.CtrlSecondaryButton
+import com.vknxworks.elementctrl.ui.components.CtrlSheet
+import com.vknxworks.elementctrl.ui.components.CtrlSubBar
+import com.vknxworks.elementctrl.ui.components.CtrlTextField
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Info
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import android.net.Uri
@@ -57,30 +70,28 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddReaction
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.AddReaction
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -185,7 +196,7 @@ fun RoomScreen(
     val room = vm.room
     val timeline = vm.timeline
     if (room == null || timeline == null) {
-        Scaffold(topBar = { ScreenTopBar(stringResource(R.string.room_2), onBack = onBack) }) { pad ->
+        Scaffold(topBar = { ScreenTopBar(stringResource(R.string.room_2), onBack = onBack) }, containerColor = MaterialTheme.colorScheme.background) { pad ->
             Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.this_room_isn_t_available_yet_it_may), modifier = Modifier.padding(32.dp))
             }
@@ -429,19 +440,19 @@ fun RoomScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+            CtrlSubBar(
+                onBack = onBack,
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(enabled = threadRootId == null, onClick = onDetails),
                     ) {
-                        Avatar(header?.name ?: "", header?.avatarUrl, header?.dmUserId ?: roomId, size = 36.dp)
-                        Spacer(Modifier.width(10.dp))
+                        Avatar(header?.name ?: "", header?.avatarUrl, header?.dmUserId ?: roomId, size = 40.dp)
+                        Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
                                 if (threadRootId != null) stringResource(R.string.thread) else header?.name ?: "",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -454,7 +465,7 @@ fun RoomScreen(
                             subtitle?.let {
                                 Text(
                                     it,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = CtrlType.Meta,
                                     color = if (typing.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -467,12 +478,13 @@ fun RoomScreen(
                     if (threadRootId == null && membership == org.matrix.rustcomponents.sdk.Membership.JOINED) {
                         com.vknxworks.elementctrl.call.CallButtons(isDm) { audio -> startCall(roomId, audio) }
                     }
-                    IconButton(onClick = onSearch) { Icon(Icons.Default.Search, stringResource(R.string.search_messages)) }
-                    if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Default.Info, stringResource(R.string.room_info)) }
+                    IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, stringResource(R.string.search_messages), Modifier.size(22.dp)) }
+                    if (threadRootId == null) IconButton(onClick = onDetails) { Icon(Icons.Outlined.Info, stringResource(R.string.room_info), Modifier.size(22.dp)) }
                 },
             )
         },
         contentWindowInsets = WindowInsets(0),
+        containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         Box(Modifier.fillMaxSize().padding(pad)) {
             if (entries.isEmpty() && !atStart) {
@@ -524,22 +536,22 @@ fun RoomScreen(
                 ) { audio -> startCall(roomId, audio) }
             }
             header?.successorRoomId?.let { successor ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.TopCenter),
+                CtrlCard(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).align(Alignment.TopCenter),
+                    padding = PaddingValues(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 ) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.this_room_has_been_upgraded), Modifier.weight(1f))
                         TextButton(onClick = { onOpenRoom(successor) }) { Text(stringResource(R.string.go_to_new_room)) }
                     }
                 }
             }
             if (focusEventId != null) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                CtrlCard(
                     modifier = Modifier.align(Alignment.TopCenter).padding(8.dp),
+                    padding = PaddingValues(start = 14.dp, end = 4.dp),
                 ) {
-                    Row(Modifier.padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.viewing_earlier_messages), style = MaterialTheme.typography.bodyMedium)
                         TextButton(onClick = onJumpToLatest) { Text(stringResource(R.string.jump_to_latest)) }
                     }
@@ -550,7 +562,13 @@ fun RoomScreen(
                     badge = { if (unseenBelow > 0) Badge { Text(if (unseenBelow > 99) "99+" else "$unseenBelow") } },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = islandHeight + 12.dp),
                 ) {
-                    SmallFloatingActionButton(onClick = {
+                    SmallFloatingActionButton(
+                        shape = CtrlShapes.Square,
+                        containerColor = CtrlColors.Surface,
+                        contentColor = CtrlColors.Text,
+                        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+                        modifier = Modifier.border(1.dp, CtrlColors.ControlBorder, CtrlShapes.Square),
+                        onClick = {
                         if (focusEventId != null) {
                             onJumpToLatest()
                         } else {
@@ -558,7 +576,7 @@ fun RoomScreen(
                             unseenBelow = 0
                             scope.launch { listState.animateScrollToItem(0) }
                         }
-                    }) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.jump_to_latest)) }
+                    }) { Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.jump_to_latest)) }
                 }
             }
             // The composer island floats above the messages, the navigation bar and the keyboard.
@@ -640,7 +658,7 @@ fun RoomScreen(
 
     // Long-press actions.
     sheetFor?.let { item ->
-        ModalBottomSheet(onDismissRequest = { sheetFor = null }) {
+        CtrlSheet(onDismissRequest = { sheetFor = null }) {
             if (item.eventId != null && item.content !is UiContent.Redacted) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 12.dp),
@@ -650,7 +668,7 @@ fun RoomScreen(
                     items(quickReactions) { emoji ->
                         val mine = item.reactions.any { it.key == emoji && it.mine }
                         Box(
-                            Modifier.size(48.dp).clip(CircleShape)
+                            Modifier.size(48.dp).clip(CtrlShapes.Control)
                                 .background(if (mine) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
                                 .clickable { timeline.toggleReaction(item, emoji); sheetFor = null },
                             contentAlignment = Alignment.Center,
@@ -658,25 +676,25 @@ fun RoomScreen(
                     }
                     item {
                         Box(
-                            Modifier.size(48.dp).clip(CircleShape).clickable { emojiPickerFor = item; sheetFor = null },
+                            Modifier.size(48.dp).clip(CtrlShapes.Control).clickable { emojiPickerFor = item; sheetFor = null },
                             contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Default.AddReaction, stringResource(R.string.more_reactions)) }
+                        ) { Icon(Icons.Outlined.AddReaction, stringResource(R.string.more_reactions)) }
                     }
                 }
                 HorizontalDivider()
             }
             if (item.status == SendStatus.FAILED) {
-                SettingRow(Icons.Default.Refresh, stringResource(R.string.retry_sending)) { timeline.retry(item); sheetFor = null }
-                SettingRow(Icons.Default.Close, stringResource(R.string.cancel_sending)) { timeline.cancelSend(item); sheetFor = null }
+                SettingRow(Icons.Outlined.Refresh, stringResource(R.string.retry_sending)) { timeline.retry(item); sheetFor = null }
+                SettingRow(Icons.Outlined.Close, stringResource(R.string.cancel_sending)) { timeline.cancelSend(item); sheetFor = null }
             }
             if (item.canReply && item.eventId != null) {
-                SettingRow(Icons.AutoMirrored.Filled.Reply, stringResource(R.string.reply)) { mode = ComposerMode.Reply(item); sheetFor = null }
+                SettingRow(Icons.AutoMirrored.Outlined.Reply, stringResource(R.string.reply)) { mode = ComposerMode.Reply(item); sheetFor = null }
                 if (threadRootId == null) {
-                    SettingRow(Icons.Default.Forum, stringResource(R.string.reply_in_thread)) { onOpenThread(item.eventId); sheetFor = null }
+                    SettingRow(Icons.Outlined.Forum, stringResource(R.string.reply_in_thread)) { onOpenThread(item.eventId); sheetFor = null }
                 }
             }
             if (item.isOwn && item.isEditable && item.content is UiContent.Text) {
-                SettingRow(Icons.Default.Edit, stringResource(R.string.edit)) {
+                SettingRow(Icons.Outlined.Edit, stringResource(R.string.edit)) {
                     val body = (item.content as UiContent.Text).body
                     composer = TextFieldValue(body, TextRange(body.length))
                     mode = ComposerMode.Edit(item)
@@ -685,7 +703,7 @@ fun RoomScreen(
             }
             if (item.isOwn && item.isEditable && (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File)) {
                 var editingCaption by remember { mutableStateOf(false) }
-                SettingRow(Icons.Default.Edit, stringResource(R.string.edit_caption)) { editingCaption = true }
+                SettingRow(Icons.Outlined.Edit, stringResource(R.string.edit_caption)) { editingCaption = true }
                 if (editingCaption) {
                     TextInputDialog(
                         stringResource(R.string.caption),
@@ -702,40 +720,40 @@ fun RoomScreen(
                 else -> null
             }
             copyable?.takeIf { it.isNotBlank() }?.let { text ->
-                SettingRow(Icons.Default.ContentCopy, stringResource(R.string.copy_text)) { copyText(context, Strings.str(R.string.message), text); sheetFor = null }
+                SettingRow(Icons.Outlined.ContentCopy, stringResource(R.string.copy_text)) { copyText(context, Strings.str(R.string.message), text); sheetFor = null }
             }
             if (item.content is UiContent.Image || item.content is UiContent.Video || item.content is UiContent.File || item.content is UiContent.Audio) {
-                SettingRow(Icons.Default.Download, stringResource(R.string.save_to_downloads)) {
+                SettingRow(Icons.Outlined.Download, stringResource(R.string.save_to_downloads)) {
                     sheetFor = null
                     scope.launch { saveMedia(context, session, item, snackbar) }
                 }
-                SettingRow(Icons.Default.Share, stringResource(R.string.share)) {
+                SettingRow(Icons.Outlined.Share, stringResource(R.string.share)) {
                     sheetFor = null
                     scope.launch { shareMedia(context, session, item, snackbar) }
                 }
             }
             if (item.eventId != null) {
-                SettingRow(Icons.Default.Link, stringResource(R.string.copy_link)) {
+                SettingRow(Icons.Outlined.Link, stringResource(R.string.copy_link)) {
                     sheetFor = null
                     scope.launch { room.eventPermalink(item.eventId)?.let { copyText(context, Strings.str(R.string.link), it); snackbar.showSnackbar(Strings.str(R.string.link_copied)) } }
                 }
                 if (permissions.canPin) {
                     val pinned = header?.pinnedEventIds?.contains(item.eventId) == true
-                    SettingRow(Icons.Default.PushPin, if (pinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) { timeline.pin(item.eventId, !pinned); sheetFor = null }
+                    SettingRow(Icons.Outlined.PushPin, if (pinned) stringResource(R.string.unpin) else stringResource(R.string.pin)) { timeline.pin(item.eventId, !pinned); sheetFor = null }
                 }
                 if (item.content is UiContent.Poll && item.isOwn && !(item.content as UiContent.Poll).ended) {
-                    SettingRow(Icons.Default.Stop, stringResource(R.string.end_poll)) { timeline.endPoll(item.eventId); sheetFor = null }
+                    SettingRow(Icons.Outlined.Stop, stringResource(R.string.end_poll)) { timeline.endPoll(item.eventId); sheetFor = null }
                 }
-                SettingRow(Icons.Default.Code, stringResource(R.string.view_source)) {
+                SettingRow(Icons.Outlined.Code, stringResource(R.string.view_source)) {
                     sheetFor = null
                     scope.launch { source = timeline.source(item.eventId) ?: Strings.str(R.string.source_isn_t_available_for_this) }
                 }
                 if (!item.isOwn) {
-                    SettingRow(Icons.Default.Flag, stringResource(R.string.report)) { reporting = item; sheetFor = null }
+                    SettingRow(Icons.Outlined.Flag, stringResource(R.string.report)) { reporting = item; sheetFor = null }
                 }
             }
             if (item.content !is UiContent.Redacted && item.eventId != null && (item.isOwn || permissions.canRedactOthers)) {
-                SettingRow(Icons.Default.Delete, stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
+                SettingRow(Icons.Outlined.Delete, stringResource(R.string.remove), tint = MaterialTheme.colorScheme.error, titleColor = MaterialTheme.colorScheme.error) {
                     deleting = item; sheetFor = null
                 }
             }
@@ -744,7 +762,7 @@ fun RoomScreen(
     }
 
     receiptsFor?.let { item ->
-        ModalBottomSheet(onDismissRequest = { receiptsFor = null }) {
+        CtrlSheet(onDismissRequest = { receiptsFor = null }) {
             Text(
                 stringResource(R.string.read_receipts),
                 style = MaterialTheme.typography.titleMedium,
@@ -802,7 +820,7 @@ fun RoomScreen(
     }
 
     source?.let { json ->
-        AlertDialog(
+        CtrlDialog(
             onDismissRequest = { source = null },
             title = { Text(stringResource(R.string.event_source)) },
             text = {
@@ -831,7 +849,7 @@ fun RoomScreen(
 
     pendingAttachment?.let { uri ->
         var caption by remember(uri) { mutableStateOf("") }
-        AlertDialog(
+        CtrlDialog(
             onDismissRequest = { pendingAttachment = null },
             title = { Text(stringResource(R.string.send_attachment)) },
             text = {
@@ -842,7 +860,7 @@ fun RoomScreen(
                     } else {
                         Text(uri.lastPathSegment ?: stringResource(R.string.file_2), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
-                    OutlinedTextField(caption, { caption = it }, label = { Text(stringResource(R.string.caption_optional)) }, modifier = Modifier.fillMaxWidth())
+                    CtrlTextField(caption, { caption = it }, label = { Text(stringResource(R.string.caption_optional)) }, modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
@@ -869,7 +887,7 @@ private fun RoomStart(name: String?, isDm: Boolean, encrypted: Boolean) {
         if (encrypted) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Lock, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.messages_are_end_to_end_encrypted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -882,20 +900,20 @@ private fun IslandNote(text: String, haze: HazeState) {
     Text(
         text,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).padding(16.dp),
+        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, CtrlShapes.Card).padding(16.dp),
     )
 }
 
 @Composable
 private fun InviteBar(inviter: String?, haze: HazeState, onAccept: () -> Unit, onDecline: () -> Unit) {
     Column(
-        Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, RoundedCornerShape(28.dp)).padding(16.dp),
+        Modifier.widthIn(max = 560.dp).fillMaxWidth().glassIsland(haze, CtrlShapes.Card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(stringResource(R.string.invited_you_to_join, inviter ?: stringResource(R.string.invite_someone)), style = MaterialTheme.typography.bodyMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_decline)) }
-            Button(onClick = onAccept, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_accept)) }
+            CtrlSecondaryButton(onClick = onDecline, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_decline)) }
+            CtrlButton(onClick = onAccept, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.invite_accept)) }
         }
     }
 }
@@ -941,7 +959,7 @@ private fun Composer(
     Column(Modifier.widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // Mention suggestions and the reply/edit preview sit in their own small island above the input.
         if (suggestions.isNotEmpty() || mode != ComposerMode.Normal) {
-            Column(Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(22.dp), elevation = 8)) {
+            Column(Modifier.fillMaxWidth().glassIsland(haze, CtrlShapes.Card, elevation = 8)) {
                 suggestions.forEach { m ->
                     Row(
                         Modifier.fillMaxWidth().clickable { onMention(m) }.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -951,22 +969,22 @@ private fun Composer(
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text(m.name, style = MaterialTheme.typography.bodyMedium)
-                            Text(m.userId, style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                            Text(m.userId, style = CtrlType.Meta.copy(fontSize = 11.sp), color = cs.onSurfaceVariant)
                         }
                     }
                 }
-                if (suggestions.isNotEmpty() && mode != ComposerMode.Normal) HorizontalDivider()
+                if (suggestions.isNotEmpty() && mode != ComposerMode.Normal) HorizontalDivider(color = CtrlColors.Border)
                 when (mode) {
                     is ComposerMode.Reply, is ComposerMode.Edit -> {
                         val item = if (mode is ComposerMode.Reply) mode.item else (mode as ComposerMode.Edit).item
                         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(if (mode is ComposerMode.Reply) Icons.AutoMirrored.Filled.Reply else Icons.Default.Edit, null, tint = cs.primary, modifier = Modifier.size(18.dp))
+                            Icon(if (mode is ComposerMode.Reply) Icons.AutoMirrored.Outlined.Reply else Icons.Outlined.Edit, null, tint = cs.primary, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(if (mode is ComposerMode.Reply) stringResource(R.string.replying_to, item.senderName) else stringResource(R.string.editing), style = MaterialTheme.typography.labelMedium, color = cs.primary)
                                 Text(previewOf(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
-                            IconButton(onClick = onCancelMode) { Icon(Icons.Default.Close, stringResource(R.string.lock_cancel)) }
+                            IconButton(onClick = onCancelMode) { Icon(Icons.Outlined.Close, stringResource(R.string.lock_cancel)) }
                         }
                     }
                     ComposerMode.Normal -> Unit
@@ -982,15 +1000,21 @@ private fun Composer(
         // Every slot is 56 dp tall (the text field's single-line height), so the buttons line up with the text and
         // sit the same distance from the island's edges; with more lines the buttons stay at the bottom.
         Row(
-            Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(32.dp)).padding(4.dp),
+            Modifier.fillMaxWidth().glassIsland(haze, CtrlShapes.Card).padding(4.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             Box(Modifier.height(56.dp).padding(start = 2.dp), contentAlignment = Alignment.Center) {
-                IconButton(onClick = onAttach) { Icon(Icons.Default.Add, stringResource(R.string.attach), tint = cs.onSurfaceVariant) }
-                DropdownMenu(expanded = attachMenu, onDismissRequest = onDismissAttach) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.photo_or_video)) }, leadingIcon = { Icon(Icons.Default.Image, null) }, onClick = onPickMedia)
-                    DropdownMenuItem(text = { Text(stringResource(R.string.file_2)) }, leadingIcon = { Icon(Icons.Default.AttachFile, null) }, onClick = onPickFile)
-                    DropdownMenuItem(text = { Text(stringResource(R.string.poll)) }, leadingIcon = { Icon(Icons.Default.BarChart, null) }, onClick = onPoll)
+                IconButton(onClick = onAttach) { Icon(Icons.Outlined.Add, stringResource(R.string.attach), Modifier.size(22.dp), tint = cs.onSurfaceVariant) }
+                DropdownMenu(
+                    expanded = attachMenu,
+                    onDismissRequest = onDismissAttach,
+                    shape = CtrlShapes.Control,
+                    containerColor = CtrlColors.Surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CtrlColors.Border),
+                ) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.photo_or_video)) }, leadingIcon = { Icon(Icons.Outlined.Image, null) }, onClick = onPickMedia)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.file_2)) }, leadingIcon = { Icon(Icons.Outlined.AttachFile, null) }, onClick = onPickFile)
+                    DropdownMenuItem(text = { Text(stringResource(R.string.poll)) }, leadingIcon = { Icon(Icons.Outlined.BarChart, null) }, onClick = onPoll)
                 }
             }
             TextField(
@@ -1008,6 +1032,9 @@ private fun Composer(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
+                    cursorColor = CtrlColors.Accent,
+                    unfocusedPlaceholderColor = CtrlColors.Muted,
+                    focusedPlaceholderColor = CtrlColors.Muted,
                 ),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.weight(1f).focusRequester(focusRequester),
@@ -1018,14 +1045,14 @@ private fun Composer(
             Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
+                        .size(48.dp)
+                        .clip(CtrlShapes.Control)
                         .background(sendColor)
                         .clickable(enabled = canSend || voiceMode, onClick = if (voiceMode) onMic else onSend),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        if (voiceMode) Icons.Default.Mic else Icons.AutoMirrored.Filled.Send,
+                        if (voiceMode) Icons.Outlined.Mic else Icons.AutoMirrored.Outlined.Send,
                         if (voiceMode) stringResource(R.string.record_voice_message) else stringResource(R.string.send),
                         tint = cs.onPrimary,
                         modifier = Modifier.size(20.dp),
@@ -1041,15 +1068,15 @@ private fun Composer(
 private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long, onCancel: () -> Unit, onSend: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().glassIsland(haze, RoundedCornerShape(32.dp)).padding(4.dp).height(56.dp),
+        Modifier.fillMaxWidth().glassIsland(haze, CtrlShapes.Card).padding(4.dp).height(56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-            IconButton(onClick = onCancel) { Icon(Icons.Default.Delete, stringResource(R.string.discard_recording), tint = cs.error) }
+            IconButton(onClick = onCancel) { Icon(Icons.Outlined.Delete, stringResource(R.string.discard_recording), tint = cs.error) }
         }
-        Box(Modifier.size(10.dp).clip(CircleShape).background(cs.error))
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(cs.error))
         Spacer(Modifier.width(8.dp))
-        Text(formatDuration(elapsed), style = MaterialTheme.typography.labelLarge)
+        Text(formatDuration(elapsed), style = CtrlType.Meta.copy(fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold))
         Spacer(Modifier.width(10.dp))
         Row(Modifier.weight(1f).height(28.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
             val bars = levels.takeLast(32)
@@ -1060,9 +1087,9 @@ private fun RecordingIsland(haze: HazeState, levels: List<Float>, elapsed: Long,
         }
         Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(cs.primary).clickable(onClick = onSend),
+                Modifier.size(48.dp).clip(CtrlShapes.Control).background(cs.primary).clickable(onClick = onSend),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send_voice_message), tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.send_voice_message), tint = cs.onPrimary, modifier = Modifier.size(20.dp)) }
         }
     }
 }
@@ -1083,14 +1110,14 @@ private fun PollDialog(onDismiss: () -> Unit, onCreate: (String, List<String>, B
     var question by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf("", "") }
     var disclosed by remember { mutableStateOf(true) }
-    AlertDialog(
+    CtrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.create_poll)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(question, { question = it }, label = { Text(stringResource(R.string.question)) }, modifier = Modifier.fillMaxWidth())
+                CtrlTextField(question, { question = it }, label = { Text(stringResource(R.string.question)) }, modifier = Modifier.fillMaxWidth())
                 answers.forEachIndexed { i, a ->
-                    OutlinedTextField(a, { answers[i] = it }, label = { Text(stringResource(R.string.option, i + 1)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    CtrlTextField(a, { answers[i] = it }, label = { Text(stringResource(R.string.option, i + 1)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
                 if (answers.size < 20) TextButton(onClick = { answers.add("") }) { Text(stringResource(R.string.add_option)) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1120,14 +1147,14 @@ private val EmojiSet = listOf(
 
 @Composable
 private fun EmojiPicker(onDismiss: () -> Unit, onPick: (String) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    CtrlSheet(onDismissRequest = onDismiss) {
         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
             columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(48.dp),
             contentPadding = PaddingValues(12.dp),
             modifier = Modifier.heightIn(max = 420.dp),
         ) {
             items(EmojiSet.size) { i ->
-                Box(Modifier.size(48.dp).clip(CircleShape).clickable { onPick(EmojiSet[i]) }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(48.dp).clip(CtrlShapes.Control).clickable { onPick(EmojiSet[i]) }, contentAlignment = Alignment.Center) {
                     Text(EmojiSet[i], fontSize = 26.sp)
                 }
             }

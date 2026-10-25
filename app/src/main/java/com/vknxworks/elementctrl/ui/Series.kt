@@ -31,19 +31,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,33 +64,39 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vknxworks.elementctrl.R
 import com.vknxworks.elementctrl.matrix.MatrixSession
+import com.vknxworks.elementctrl.ui.components.CtrlLabel
+import com.vknxworks.elementctrl.ui.components.CtrlSheet
+import com.vknxworks.elementctrl.ui.components.CtrlSquareButton
+import com.vknxworks.elementctrl.ui.components.CtrlSubBar
+import com.vknxworks.elementctrl.ui.components.CtrlSwitch
+import com.vknxworks.elementctrl.ui.components.CtrlTopBar
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.font.FontWeight
 
-// The app shell shared with the other Ctrl apps: top bars, the profile picture, grouped settings rows and the
-// floating glass tab bar. Same sizes, spacing and type as ProxCtrl, MemoCtrl, NaviCtrl and TrueCtrl.
+// The app shell shared with the other Ctrl apps ("Ctrl / Signal"): top bars, the profile picture, grouped
+// settings rows and the floating tab bar, built on the components in ui/components.
 
 // ---------- Top bars ----------
 
-/** Plain top bar for pushed screens: back arrow and a title. */
+/** Top bar for pushed screens: the square Ctrl back button and the title in Space Grotesk. */
 @Composable
 fun ScreenTopBar(
     title: String,
     onBack: (() -> Unit)?,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    TopAppBar(
-        title = { Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        navigationIcon = {
-            if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-        },
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
-            scrolledContainerColor = MaterialTheme.colorScheme.background,
-        ),
-    )
+    CtrlSubBar(onBack = onBack, actions = actions) {
+        Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
-/** Big left-aligned title for the main tabs, with your profile picture at the end. */
+/**
+ * Main-screen top bar: the "ELEMENT/CTRL" wordmark on the left, the screen's [title] as a big headline under it,
+ * and your profile picture at the end.
+ */
 @Composable
 fun TabTitle(
     title: String,
@@ -107,29 +105,46 @@ fun TabTitle(
     modifier: Modifier = Modifier,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier.fillMaxWidth().padding(start = Gutter, end = 8.dp, top = 12.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        trailing()
-        ProfileButton(session, onProfile)
-    }
-}
-
-/** Your Matrix profile picture (or initial); tapping it opens the You page. The only way into settings. */
-@Composable
-fun ProfileButton(session: MatrixSession, onClick: () -> Unit) {
-    val profile by session.profile.collectAsStateWithLifecycle()
-    val label = stringResource(R.string.you_title)
-    IconButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = label }) {
-        ProfileAvatar(profile.displayName ?: session.userId, profile.avatarUrl, 34.dp)
+    Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+        CtrlTopBar(name = "Element", trailing = trailing) { ProfileButton(session, onProfile) }
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = Gutter, end = Gutter, top = 10.dp, bottom = 6.dp),
+        )
     }
 }
 
 /**
- * Your own picture, as in every Ctrl app: your Matrix avatar when there is one, otherwise your initial on a
- * tinted circle in the app's colour (other people keep their coloured initials in chats).
+ * Your Matrix profile picture (or initial) in the Ctrl square: 44 dp, 14 dp corners, 1 dp border, with a small
+ * accent square at the bottom right while connected. Tapping it opens the You page, the only way into settings.
+ */
+@Composable
+fun ProfileButton(session: MatrixSession, onClick: () -> Unit) {
+    val profile by session.profile.collectAsStateWithLifecycle()
+    val sync by session.syncState.collectAsStateWithLifecycle()
+    val stuck by session.stuck.collectAsStateWithLifecycle()
+    val connected = !stuck && sync == org.matrix.rustcomponents.sdk.SyncServiceState.RUNNING
+    val label = stringResource(R.string.you_title)
+    Box {
+        CtrlSquareButton(onClick, label) {
+            ProfileAvatar(profile.displayName ?: session.userId, profile.avatarUrl, 42.dp, shape = CtrlShapes.Square, square = true)
+        }
+        if (connected) {
+            Box(
+                Modifier.align(Alignment.BottomEnd).offset(x = 3.dp, y = 3.dp).size(10.dp)
+                    .border(2.dp, CtrlColors.Background, RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(4.dp)).background(CtrlColors.Accent),
+            )
+        }
+    }
+}
+
+/**
+ * Your own picture, as in every Ctrl app: your Matrix avatar when there is one, otherwise your initial. In the
+ * Ctrl square ([square]) the initial sits on the surface colour; the large profile tile uses the accent fill.
  */
 @Composable
 fun ProfileAvatar(
@@ -137,14 +152,21 @@ fun ProfileAvatar(
     url: String?,
     size: Dp,
     initialStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    shape: Shape = CtrlShapes.Card,
+    square: Boolean = false,
 ) {
     val px = with(LocalDensity.current) { size.roundToPx() }
     val model = remember(url, px) { mxcAvatar(url, (px * 2).coerceAtMost(512)) }
     Box(
-        Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+        Modifier.size(size).clip(shape).background(if (square) CtrlColors.Surface else CtrlColors.Accent),
         contentAlignment = Alignment.Center,
     ) {
-        Text(initials(name), style = initialStyle, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+        Text(
+            initials(name),
+            style = initialStyle.copy(fontWeight = FontWeight.Bold),
+            color = if (square) CtrlColors.Text else CtrlColors.OnAccent,
+            maxLines = 1,
+        )
         if (model != null) {
             AsyncImage(model = model, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
@@ -153,7 +175,7 @@ fun ProfileAvatar(
 
 // ---------- Grouped lists (You page, settings) ----------
 
-/** A rounded block of related rows, with an optional heading above it and a note below. */
+/** A Ctrl card of related rows (1 dp dividers between them), with a mono label above it and a note below. */
 @Composable
 fun Group(
     title: String? = null,
@@ -163,19 +185,20 @@ fun Group(
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = Gutter, vertical = 8.dp)) {
         if (title != null) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-            )
+            CtrlLabel(title, Modifier.padding(start = 4.dp, bottom = 8.dp))
         }
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth(),
+        Column(
+            Modifier.fillMaxWidth().clip(CtrlShapes.Card).background(CtrlColors.Surface).border(1.dp, CtrlColors.Border, CtrlShapes.Card),
         ) {
-            Column(Modifier.padding(vertical = 6.dp), content = content)
+            // Every row draws a 1 dp divider above itself; the first one is pulled up out of sight.
+            Column(
+                Modifier.layout { measurable, constraints ->
+                    val hidden = 1.dp.roundToPx()
+                    val p = measurable.measure(constraints)
+                    layout(p.width, (p.height - hidden).coerceAtLeast(0)) { p.place(0, -hidden) }
+                },
+                content = content,
+            )
         }
         if (footer != null) {
             Text(
@@ -188,35 +211,39 @@ fun Group(
     }
 }
 
+/** The 1 dp divider every group row draws above itself (the group hides the first one). */
+@Composable
+fun GroupDivider() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(CtrlColors.Border))
+}
+
 @Composable
 fun GroupRow(
     title: String,
     subtitle: String? = null,
     icon: ImageVector? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
+    iconTint: Color = CtrlColors.Muted,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     showChevron: Boolean = false,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    GroupDivider()
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = 62.dp)
             .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Box(
-                Modifier.size(36.dp).clip(CircleShape).background(iconTint.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) { Icon(icon, null, Modifier.size(20.dp), tint = iconTint) }
+            Icon(icon, null, Modifier.size(20.dp), tint = iconTint)
             Spacer(Modifier.width(14.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = titleColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = titleColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     subtitle,
@@ -231,7 +258,7 @@ fun GroupRow(
             Spacer(Modifier.width(12.dp))
             trailing()
         } else if (showChevron) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -246,7 +273,7 @@ fun GroupSwitch(
     onChange: (Boolean) -> Unit,
 ) {
     GroupRow(title, subtitle, icon, enabled = enabled, onClick = { onChange(!checked) }) {
-        Switch(checked, onCheckedChange = onChange, enabled = enabled)
+        CtrlSwitch(checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 
@@ -275,7 +302,7 @@ fun <T> ChoiceSheet(
     onDismiss: () -> Unit,
     onPick: (T) -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+    CtrlSheet(onDismissRequest = onDismiss) {
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
         LazyColumn(Modifier.navigationBarsPadding(), contentPadding = PaddingValues(bottom = 16.dp)) {
             items(options, key = { it.second }) { (value, label) ->
@@ -290,21 +317,18 @@ fun <T> ChoiceSheet(
                         color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    if (isSel) Icon(Icons.Filled.Check, stringResource(R.string.selected), tint = MaterialTheme.colorScheme.primary)
+                    if (isSel) Icon(Icons.Outlined.Check, stringResource(R.string.selected), tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
     }
 }
 
-// ---------- Floating glass tab bar ----------
+// ---------- Floating tab bar ----------
 
 data class TabItem(@StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector)
 
-private val BarHeight = 64.dp
-private val BarInset = 6.dp
-
-/** Floating "island" tab bar: a frosted glass pill with a lens that slides to the selected tab. */
+/** The floating Ctrl bottom bar (see [CtrlBottomBar]), 20 dp from the sides. */
 @Composable
 fun GlassTabBar(
     items: List<TabItem>,
@@ -312,65 +336,5 @@ fun GlassTabBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptics = LocalHapticFeedback.current
-    val itemWidth = if (items.size >= 5) 72.dp else 80.dp
-    val lensX by animateDpAsState(
-        targetValue = BarInset + itemWidth * selectedIndex.coerceAtLeast(0),
-        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow),
-        label = "lens",
-    )
-    Box(
-        modifier
-            .height(BarHeight)
-            .width(itemWidth * items.size + BarInset * 2)
-            .glass(CircleShape),
-    ) {
-        if (selectedIndex >= 0) {
-            Box(
-                Modifier
-                    .offset(x = lensX)
-                    .padding(vertical = BarInset)
-                    .width(itemWidth)
-                    .fillMaxHeight()
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-            )
-        }
-        Row(
-            Modifier.padding(horizontal = BarInset).fillMaxHeight().selectableGroup(),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            items.forEachIndexed { i, item ->
-                val selected = i == selectedIndex
-                val color by animateColorAsState(
-                    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    label = "tab-color",
-                )
-                Column(
-                    Modifier
-                        .width(itemWidth)
-                        .fillMaxHeight()
-                        .padding(vertical = BarInset)
-                        .clip(CircleShape)
-                        .selectable(
-                            selected = selected,
-                            onClick = {
-                                if (!selected) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelect(i)
-                            },
-                            role = Role.Tab,
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true),
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Icon(if (selected) item.selectedIcon else item.icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.height(2.dp))
-                    Text(stringResource(item.label), style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
-                }
-            }
-        }
-    }
+    CtrlBottomBar(items, selectedIndex, onSelect, modifier.padding(horizontal = 20.dp))
 }

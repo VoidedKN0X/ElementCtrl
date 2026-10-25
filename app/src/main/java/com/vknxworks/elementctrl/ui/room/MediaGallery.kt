@@ -25,14 +25,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -156,7 +156,7 @@ fun MediaGalleryScreen(
         },
     ) { pad ->
         if (timeline == null) {
-            EmptyState(Icons.Default.PhotoLibrary, stringResource(R.string.not_available_yet), stringResource(R.string.this_chat_may_still_be_syncing), Modifier.fillMaxSize().padding(pad))
+            EmptyState(Icons.Outlined.PhotoLibrary, stringResource(R.string.not_available_yet), stringResource(R.string.this_chat_may_still_be_syncing), Modifier.fillMaxSize().padding(pad))
             return@Scaffold
         }
         val entries by timeline.entries.collectAsStateWithLifecycle()
@@ -179,7 +179,7 @@ fun MediaGalleryScreen(
         Box(Modifier.fillMaxSize().padding(pad)) {
             when {
                 shown.isEmpty() && atStart -> EmptyState(
-                    if (tab == 0) Icons.Default.Image else Icons.Default.FolderOpen,
+                    if (tab == 0) Icons.Outlined.Image else Icons.Outlined.FolderOpen,
                     if (tab == 0) stringResource(R.string.no_photos_or_videos_yet) else stringResource(R.string.no_files_yet),
                     if (tab == 0) stringResource(R.string.photos_and_videos_shared_in_this) else stringResource(R.string.files_audio_and_voice_messages),
                 )
@@ -236,7 +236,7 @@ private fun MediaTile(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) 
                 Modifier.align(Alignment.BottomStart).padding(5.dp).background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(10.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Default.PlayArrow, stringResource(R.string.video), Modifier.size(14.dp), tint = Color.White)
+                Icon(Icons.Outlined.PlayArrow, stringResource(R.string.video), Modifier.size(14.dp), tint = Color.White)
                 if (duration != null && duration > 0) {
                     Spacer(Modifier.width(2.dp))
                     Text(formatDuration(duration), style = MaterialTheme.typography.labelSmall, color = Color.White)
@@ -266,18 +266,18 @@ private fun FileRow(m: TimelineEntry.Message, onOpen: (TimelineEntry.Message) ->
     val cs = MaterialTheme.colorScheme
     val (icon, title, detail) = when (val c = m.content) {
         is UiContent.Audio -> Triple(
-            if (c.isVoice) Icons.Default.Mic else Icons.Default.AudioFile,
+            if (c.isVoice) Icons.Outlined.Mic else Icons.Outlined.AudioFile,
             if (c.isVoice) Strings.str(R.string.voice_message_2) else c.filename,
             formatDuration(c.durationMs),
         )
-        is UiContent.File -> Triple(Icons.AutoMirrored.Filled.InsertDriveFile, c.filename, if (c.size > 0) formatSize(c.size) else null)
-        else -> Triple(Icons.AutoMirrored.Filled.InsertDriveFile, Strings.str(R.string.file_2), null)
+        is UiContent.File -> Triple(Icons.AutoMirrored.Outlined.InsertDriveFile, c.filename, if (c.size > 0) formatSize(c.size) else null)
+        else -> Triple(Icons.AutoMirrored.Outlined.InsertDriveFile, Strings.str(R.string.file_2), null)
     }
     Row(
         Modifier.fillMaxWidth().clickable { onOpen(m) }.padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(44.dp).background(cs.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(44.dp).background(cs.secondaryContainer, androidx.compose.foundation.shape.RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = cs.onSecondaryContainer)
         }
         Spacer(Modifier.width(14.dp))

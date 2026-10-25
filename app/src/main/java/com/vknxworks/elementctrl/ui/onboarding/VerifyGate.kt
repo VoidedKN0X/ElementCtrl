@@ -22,13 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -177,9 +177,9 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
         ) {
             Spacer(Modifier.height(32.dp))
             Box(
-                Modifier.size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                Modifier.size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, androidx.compose.foundation.shape.RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Default.VerifiedUser, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
+            ) { Icon(Icons.Outlined.VerifiedUser, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
             Text(stringResource(R.string.banner_verify_title), style = MaterialTheme.typography.headlineSmall)
             Text(
                 stringResource(R.string.verify_this_device_to_read_your),
@@ -188,7 +188,7 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
             )
             Spacer(Modifier.height(8.dp))
             MethodCard(
-                icon = Icons.Default.Devices,
+                icon = Icons.Outlined.Devices,
                 title = stringResource(R.string.use_another_device),
                 body = when (hasOtherDevices) {
                     false -> Strings.str(R.string.no_other_signed_in_device_found_sign)
@@ -199,7 +199,7 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
                 onClick = onDevice,
             )
             MethodCard(
-                icon = Icons.Default.Key,
+                icon = Icons.Outlined.Key,
                 title = stringResource(R.string.use_your_recovery_key),
                 body = if (keyAvailable) stringResource(R.string.the_recovery_key_security_key_you)
                 else stringResource(R.string.key_storage_isn_t_set_up_on_this),
@@ -222,18 +222,18 @@ private fun ChooseMethod(session: MatrixSession, onDevice: () -> Unit, onKey: ()
 
 @Composable
 private fun MethodCard(icon: ImageVector, title: String, body: String, enabled: Boolean, loading: Boolean, onClick: () -> Unit) {
-    Card(
+    Card(border = androidx.compose.foundation.BorderStroke(1.dp, com.vknxworks.elementctrl.ui.CtrlColors.Border), 
         onClick = onClick,
         enabled = enabled && !loading,
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.size(44.dp).background(
                     if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    CircleShape,
+                    androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                 ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -249,7 +249,7 @@ private fun MethodCard(icon: ImageVector, title: String, body: String, enabled: 
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            else if (enabled) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+            else if (enabled) Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null)
         }
     }
 }
@@ -300,7 +300,7 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 stringResource(R.string.enter_the_recovery_key_you_saved),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedTextField(
+            com.vknxworks.elementctrl.ui.components.CtrlTextField(
                 value = key,
                 onValueChange = { key = it; error = null },
                 label = { Text(stringResource(R.string.recovery_key_or_passphrase)) },
@@ -315,14 +315,14 @@ private fun RecoveryKeyEntry(session: MatrixSession, onBack: () -> Unit) {
                 supportingText = error?.let { { Text(it) } },
                 trailingIcon = {
                     IconButton(onClick = { clipboard.getText()?.text?.let { key = it.trim(); error = null } }) {
-                        Icon(Icons.Default.ContentPaste, stringResource(R.string.paste))
+                        Icon(Icons.Outlined.ContentPaste, stringResource(R.string.paste))
                     }
                 },
                 minLines = 2,
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(onClick = { submit() }, enabled = key.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = { submit() }, enabled = key.isNotBlank() && !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 else Text(stringResource(R.string.banner_verify))
             }
@@ -337,12 +337,12 @@ private fun VerifiedDone(onContinue: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Default.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
+        Icon(Icons.Outlined.CheckCircle, null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.device_verified), style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.your_encrypted_messages_will_start), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(stringResource(R.string.continue_text)) }
+        com.vknxworks.elementctrl.ui.components.CtrlButton(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text(stringResource(R.string.continue_text)) }
     }
 }

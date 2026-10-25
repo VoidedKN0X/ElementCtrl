@@ -14,12 +14,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Headphones
-import androidx.compose.material.icons.filled.PhoneInTalk
-import androidx.compose.material.icons.filled.Usb
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.PhoneInTalk
+import androidx.compose.material.icons.outlined.Usb
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,8 +47,9 @@ internal fun AudioOutputSheet(options: List<AudioOutput>, onPick: (String) -> Un
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
         containerColor = cs.surfaceContainer,
+        tonalElevation = 0.dp,
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Text(
@@ -76,7 +77,7 @@ internal fun AudioOutputSheet(options: List<AudioOutput>, onPick: (String) -> Un
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
-                        Modifier.size(40.dp).clip(CircleShape)
+                        Modifier.size(40.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
                             .background(if (o.selected) cs.primary else cs.surfaceContainerHighest),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -91,7 +92,7 @@ internal fun AudioOutputSheet(options: List<AudioOutput>, onPick: (String) -> Un
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    if (o.selected) Icon(Icons.Filled.Check, stringResource(R.string.call_audio_output_in_use), tint = cs.onSecondaryContainer)
+                    if (o.selected) Icon(Icons.Outlined.Check, stringResource(R.string.call_audio_output_in_use), tint = cs.onSecondaryContainer)
                 }
             }
         }
@@ -99,10 +100,10 @@ internal fun AudioOutputSheet(options: List<AudioOutput>, onPick: (String) -> Un
 }
 
 private fun icon(kind: AudioOutput.Kind): ImageVector = when (kind) {
-    AudioOutput.Kind.EARPIECE -> Icons.Filled.PhoneInTalk
-    AudioOutput.Kind.SPEAKER -> Icons.AutoMirrored.Filled.VolumeUp
-    AudioOutput.Kind.BLUETOOTH -> Icons.Filled.Bluetooth
-    AudioOutput.Kind.WIRED -> Icons.Filled.Headphones
-    AudioOutput.Kind.USB -> Icons.Filled.Usb
-    AudioOutput.Kind.OTHER -> Icons.AutoMirrored.Filled.VolumeUp
+    AudioOutput.Kind.EARPIECE -> Icons.Outlined.PhoneInTalk
+    AudioOutput.Kind.SPEAKER -> Icons.AutoMirrored.Outlined.VolumeUp
+    AudioOutput.Kind.BLUETOOTH -> Icons.Outlined.Bluetooth
+    AudioOutput.Kind.WIRED -> Icons.Outlined.Headphones
+    AudioOutput.Kind.USB -> Icons.Outlined.Usb
+    AudioOutput.Kind.OTHER -> Icons.AutoMirrored.Outlined.VolumeUp
 }

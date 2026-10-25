@@ -49,12 +49,12 @@ fun BubbleStylePicker(current: BubbleStyle, onPick: (BubbleStyle) -> Unit, onDis
             onJumpToReply = {}, onVote = { _, _ -> }, onRetry = {},
         )
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    com.vknxworks.elementctrl.ui.components.CtrlSheet(onDismissRequest = onDismiss) {
         Text(stringResource(R.string.bubbles), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(BubbleStyle.entries) { style ->
                 val selected = style == current
-                Card(
+                Card(shape = com.vknxworks.elementctrl.ui.CtrlShapes.Card, 
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
                     modifier = Modifier.fillMaxWidth().clickable { onPick(style); onDismiss() },
